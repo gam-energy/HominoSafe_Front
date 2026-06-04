@@ -8,7 +8,7 @@ import Cookies from "js-cookie";
 
 // const API_BASE_URL = 'http://130.185.121.61:8888';
 // const API_BASE_URL = "http://127.0.0.1:8888";
-const API_BASE_URL = "http://192.168.110.29:8888";
+const API_BASE_URL = "http://93.118.120.215:8888";
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
