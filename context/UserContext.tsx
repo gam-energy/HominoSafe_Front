@@ -16,6 +16,7 @@ type User = {
 } | null;
 
 interface UserContextType {
+  role: string;
   user: User;
   setUser: (user: User) => void;
 }
@@ -30,7 +31,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       const accessToken = Cookies.get("access_token");
       const refreshToken = Cookies.get("refresh_token");
 
-      // اگر هیچ‌کدام از توکن‌ها نبودند، درخواست نزن
       if (!accessToken || !refreshToken) {
         console.warn("⏳ توکن‌ها هنوز ست نشده‌اند، درخواست به /user ارسال نمی‌شود");
         return;
@@ -50,7 +50,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   return (
-    <UserContext.Provider value={{ user, setUser }}>
+    <UserContext.Provider value={{ user, setUser, role: user?.role || "" }}>
       {children}
     </UserContext.Provider>
   );

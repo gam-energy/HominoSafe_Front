@@ -5,16 +5,12 @@ import { OverviewSection } from "./OverviewSection";
 import { useUser } from "@/context/UserContext";
 import { useHistory } from "../../api/patient/useGetHistory";
 import { HistoryChart } from "./HistoryChart";
+import { Card } from "@/components/ui/card";
+import PageContainer from "@/components/layout/page-container";
+import { Heading } from "@/components/ui/heading";
+import { Activity } from "lucide-react";
 
-type Metric =
-  | "heart_rate"
-  | "spo2"
-  | "bp_systolic"
-  | "bp_diastolic"
-  | "temperature"
-  | "body_temperature"
-  | "humidity"
-  | "mq2";
+type Metric = "heart_rate" | "spo2" | "blood_pressure";
 
 type OverviewData = {
   wearable: {
@@ -35,32 +31,18 @@ type OverviewData = {
   };
 };
 
-
-const heartRateList: number[] = [68];
-const bpSystolicList: number[] = [122];
-const bpDiastolicList: number[] = [71];
-const spo2List: number[] = [95];
-const temperatureList: number[] = [36.9];
-const envTemperatureList: number[] = [
-  25, 26, 24, 23, 22, 21, 22, 23, 24, 25, 26, 27, 28, 27, 26, 25, 24, 23, 22,
-  21,
-];
-const humidityList: number[] = [
-  50, 52, 54, 53, 51, 50, 49, 48, 50, 52, 54, 53, 51, 50, 49, 48, 50, 52, 54,
-  53,
-];
-const mq25List: number[] = [
-  15, 16, 14, 13, 12, 13, 14, 15, 16, 15, 14, 13, 12, 13, 14, 15, 16, 15, 14,
-  13,
-];
-const co2List: number[] = [
-  450, 455, 460, 458, 455, 452, 450, 448, 445, 450, 455, 460, 458, 455, 452,
-  450, 448, 445, 450, 455,
-];
+const heartRateList: number[] = [72, 74, 76, 78, 80, 82, 79, 77, 75, 73, 71, 70, 69, 68, 70, 72, 74, 76, 78, 80];
+const bpSystolicList: number[] = [120, 122, 121, 119, 118, 117, 116, 115, 117, 119, 121, 123, 124, 122, 120, 118, 117, 119, 121, 120];
+const bpDiastolicList: number[] = [80, 81, 79, 78, 77, 76, 75, 74, 76, 78, 80, 82, 83, 81, 80, 78, 77, 79, 80, 81];
+const spo2List: number[] = [98, 97, 99, 98, 97, 96, 98, 99, 97, 98, 99, 98, 97, 96, 98, 99, 98, 97, 99, 98];
+const temperatureList: number[] = [36.5, 36.6, 36.7, 36.8, 36.6, 36.5, 36.4, 36.3, 36.5, 36.6, 36.7, 36.8, 36.6, 36.5, 36.4, 36.3, 36.5, 36.6, 36.7, 36.8];
+const envTemperatureList: number[] = [25, 26, 24, 23, 22, 21, 22, 23, 24, 25, 26, 27, 28, 27, 26, 25, 24, 23, 22, 21];
+const humidityList: number[] = [50, 52, 54, 53, 51, 50, 49, 48, 50, 52, 54, 53, 51, 50, 49, 48, 50, 52, 54, 53];
+const mq25List: number[] = [15, 16, 14, 13, 12, 13, 14, 15, 16, 15, 14, 13, 12, 13, 14, 15, 16, 15, 14, 13];
+const co2List: number[] = [450, 455, 460, 458, 455, 452, 450, 448, 445, 450, 455, 460, 458, 455, 452, 450, 448, 445, 450, 455];
 
 function generateMockOverviewData(index: number): OverviewData {
   const now = new Date().toISOString();
-
   return {
     wearable: {
       timestamp: now,
@@ -83,33 +65,17 @@ function generateMockOverviewData(index: number): OverviewData {
 
 const Dashboard = () => {
   const { user } = useUser();
-  const [selectedMetric, setSelectedMetric] = useState<Metric>("heart_rate");
-
-  const [selectedPeriod, setSelectedPeriod] = useState<
-    "day" | "week" | "month"
-  >("day");
-
   const userId = user?.id ?? 0;
+  const metrics: Metric[] = ["heart_rate"];
+  const metric = metrics[0];
 
-  // const metrics: Metric[] = ["heart_rate"];
-  // const metric = metrics[0];
-
-  const [heartRateIndex, setHeartRateIndex] = useState(0);
   const [metricIndex, setMetricIndex] = useState(0);
-  const [mockOverviewData, setMockOverviewData] = useState<OverviewData>(
-    generateMockOverviewData(0)
-  );
+  const [mockOverviewData, setMockOverviewData] = useState<OverviewData>(generateMockOverviewData(0));
 
   useEffect(() => {
     const interval = setInterval(() => {
-      const tehranTime = new Date().toLocaleString("en-US", {
-        timeZone: "Asia/Tehran",
-      });
-      const tehranDate = new Date(tehranTime);
-      const hour = tehranDate.getHours();
-      const minute = tehranDate.getMinutes();
-
-      if (hour === 17 && minute === 30) {
+      const tehranDate = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tehran" }));
+      if (tehranDate.getHours() === 17 && tehranDate.getMinutes() === 30) {
         setMetricIndex(0);
       } else {
         setMetricIndex((prev) => (prev + 1) % heartRateList.length);
@@ -122,130 +88,70 @@ const Dashboard = () => {
     setMockOverviewData(generateMockOverviewData(metricIndex));
   }, [metricIndex]);
 
-  const { data: historyData, isLoading: isHistoryLoading } = useHistory(
-    userId,
-    [selectedMetric],
-    selectedPeriod
-  );
-
-  useEffect(() => {
-    console.log("historyData:", historyData);
-  }, [historyData]);
+  const { data: historyData, isLoading: isHistoryLoading } = useHistory(userId, metrics);
 
   const hasHistoryData =
     !!historyData &&
     !!historyData.data &&
-    Array.isArray(
-      (historyData.data as unknown as Record<string, any[]>)[selectedMetric]
-    ) &&
-    (historyData.data as unknown as Record<string, any[]>)[selectedMetric]
-      .length > 0;
+    typeof historyData.data === "object" &&
+    !Array.isArray(historyData.data) &&
+    Array.isArray((historyData.data as Record<string, any[]>)[metric]) &&
+    (historyData.data as Record<string, any[]>)[metric].length > 0;
 
   return (
-    <div className="w-full rounded-2xl flex flex-col gap-6 p-3 sm:p-6 bg-white dark:bg-zinc-900 transition-colors duration-300">
-      {/* Row 1 */}
-      <div className="flex flex-col xl:flex-row gap-6 justify-between items-stretch">
-        <div className="w-full xl:w-1/4 2xl:w-1/5 flex-shrink-0">
-          <div className="h-full bg-white dark:bg-zinc-800 rounded-xl shadow-md p-4 transition-colors duration-300">
-            <ProfileCard />
-          </div>
+    <PageContainer scrollable>
+      <div className="flex flex-col gap-6 p-1">
+        <div className="flex items-center justify-between">
+          <Heading title="Dashboard Overview" description={`Welcome back, ${user?.first_name || 'User'}!`} />
         </div>
 
-        <div className="w-full xl:flex-1">
-          <div className="h-full bg-white dark:bg-zinc-800 rounded-xl shadow-md p-4 transition-colors duration-300">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1 h-full">
+            <ProfileCard />
+          </div>
+          <div className="lg:col-span-2 h-full">
             <Ovreview />
           </div>
         </div>
-      </div>
 
-      {/* Row 2 */}
-      <div className="flex flex-col xl:flex-row gap-6 justify-between items-stretch">
-        {/* Left Section */}
-        <div className="w-full xl:w-1/2">
-          <div className="h-full bg-white dark:bg-zinc-800 rounded-xl shadow-md p-4 transition-colors duration-300">
-            <OverviewSection data={mockOverviewData} />
-          </div>
-        </div>
-
-        {/* Right Section */}
-        <div className="w-full xl:w-1/2 flex flex-col">
-          {/* ===== Header فیکس بالا ===== */}
-          <div className="flex justify-between items-center mb-4 bg-white dark:bg-zinc-800 p-4 border-gray-200 dark:border-zinc-700 mt-5 rounded-lg">
-            {/* عنوان سمت چپ */}
-            <h2 className="text-lg font-semibold capitalize">History chart</h2>
-
-            {/* فیلترها سمت راست */}
-            <div className="flex gap-2">
-              <select
-                value={selectedMetric}
-                onChange={(e) => setSelectedMetric(e.target.value as Metric)}
-                className="rounded-lg border px-3 py-2 dark:bg-zinc-700"
-              >
-                {[
-                  "heart_rate",
-                  "spo2",
-                  "bp_systolic",
-                  "bp_diastolic",
-                  "temperature",
-                  "body_temperature",
-                  "humidity",
-                  "mq2",
-                ].map((m) => (
-                  <option key={m} value={m}>
-                    {m.replace("_", " ")}
-                  </option>
-                ))}
-              </select>
-
-              <select
-                value={selectedPeriod}
-                onChange={(e) =>
-                  setSelectedPeriod(e.target.value as "day" | "week" | "month")
-                }
-                className="rounded-lg border px-3 py-2 dark:bg-zinc-700"
-              >
-                {[
-                  { label: "Last Day", value: "day" },
-                  { label: "Last Week", value: "week" },
-                  { label: "Last Month", value: "month" },
-                ].map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <OverviewSection data={mockOverviewData} />
+          
+          <Card className="bg-white dark:bg-zinc-800 rounded-2xl shadow-lg border border-gray-100 dark:border-zinc-700 p-6 flex flex-col transition-all duration-300 hover:shadow-xl">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold tracking-tight">Heart Rate History</h3>
+              <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                Live Data
+              </div>
             </div>
-          </div>
-
-          {/* Chart Container با overflow و flex-grow */}
-          <div className="flex-1 overflow-auto p-4 bg-white dark:bg-zinc-800 rounded-xl shadow-md">
-            {isHistoryLoading ? (
-              <p className="text-gray-500 dark:text-gray-300 text-center">
-                Loading history...
-              </p>
-            ) : (
-              <HistoryChart
-                data={
-                  (historyData.data as unknown as Record<string, any[]>)[
-                    selectedMetric
-                  ]
-                }
-                metric={selectedMetric}
-                timePeriod={selectedPeriod}
-                setMetric={() => {}}
-                setTimePeriod={() => {}}
-                unit={
-                  historyData.units?.[
-                    selectedMetric as keyof typeof historyData.units
-                  ]
-                }
-                className=""
-              />
-            )}
-          </div>
+            <div className="flex-1 min-h-[300px]">
+              {isHistoryLoading ? (
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                  <div className="animate-pulse flex flex-col items-center gap-2">
+                    <div className="h-8 w-8 bg-blue-200 dark:bg-blue-800 rounded-full animate-bounce" />
+                    <span>Loading history...</span>
+                  </div>
+                </div>
+              ) : hasHistoryData ? (
+                <HistoryChart
+                  data={((historyData.data as unknown) as Record<string, any[]>)[metric]}
+                  metric={metric}
+                  unit={historyData.units?.[metric as keyof typeof historyData.units]}
+                  className="w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
+                  <div className="p-4 rounded-full bg-gray-50 dark:bg-zinc-900">
+                    <Activity className="w-8 h-8 opacity-20" />
+                  </div>
+                  <p>No history data to display.</p>
+                </div>
+              )}
+            </div>
+          </Card>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

@@ -50,6 +50,7 @@ import { useSignOut } from '@/features/auth/api/use-sign-out';
 import { useUser } from '@/context/UserContext';
 import type { NavItem } from '@/types';
 import { BriefcaseMedical } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export const company = {
   name: 'Acme Inc',
@@ -64,6 +65,7 @@ const tenants = [
 ];
 
 export default function AppSidebar() {
+  const { t } = useTranslation();
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
   const logoutMutation = useSignOut();
@@ -98,11 +100,11 @@ export default function AppSidebar() {
         /> */}
       <SidebarHeader className="flex items-center gap-2 px-4 py-3 text-primary font-semibold text-lg">
         <BriefcaseMedical className="w-5 h-5"/>
-        {isOpen && <span className="truncate">Seniosentry Safe</span>}
+        {isOpen && <span className="truncate">Homino Safe</span>}
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>
-          <SidebarGroupLabel>Overview</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('overview', 'Overview')}</SidebarGroupLabel>
           <SidebarMenu>
             {navItems.map((item) => {
               const Icon = item.icon ? Icons[item.icon] : Icons.logo;
@@ -117,11 +119,11 @@ export default function AppSidebar() {
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton
-                        tooltip={item.title}
+                        tooltip={t(item.title.toLowerCase().replace(/\s+/g, '_'), item.title)}
                         isActive={pathname === item.url}
                       >
                         {Icon && <Icon />}
-                        <span>{item.title}</span>
+                        <span>{t(item.title.toLowerCase().replace(/\s+/g, '_'), item.title)}</span>
                         <IconChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
@@ -134,7 +136,7 @@ export default function AppSidebar() {
                               isActive={pathname === subItem.url}
                             >
                               <Link href={subItem.url}>
-                                <span>{subItem.title}</span>
+                                <span>{t(subItem.title.toLowerCase().replace(/\s+/g, '_'), subItem.title)}</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
@@ -147,12 +149,12 @@ export default function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    tooltip={item.title}
+                    tooltip={t(item.title.toLowerCase().replace(/\s+/g, '_'), item.title)}
                     isActive={pathname === item.url}
                   >
                     <Link href={item.url}>
                       {Icon && <Icon />}
-                      <span>{item.title}</span>
+                      <span>{t(item.title.toLowerCase().replace(/\s+/g, '_'), item.title)}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -204,17 +206,21 @@ export default function AppSidebar() {
                     onClick={() => router.push('/dashboard/profile')}
                   >
                     <IconUserCircle className="mr-2 h-4 w-4" />
-                    Profile
+                    {t('profile')}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <IconCreditCard className="mr-2 h-4 w-4" />
+                    {t('billing', 'Billing')}
                   </DropdownMenuItem>
                   <DropdownMenuItem>
                     <IconBell className="mr-2 h-4 w-4" />
-                    Notifications
+                    {t('notifications', 'Notifications')}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <IconLogout className="mr-2 h-4 w-4" />
-                  <div onClick={handleLogout}>sign out</div>
+                  <div onClick={handleLogout}>{t('logout')}</div>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

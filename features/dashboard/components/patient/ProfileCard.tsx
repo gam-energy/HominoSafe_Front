@@ -1,198 +1,87 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { toast } from "sonner";
-import { Edit, LoaderIcon, Watch, Clock, X } from "lucide-react";
-
-import { useUserProfile } from "@/features/profile/hook/useGetUser";
-import { useDeviceLogin } from "@/features/dashboard/api/patient/useDeviceLogin";
-
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-
-// OTP Toast Component با دکمه بستن
-function OtpToast({
-  code,
-  duration,
-  toastId,
-}: {
-  code: string;
-  duration: number;
-  toastId: string;
-}) {
-  const [seconds, setSeconds] = useState(duration);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setSeconds((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return (
-    <div className="flex flex-col gap-2 p-3 bg-green-50 dark:bg-zinc-700 border border-green-200 dark:border-zinc-600 rounded-xl shadow-md min-w-[220px]">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">One-Time Password</p>
-          <p className="text-2xl font-bold tracking-widest text-green-600">
-            {code}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1 text-sm text-muted-foreground">
-            <Clock className="w-4 h-4" />
-            <span>{seconds}s</span>
-          </div>
-          <button
-            onClick={() => toast.dismiss(toastId)}
-            className="text-muted-foreground hover:text-red-500 transition-colors"
-            aria-label="Close OTP"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { useUser } from '@/context/UserContext';
+import {
+  Card,
+  CardContent,
+  CardTitle,
+} from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Circle, Edit, User, Phone, Mail } from 'lucide-react';
+import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export default function ProfileCard() {
-  const { data: user } = useUserProfile();
-  const { mutate: deviceLogin, isLoading: isDeviceLoading } = useDeviceLogin();
-  const [otpActive, setOtpActive] = useState(false);
+  const { user } = useUser();
 
   if (!user) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+      <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-white dark:bg-zinc-800 rounded-2xl shadow-lg p-8">
         No user data available.
       </div>
     );
   }
 
-  const handleConnectDevice = () => {
-    deviceLogin(undefined, {
-      onSuccess: (data) => {
-        setOtpActive(true);
-
-        // نمایش OTP در toast با دکمه بستن
-        const toastId = toast.custom(
-          (t) => (
-            <OtpToast
-              code={data.code}
-              duration={data.expires_in_seconds}
-              toastId={(t as any).id}
-            />
-          ),
-          {
-            duration: Infinity,
-            position: "top-right",
-          }
-        );
-
-        // فعال شدن دوباره دکمه پس از پایان مدت زمان
-        setTimeout(() => {
-          setOtpActive(false);
-        }, data.expires_in_seconds * 1000);
-      },
-      onError: () => {
-        toast.error("Device connection failed");
-      },
-    });
-  };
+  const statusColor =
+    user.status === 'active' ? 'bg-green-500' : 'bg-yellow-500';
 
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-xl p-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 w-full">
-        <div className="relative flex flex-col items-center">
-          <Avatar className="h-20 w-20 sm:h-24 sm:w-24 border-2 border-gray-200 dark:border-zinc-600 shadow-lg">
+    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-lg border border-gray-100 dark:border-zinc-700 p-6 flex flex-col gap-6 transition-all duration-300 hover:shadow-xl h-full">
+      <div className="flex flex-col items-center text-center gap-4">
+        <div className="relative">
+          <Avatar className="h-24 w-24 border-4 border-blue-50 dark:border-zinc-700 shadow-md">
             <AvatarImage src="/placeholder-user.png" alt={user.first_name} />
-            <AvatarFallback>
+            <AvatarFallback className="text-xl bg-blue-600 text-white">
               {user.first_name[0]}
               {user.last_name[0]}
             </AvatarFallback>
           </Avatar>
-          <div className="absolute bottom-0 right-0 translate-x-1/4 translate-y-1/4">
-            <Link href="/dashboard/profile">
-              <Button
-                variant="outline"
-                size="icon"
-                className="p-1 w-8 h-8"
-                aria-label="Edit profile"
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
+          <div className={cn("absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-white dark:border-zinc-800", statusColor)} />
         </div>
 
-        <div className="flex-1 flex flex-col gap-3 w-full text-center sm:text-left">
-          <CardTitle className="text-xl sm:text-2xl font-bold">
+        <div className="space-y-1">
+          <CardTitle className="text-2xl font-bold tracking-tight">
             {user.first_name} {user.last_name}
           </CardTitle>
-          <CardTitle className="text-md sm:text-md font-semibold">
-            gender : {user.gender}
-          </CardTitle>
+          <p className="text-sm text-muted-foreground font-medium">@{user.username}</p>
         </div>
       </div>
 
-      <CardContent className="mt-6 px-0">
-        <div className="hidden sm:grid grid-cols-3 gap-4 text-center">
-          <Card className="bg-muted dark:bg-zinc-700 p-4 rounded-xl shadow-sm">
-            <p className="text-sm text-muted-foreground">Age</p>
-            <p className="text-lg font-semibold">{user.age}</p>
-          </Card>
-          <Card className="bg-muted dark:bg-zinc-700 p-4 rounded-xl shadow-sm">
-            <p className="text-sm text-muted-foreground">Height</p>
-            <p className="text-lg font-semibold">{user.height}</p>
-          </Card>
-          <Card className="bg-muted dark:bg-zinc-700 p-4 rounded-xl shadow-sm">
-            <p className="text-sm text-muted-foreground">Weight</p>
-            <p className="text-lg font-semibold">{user.weight}</p>
-          </Card>
+      <div className="space-y-3">
+        <div className="flex items-center gap-3 text-sm text-muted-foreground p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700/50 transition-colors">
+          <Phone className="w-4 h-4 text-blue-500" />
+          <span>+98 913 104 6553</span>
         </div>
+        <div className="flex items-center gap-3 text-sm text-muted-foreground p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-700/50 transition-colors">
+          <Mail className="w-4 h-4 text-blue-500" />
+          <span>{user.email || 'No email provided'}</span>
+        </div>
+      </div>
 
-        <div className="grid sm:hidden bg-muted dark:bg-zinc-700 p-4 rounded-xl shadow-sm gap-2">
-          <div className="flex justify-between text-center">
-            <div className="flex flex-col flex-1">
-              <p className="text-sm text-muted-foreground">Age</p>
-              <p className="text-lg font-semibold">{user.age}</p>
-            </div>
-            <div className="flex flex-col flex-1">
-              <p className="text-sm text-muted-foreground">Weight</p>
-              <p className="text-lg font-semibold">{user.weight}</p>
-            </div>
-            <div className="flex flex-col flex-1">
-              <p className="text-sm text-muted-foreground">Height</p>
-              <p className="text-lg font-semibold">{user.height}</p>
+      <div className="grid grid-cols-3 gap-2">
+        {[
+          { label: 'Weight', value: '68', unit: 'kg' },
+          { label: 'Height', value: '167', unit: 'cm' },
+          { label: 'Age', value: '48', unit: 'yrs' },
+        ].map((item) => (
+          <div key={item.label} className="bg-gray-50 dark:bg-zinc-900/50 p-3 rounded-xl flex flex-col items-center justify-center gap-1 border border-transparent hover:border-blue-100 dark:hover:border-blue-900 transition-all">
+            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-tighter">{item.label}</span>
+            <div className="font-bold text-sm">
+              {item.value}<span className="text-[10px] ml-0.5 font-normal text-muted-foreground">{item.unit}</span>
             </div>
           </div>
-        </div>
-        <div className="mt-4 flex justify-center items-cente">
-          <Button
-            onClick={handleConnectDevice}
-            disabled={isDeviceLoading || otpActive}
-            size="sm"
-            className="bg-green-500 hover:bg-green-600 text-white rounded-lg px-3 py-2 flex items-center gap-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isDeviceLoading ? (
-              <LoaderIcon className="w-4 h-4 animate-spin" />
-            ) : (
-              <Watch className="w-4 h-4" />
-            )}
-            <span>{isDeviceLoading ? "Connecting..." : "Connect Device"}</span>
+        ))}
+      </div>
+
+      <div className="mt-auto pt-4">
+        <Link href="/dashboard/profile" className="w-full">
+          <Button variant="outline" className="w-full rounded-xl hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 dark:hover:bg-blue-900/20 dark:hover:text-blue-400 dark:hover:border-blue-800 transition-all group">
+            <Edit className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+            Edit Profile
           </Button>
-        </div>
-      </CardContent>
+        </Link>
+      </div>
     </div>
   );
-}
+};

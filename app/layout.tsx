@@ -17,8 +17,14 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  title: 'Senisentry',
-  description: 'Monitoring and management platform for Seniosentry',
+  title: 'Homino Safe',
+  description: 'Monitoring and management platform for Homino Safe',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Homino Safe',
+  },
 };
 
 export const viewport: Viewport = {
