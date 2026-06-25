@@ -208,7 +208,7 @@ export const SummarySection: FC<SummarySectionProps> = ({
         <motion.div 
           initial={{ opacity: 0, y: 5 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-3.5 max-h-[340px] overflow-y-auto pr-1"
+          className="space-y-3.5 pb-10"
         >
           {(!data.risk_assessments || data.risk_assessments.length === 0) ? (
             <div className="text-sm text-gray-500 dark:text-zinc-400 italic py-8 text-center bg-muted/20 rounded-2xl border border-dashed">

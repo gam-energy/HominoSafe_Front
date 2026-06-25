@@ -24,8 +24,14 @@ interface UserProfileListProps {
 }
 
 const UserProfileList: FC<UserProfileListProps> = ({ userId }) => {
-  const { data, isLoading, error } = useUserProfiles(userId);
+  const { data: profilesData, isLoading, error } = useUserProfiles(userId);
   const currentUser = useUser()
+
+  const data = useMemo(() => {
+    if (!profilesData) return [];
+    if (Array.isArray(profilesData)) return profilesData;
+    return [profilesData];
+  }, [profilesData]);
 
   useEffect(()=>{
     console.log(currentUser.user?.role);

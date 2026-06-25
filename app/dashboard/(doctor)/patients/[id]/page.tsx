@@ -1,18 +1,7 @@
-// app/chat/[id]/page.tsx
 'use client';
 
-import { LoaderIcon } from '@/components/chat/icons';
-import PatientProfile from '@/features/patients-list/components/user/PatientProfile';
-import { useParams } from 'next/navigation';
+import DoctorPatientDetail from '@/features/patients-list/components/DoctorPatientDetail';
 
-
-
-export default function ChatPage() {
-  const params = useParams();
-  const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : '';
-
-
-  return (
-    <PatientProfile userId={Number(id)}/>
-  );
+export default function PatientDetailPage() {
+  return <DoctorPatientDetail />;
 }

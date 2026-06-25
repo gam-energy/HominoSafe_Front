@@ -10,10 +10,19 @@ import {
 import { useBreadcrumbs } from '@/hooks/use-breadcrumbs';
 import { IconSlash } from '@tabler/icons-react';
 import { Fragment } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export function Breadcrumbs() {
   const items = useBreadcrumbs();
+  const { t } = useTranslation();
+
   if (items.length === 0) return null;
+
+  const translateTitle = (title: string) => {
+    // Convert "Health-kpis" to "health_kpis" or "Dashboard" to "dashboard"
+    const key = title.toLowerCase().replace(/-/g, '_').replace(/\s+/g, '_');
+    return t(key, title);
+  };
 
   return (
     <Breadcrumb>
@@ -22,7 +31,9 @@ export function Breadcrumbs() {
           <Fragment key={item.title}>
             {index !== items.length - 1 && (
               <BreadcrumbItem className='hidden md:block'>
-                <BreadcrumbLink href={item.link}>{item.title}</BreadcrumbLink>
+                <BreadcrumbLink href={item.link}>
+                  {translateTitle(item.title)}
+                </BreadcrumbLink>
               </BreadcrumbItem>
             )}
             {index < items.length - 1 && (
@@ -31,7 +42,7 @@ export function Breadcrumbs() {
               </BreadcrumbSeparator>
             )}
             {index === items.length - 1 && (
-              <BreadcrumbPage>{item.title}</BreadcrumbPage>
+              <BreadcrumbPage>{translateTitle(item.title)}</BreadcrumbPage>
             )}
           </Fragment>
         ))}

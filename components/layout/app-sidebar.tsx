@@ -28,6 +28,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
   SidebarRail,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { roleNavItems } from '@/constant/data';
@@ -72,6 +73,7 @@ export default function AppSidebar() {
   const logoutMutation = useSignOut();
   const router = useRouter();
   const { user } = useUser();
+  const { state } = useSidebar();
   const role = user?.role as keyof typeof roleNavItems;
 
   
@@ -100,8 +102,8 @@ export default function AppSidebar() {
           onTenantSwitch={handleSwitchTenant}
         /> */}
       <SidebarHeader className="flex items-center gap-2 px-4 py-3 text-primary font-semibold text-lg">
-        <BriefcaseMedical className="w-5 h-5"/>
-        {isDesktop && <span className="truncate">SenioSentry</span>}
+        <BriefcaseMedical className="w-5 h-5 shrink-0"/>
+        {state === 'expanded' && <span className="truncate">SenioSentry</span>}
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>

@@ -4,16 +4,44 @@ import { useUser } from '@/context/UserContext';
 import { CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Edit, Phone, Mail, Sparkles, Scale, Ruler, CalendarDays } from 'lucide-react';
+import { Edit, Phone, Mail, Sparkles, Scale, Ruler, CalendarDays, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
+import { useCreateRoom } from '@/features/chat/api/use-craete-room';
+import { useState } from 'react';
 
-export default function ProfileCard() {
+type ViewedUser = {
+  id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone_number: string;
+  status?: string;
+};
+
+interface ProfileCardProps {
+  /**
+   * Optional user object to display. When omitted, the card shows the
+   * currently logged-in user (used on the patient's own dashboard).
+   * When provided (e.g. a doctor viewing a patient), the card shows
+   * that user's info and exposes a "Message patient" action.
+   */
+  viewedUser?: ViewedUser;
+}
+
+export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
   const { t, i18n } = useTranslation();
-  const { user } = useUser();
+  const { user: currentUser } = useUser();
   const isRtl = (i18n.language || 'en').startsWith('fa');
+  const router = useRouter();
+  const createRoomMutation = useCreateRoom();
+  const [isCreatingRoom, setIsCreatingRoom] = useState(false);
+
+  const user = viewedUser ?? currentUser;
 
   if (!user) {
     return (
@@ -24,6 +52,26 @@ export default function ProfileCard() {
   }
 
   const isOnline = user.status === 'active';
+  const isViewingOther = !!viewedUser && currentUser?.id !== viewedUser.id;
+
+  const handleMessagePatient = async () => {
+    if (!viewedUser) return;
+    setIsCreatingRoom(true);
+    try {
+      const response = await createRoomMutation.mutateAsync({
+        target_username: viewedUser.username,
+        room_name: viewedUser.username,
+        topic: 'General_discussion',
+      });
+      if (response?.room_id) {
+        router.push(`/dashboard/chat/${response.room_id}`);
+      }
+    } catch (error) {
+      console.error('Failed to start chat with patient:', error);
+    } finally {
+      setIsCreatingRoom(false);
+    }
+  };
 
   return (
     <motion.div
@@ -75,7 +123,7 @@ export default function ProfileCard() {
       <div className="space-y-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center gap-3 text-sm text-muted-foreground p-2.5 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all duration-300">
           <Phone className="w-4 h-4 text-primary" />
-          <span className="ltr-nums font-semibold">+98 913 104 6553</span>
+          <span className="ltr-nums font-semibold">{user.phone_number || '—'}</span>
         </div>
         <div className="flex items-center gap-3 text-sm text-muted-foreground p-2.5 rounded-xl hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-all duration-300">
           <Mail className="w-4 h-4 text-primary" />
@@ -111,14 +159,25 @@ export default function ProfileCard() {
         })}
       </div>
 
-      {/* Edit Button */}
+      {/* Action Button */}
       <div className="mt-auto pt-4">
-        <Link href="/dashboard/profile" className="w-full">
-          <Button variant="outline" className="w-full rounded-2xl h-11 hover:bg-primary hover:text-white dark:hover:bg-blue-600 dark:hover:text-white border-zinc-200 dark:border-zinc-800 hover:border-transparent transition-all duration-300 group">
-            <Edit className="w-4 h-4 me-2 group-hover:rotate-12 transition-transform duration-300" />
-            {t('edit_profile', 'Edit Profile')}
+        {isViewingOther ? (
+          <Button
+            onClick={handleMessagePatient}
+            disabled={isCreatingRoom}
+            className="w-full rounded-2xl h-11 hover:bg-primary hover:text-white dark:hover:bg-blue-600 dark:hover:text-white border-zinc-200 dark:border-zinc-800 hover:border-transparent transition-all duration-300 group"
+          >
+            <MessageCircle className="w-4 h-4 me-2 group-hover:rotate-12 transition-transform duration-300" />
+            {isCreatingRoom ? t('starting_chat', 'Starting chat...') : t('message_patient', 'Message Patient')}
           </Button>
-        </Link>
+        ) : (
+          <Link href="/dashboard/profile" className="w-full">
+            <Button variant="outline" className="w-full rounded-2xl h-11 hover:bg-primary hover:text-white dark:hover:bg-blue-600 dark:hover:text-white border-zinc-200 dark:border-zinc-800 hover:border-transparent transition-all duration-300 group">
+              <Edit className="w-4 h-4 me-2 group-hover:rotate-12 transition-transform duration-300" />
+              {t('edit_profile', 'Edit Profile')}
+            </Button>
+          </Link>
+        )}
       </div>
     </motion.div>
   );

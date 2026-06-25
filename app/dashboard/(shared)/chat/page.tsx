@@ -10,16 +10,23 @@ export default function ChatPage() {
   const chatId = useChatId();
 
   return (
-        <div className="flex-1 flex flex-col h-full overflow-y-auto">
-          {!chatId ? (
-            <div className="flex flex-1 items-center justify-center">
-              <EmptyState />
-            </div>
-          ) : (
-            <div className="flex-1">
-              {/* پیام‌ها یا محتوای چت واقعی اینجا */}
-            </div>
-          )}
+    <div className="flex-1 flex flex-col h-full overflow-y-auto">
+      {!chatId ? (
+        <div className="flex flex-1 flex-col h-full">
+          {/* On mobile, show the ChatList when no chat is selected */}
+          <div className="lg:hidden flex-1">
+            <ChatList />
+          </div>
+          {/* On desktop, show the EmptyState when no chat is selected (ChatList is in the sidebar) */}
+          <div className="hidden lg:flex flex-1 items-center justify-center">
+            <EmptyState />
+          </div>
         </div>
+      ) : (
+        <div className="flex-1">
+          {/* پیام‌ها یا محتوای چت واقعی اینجا */}
+        </div>
+      )}
+    </div>
   );
 }

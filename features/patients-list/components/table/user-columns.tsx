@@ -1,13 +1,22 @@
 // components/data-table/userColumns.tsx
+"use client";
 import React from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { User } from "@/features/dashboard/types/caregiver/user";
 import Link from "next/link";
-import { ArrowUpDown, MoreHorizontal, Edit, Trash2, User2,  } from "lucide-react";
-
+import { useRouter } from "next/navigation";
 import {
-  Button,
-} from "@/components/ui/button";
+  ArrowUpDown,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  User2,
+  MessageCircle,
+  Loader2,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { useTranslation } from "react-i18next";
 
 import {
   DropdownMenu,
@@ -16,6 +25,52 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useCreateRoom } from "@/features/chat/api/use-craete-room";
+import { useState } from "react";
+
+function MessagePatientMenuItem({ user }: { user: User }) {
+  const router = useRouter();
+  const { t } = useTranslation();
+  const createRoomMutation = useCreateRoom();
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleClick = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isLoading) return;
+    setIsLoading(true);
+    try {
+      const response = await createRoomMutation.mutateAsync({
+        target_username: user.username,
+        room_name: user.username,
+        topic: "General_discussion",
+      });
+      if (response?.room_id) {
+        router.push(`/dashboard/chat/${response.room_id}`);
+      }
+    } catch (error) {
+      console.error("Failed to start chat with patient:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <DropdownMenuItem
+      onSelect={(e) => e.preventDefault()}
+      onClick={handleClick}
+      disabled={isLoading}
+      className="flex items-center gap-2 cursor-pointer"
+    >
+      {isLoading ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <MessageCircle className="w-4 h-4" />
+      )}
+      {t("message_patient", "Message Patient")}
+    </DropdownMenuItem>
+  );
+}
 
 export const userColumns: ColumnDef<User>[] = [
   {
@@ -93,13 +148,17 @@ export const userColumns: ColumnDef<User>[] = [
               <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36 bg-white">
+          <DropdownMenuContent align="end" className="w-44 bg-white">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem asChild>
-                <Link href={`/dashboard/patients/${user.id}`} className="flex items-center gap-2">
-                  <User2/> Open Profile
-                </Link>
-              </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/dashboard/patients/${user.id}`}
+                className="flex items-center gap-2"
+              >
+                <User2 /> Open Profile
+              </Link>
+            </DropdownMenuItem>
+            <MessagePatientMenuItem user={user} />
           </DropdownMenuContent>
         </DropdownMenu>
       );

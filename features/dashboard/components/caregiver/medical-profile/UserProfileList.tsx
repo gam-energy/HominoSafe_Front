@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useState } from "react";
+import { FC, useMemo, useState } from "react";
 import { useUserProfiles } from "@/features/dashboard/api/caregiver/useUserProfiles";
 import {
   Card,
@@ -24,8 +24,14 @@ interface UserProfileListProps {
 }
 
 const UserProfileList: FC<UserProfileListProps> = ({ userId }) => {
-  const { data, isLoading, error } = useUserProfiles(userId);
+  const { data: profilesData, isLoading, error } = useUserProfiles(userId);
   const { mutate, isError } = useUpdateProfileSettings();
+
+  const data = useMemo(() => {
+    if (!profilesData) return [];
+    if (Array.isArray(profilesData)) return profilesData;
+    return [profilesData];
+  }, [profilesData]);
 
   const [thresholdData, setThresholdData] = useState<Thresholds>({
     user_id: userId,

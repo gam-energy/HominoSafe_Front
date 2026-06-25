@@ -10,19 +10,22 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
-// import { SignOutButton, useUser } from '@clerk/nextjs';
+import { useUser } from '@/context/UserContext';
 import { useRouter } from 'next/navigation';
+
 export function UserNav() {
-//   const { user } = useUser();
+  const { user } = useUser();
   const router = useRouter();
-//   if (user) {
-    return (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant='ghost' className='relative h-8 w-8 rounded-full'>
-            {/* <UserAvatarProfile user={user} /> */}
-          </Button>
-        </DropdownMenuTrigger>
+
+  if (!user) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant='ghost' className='relative h-8 w-8 rounded-full'>
+          <UserAvatarProfile user={user} />
+        </Button>
+      </DropdownMenuTrigger>
         <DropdownMenuContent
           className='w-56'
           align='end'
@@ -32,10 +35,10 @@ export function UserNav() {
           <DropdownMenuLabel className='font-normal'>
             <div className='flex flex-col space-y-1'>
               <p className='text-sm leading-none font-medium'>
-                {/* {user.fullName} */}user name
+                {user.username || 'User'}
               </p>
               <p className='text-muted-foreground text-xs leading-none'>
-                {/* {user.emailAddresses[0].emailAddress} */} user email address
+                {user.email || 'No email provided'}
               </p>
             </div>
           </DropdownMenuLabel>
@@ -44,9 +47,12 @@ export function UserNav() {
             <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem>Billing</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
-            <DropdownMenuItem>New Team</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/dashboard/billing')}>
+              Billing
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
+              Settings
+            </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem>

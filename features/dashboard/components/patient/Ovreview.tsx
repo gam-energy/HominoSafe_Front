@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { SummarySection, SectionType } from "./SummarySection";
 import { useSummary } from "../../api/patient/useGetSummary";
 import { useUser } from "@/context/UserContext";
@@ -154,10 +155,19 @@ const mockRecommendation = {
   alert_level_value: "1" as const,
 };
 
-export default function Ovreview() {
+interface OvreviewProps {
+  /**
+   * Optional user id to load data for. When provided (e.g. a doctor
+   * viewing a specific patient), data is fetched for that user instead
+   * of the currently logged-in user.
+   */
+  userId?: number;
+}
+
+export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
   const { t } = useTranslation();
   const { user } = useUser();
-  const userId = user?.id ?? 0;
+  const userId = userIdProp ?? user?.id ?? 0;
 
   const { data: recommendationData } = useRecommendation(userId);
   const { data: summaryData } = useSummary(userId);
@@ -292,7 +302,7 @@ export default function Ovreview() {
           })}
         </TabsList>
 
-        <div className="h-[420px] overflow-y-auto pr-1 mt-2">
+        <ScrollArea className="h-[420px] pr-4 mt-2">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
@@ -300,12 +310,12 @@ export default function Ovreview() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="h-full w-full"
+              className="h-full w-full pb-6"
             >
               {renderTabContent()}
             </motion.div>
           </AnimatePresence>
-        </div>
+        </ScrollArea>
       </Tabs>
     </Card>
   );
