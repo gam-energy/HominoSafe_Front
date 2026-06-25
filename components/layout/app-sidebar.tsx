@@ -224,9 +224,15 @@ export default function AppSidebar() {
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    handleLogout();
+                  }}
+                  className="cursor-pointer"
+                >
                   <IconLogout className="me-2 h-4 w-4" />
-                  <div onClick={handleLogout}>{t('logout')}</div>
+                  {t('logout')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
