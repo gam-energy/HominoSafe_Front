@@ -7,6 +7,9 @@ import { useProfile } from "@/features/medical-profile/api/useGetMedicalProfile"
 import MedicationsCards from "./MedicationsCards";
 import { AlertTriangle, Pill } from "lucide-react";
 import { LoaderIcon } from "@/components/chat/icons";
+import { useTranslation } from "react-i18next";
+import PageContainer from "@/components/layout/page-container";
+import { Heading } from "@/components/ui/heading";
 
 const mockData = {
   ehr_id: 1,
@@ -56,79 +59,65 @@ const mockData = {
 };
 
 const Medicine = () => {
+  const { t } = useTranslation();
   const { data, isLoading, error } = useProfile();
 
-  const SectionCard = ({
-    title,
-    children,
-  }: {
-    title: string;
-    children: React.ReactNode;
-  }) => (
-    <Card className="rounded-2xl border border-blue-100 bg-white/80 backdrop-blur-xl shadow-sm hover:shadow-md transition-all">
-      <CardHeader className="flex items-center space-x-2 pb-2">
-        <Pill className="h-5 w-5 text-blue-600" />
-        <CardTitle className="text-md font-semibold text-blue-800">
-          {title}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="pt-4 text-gray-700 space-y-2">
-        {children}
-      </CardContent>
-    </Card>
-  );
-
-  // ============================
-  // Loading
-  // ============================
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-16">
-        <LoaderIcon />
-        <p className="text-blue-700 font-medium text-lg">
-          Loading medicine data...
-        </p>
-      </div>
+      <PageContainer>
+        <div className="flex flex-col items-center justify-center py-32 gap-4">
+          <div className="animate-spin text-blue-600 dark:text-blue-500">
+            <LoaderIcon size={40} />
+          </div>
+          <p className="text-muted-foreground font-medium text-lg">
+            {t("loading_medicine")}
+          </p>
+        </div>
+      </PageContainer>
     );
   }
 
-  // ============================
-  // Error
-  // ============================
   if (error || !mockData) {
     return (
-      <div className="flex justify-center mt-12">
-        <Alert variant="destructive" className="max-w-xl">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Unable to load medical record. Please try again later.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <PageContainer>
+        <div className="flex justify-center py-20">
+          <Alert variant="destructive" className="max-w-xl shadow-lg rounded-2xl">
+            <AlertTriangle className="h-5 w-5" />
+            <AlertTitle>{t("error")}</AlertTitle>
+            <AlertDescription>
+              {t("error_loading_profile")}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </PageContainer>
     );
   }
 
-  // ============================
-  // Main Layout
-  // ============================
   return (
-    <div className="mx-auto px-4 py-10 bg-gradient-to-b from-blue-50 to-white min-h-screen">
-      <h1 className="text-2xl font-bold mb-2 text-blue-800">
-        Medicine Management
-      </h1>
-      <p className="text-gray-600 mb-6">
-        Manage your medications and prescriptions here.
-      </p>
+    <PageContainer scrollable>
+      <div className="flex w-full flex-col gap-6">
+        <Heading
+          title={t("medicine_management")}
+          description={t("manage_medications")}
+        />
 
-      <SectionCard title="Medications">
-        {mockData.medications.length === 0 ? (
-          <p className="text-gray-700">No medications recorded.</p>
-        ) : (
-          <MedicationsCards medications={mockData.medications} />
-        )}
-      </SectionCard>
-    </div>
+        <Card className="rounded-2xl border border-border bg-card shadow-sm">
+          <CardHeader className="flex flex-row items-center gap-2.5 pb-3">
+            <Pill className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="text-lg font-bold text-foreground">
+              {t("medicine")}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {mockData.medications.length === 0 ? (
+              <p className="text-muted-foreground text-sm">{t("no_medications")}</p>
+            ) : (
+              <MedicationsCards medications={mockData.medications} />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </PageContainer>
   );
 };
 

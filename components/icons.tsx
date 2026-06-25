@@ -41,6 +41,7 @@ import {
   IconChartBar,
   IconCamera,
   IconCalendar,
+  IconActivityHeartbeat,
 } from "@tabler/icons-react";
 
 export type Icon = React.ComponentType<IconProps>;
@@ -89,4 +90,5 @@ export const Icons: Record<string, Icon> = {
   sliders: IconSettings,
   camera: IconCamera,
   appointment: IconCalendar,
+  healthKpi: IconActivityHeartbeat,
 };

@@ -12,9 +12,9 @@ export default function RootLayout({
   const chatId = useChatId();
 
   return (
-    <div className="flex h-screen w-full bg-background">
+    <div className="flex h-[calc(100vh-4rem)] w-full bg-background">
       {/* Sidebar */}
-      <div className="hidden lg:flex flex-col w-72 border-r border-border shrink-0 bg-red-600">
+      <div className="hidden lg:flex flex-col w-72 border-r border-border shrink-0 bg-sidebar">
         <ChatList />
       </div>
 

@@ -5,6 +5,9 @@ import { useProfile } from "@/features/medical-profile/api/useGetMedicalProfile"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { useTranslation } from "react-i18next";
+import PageContainer from "@/components/layout/page-container";
+import { Heading } from "@/components/ui/heading";
 import {
   AlertTriangle,
   User,
@@ -12,19 +15,18 @@ import {
   Stethoscope,
   FileText,
   Pill,
-  ActivitySquare,
+  Activity,
 } from "lucide-react";
 import { LoaderIcon } from "@/components/chat/icons";
 import { MedicationsList } from "./MedicationsList";
 
-// Blue UI Icon Map
 const iconMap: Record<string, JSX.Element> = {
-  Demographics: <User className="h-5 w-5 text-blue-600 mr-2" />,
-  Comorbidities: <HeartPulse className="h-5 w-5 text-blue-600 mr-2" />,
-  Diagnosis: <Stethoscope className="h-5 w-5 text-blue-600 mr-2" />,
-  "Physician Notes": <FileText className="h-5 w-5 text-blue-600 mr-2" />,
-  Medications: <Pill className="h-5 w-5 text-blue-600 mr-2" />,
-  Symptoms: <ActivitySquare className="h-5 w-5 text-blue-600 mr-2" />,
+  Demographics: <User className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
+  Comorbidities: <HeartPulse className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
+  Diagnosis: <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
+  "Physician Notes": <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
+  Medications: <Pill className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
+  Symptoms: <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
 };
 
 const mockData = {
@@ -75,103 +77,98 @@ const mockData = {
 };
 
 const ProfileSection: FC = () => {
+  const { t } = useTranslation();
   const { data, isLoading, error } = useProfile();
 
-  // ============================
-  // Loading
-  // ============================
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20">
-        <LoaderIcon />
-        <p className="text-blue-700 font-medium text-lg">
-          Loading medical profile...
-        </p>
-      </div>
+      <PageContainer>
+        <div className="flex flex-col items-center justify-center py-32 gap-4">
+          <div className="animate-spin text-blue-600 dark:text-blue-500">
+            <LoaderIcon size={40} />
+          </div>
+          <p className="text-muted-foreground font-medium text-lg">
+            {t("loading_profile")}
+          </p>
+        </div>
+      </PageContainer>
     );
   }
 
-  // ============================
-  // Error
-  // ============================
   if (error || !mockData) {
     return (
-      <div className="flex justify-center mt-12">
-        <Alert variant="destructive" className="max-w-xl">
-          <AlertTriangle className="h-5 w-5" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Unable to load medical record. Please try again later.
-          </AlertDescription>
-        </Alert>
-      </div>
+      <PageContainer>
+        <div className="flex justify-center py-20">
+          <Alert variant="destructive" className="max-w-xl shadow-lg rounded-2xl">
+            <AlertTriangle className="h-5 w-5" />
+            <AlertTitle>{t("error")}</AlertTitle>
+            <AlertDescription>
+              {t("error_loading_profile")}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </PageContainer>
     );
   }
 
-  // ============================
-  // Section Card Styling
-  // ============================
   const SectionCard = ({
-    title,
+    titleKey,
+    titleDefault,
     children,
   }: {
-    title: string;
+    titleKey: string;
+    titleDefault: string;
     children: React.ReactNode;
   }) => (
-    <Card className="rounded-2xl border border-blue-100 bg-white/80 backdrop-blur-xl shadow-sm hover:shadow-md transition-all">
-      <CardHeader className="pb-2">
+    <Card className="rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all duration-300">
+      <CardHeader className="pb-3">
         <div className="flex items-center">
-          {iconMap[title]}
-          <CardTitle className="text-lg font-semibold text-blue-800">
-            {title}
+          {iconMap[titleDefault]}
+          <CardTitle className="text-lg font-bold text-foreground">
+            {t(titleKey, titleDefault)}
           </CardTitle>
         </div>
       </CardHeader>
-      <Separator className="bg-blue-100" />
-      <CardContent className="pt-4 text-gray-700 leading-relaxed space-y-2">
+      <Separator />
+      <CardContent className="pt-4 text-muted-foreground leading-relaxed space-y-2 text-sm">
         {children}
       </CardContent>
     </Card>
   );
 
-  // ============================
-  // Main Layout
-  // ============================
   return (
-    <div className="flex justify-center py-12 px-4 bg-gradient-to-b from-blue-50 to-white min-h-screen">
-      <div className="w-full max-w-6xl space-y-10">
-        {/* Page Title */}
-        <div className="text-center space-y-1">
-          <h2 className="text-3xl font-bold text-blue-800 tracking-tight">
-            Medical Profile
-          </h2>
-          <p className="text-gray-500">Electronic Health Record Overview</p>
-        </div>
+    <PageContainer scrollable>
+      <div className="flex w-full flex-col gap-6">
+        <Heading
+          title={t("medical_profile")}
+          description={t("ehr_overview")}
+        />
 
-        {/* Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* DEMOGRAPHICS */}
-          <SectionCard title="Demographics">
-            <p>{mockData.demographics || "No demographics available."}</p>
+          <SectionCard titleKey="demographics" titleDefault="Demographics">
+            <p className="font-medium text-foreground">{mockData.demographics || t("no_demographics")}</p>
           </SectionCard>
 
           {/* COMORBIDITIES */}
-          <SectionCard title="Comorbidities">
+          <SectionCard titleKey="comorbidities" titleDefault="Comorbidities">
             {Object.entries(mockData.comorbidities).length === 0 ? (
-              <p>No comorbidities reported.</p>
+              <p>{t("no_comorbidities")}</p>
             ) : (
-              <ul className="list-disc list-inside space-y-1">
+              <ul className="list-disc list-inside space-y-1.5">
                 {Object.entries(mockData.comorbidities).map(([key, value]) => {
                   const isEmpty =
                     typeof value === "object" &&
                     Object.keys(value).length === 0;
 
                   return (
-                    <li key={key}>
-                      <strong className="text-blue-700">
+                    <li key={key} className="text-muted-foreground">
+                      <strong className="text-blue-600 dark:text-blue-400 font-semibold">
                         {key.replace(/_/g, " ")}:
                       </strong>{" "}
-                      {isEmpty ? "No mockData" : JSON.stringify(value)}
+                      <span className="text-foreground font-medium">
+                        {isEmpty ? "No Data" : String(value)}
+                      </span>
                     </li>
                   );
                 })}
@@ -180,36 +177,36 @@ const ProfileSection: FC = () => {
           </SectionCard>
 
           {/* DIAGNOSIS */}
-          <SectionCard title="Diagnosis">
-            <p>{mockData.diagnosis}</p>
+          <SectionCard titleKey="diagnosis" titleDefault="Diagnosis">
+            <p className="text-foreground font-medium">{mockData.diagnosis}</p>
           </SectionCard>
 
           {/* PHYSICIAN NOTES */}
-          <SectionCard title="Physician Notes">
-            <p>{mockData.physician_notes}</p>
+          <SectionCard titleKey="physician_notes" titleDefault="Physician Notes">
+            <p className="text-foreground font-medium">{mockData.physician_notes}</p>
           </SectionCard>
 
           {/* MEDICATIONS */}
-          <SectionCard title="Medications">
+          <SectionCard titleKey="medicine" titleDefault="Medications">
             {mockData.medications.length === 0 ? (
-              <p>No medications recorded.</p>
+              <p>{t("no_medications")}</p>
             ) : (
               <MedicationsList medications={mockData.medications} />
             )}
           </SectionCard>
 
           {/* SYMPTOMS */}
-          <SectionCard title="Symptoms">
+          <SectionCard titleKey="symptoms" titleDefault="Symptoms">
             {mockData.symptoms.length === 0 ? (
-              <p>No symptoms reported.</p>
+              <p>{t("no_symptoms")}</p>
             ) : (
-              <ul className="list-disc list-inside space-y-1">
-                {mockData.symptoms.map((symptom) => (
-                  <li key={symptom.id}>
-                    <strong className="text-blue-700">{symptom.name}</strong> —
-                    Severity: {symptom.severity}
+              <ul className="list-disc list-inside space-y-1.5">
+                {mockData.symptoms.map((symptom: any) => (
+                  <li key={symptom.id} className="text-foreground">
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">{symptom.name}</strong> —
+                    {t("severity")}: {symptom.severity}
                     {symptom.notes && (
-                      <span className="italic text-gray-600">
+                      <span className="italic text-muted-foreground">
                         {" "}
                         ({symptom.notes})
                       </span>
@@ -221,7 +218,7 @@ const ProfileSection: FC = () => {
           </SectionCard>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

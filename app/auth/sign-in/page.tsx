@@ -35,7 +35,7 @@ const Page = () => {
               <Image src="/assets/images/logo.png" alt="Logo" width={40} height={40} className="brightness-0 invert" />
             </div>
             <h1 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tight">
-              SennioSentry
+              SenioSentry
             </h1>
           </div>
           <h2 className="text-5xl font-bold text-zinc-900 dark:text-white leading-[1.1]">
@@ -64,7 +64,7 @@ const Page = () => {
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
              <Image src="/assets/images/logo.png" alt="Logo" width={32} height={32} />
              <h1 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-                SennioSentry
+                SenioSentry
              </h1>
           </div>
           <LoginForm onSubmit={handleSubmit} />

@@ -17,12 +17,12 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  applicationName: 'SennioSentry',
+  applicationName: 'SenioSentry',
   title: {
-    default: 'SennioSentry',
-    template: '%s | SennioSentry',
+    default: 'SenioSentry',
+    template: '%s | SenioSentry',
   },
-  description: 'Monitoring and management platform for SennioSentry',
+  description: 'Monitoring and management platform for SenioSentry',
   manifest: '/manifest.json',
   formatDetection: {
     telephone: false,
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'SennioSentry',
+    title: 'SenioSentry',
     startupImage: ['/assets/images/logo.png'],
   },
   icons: {

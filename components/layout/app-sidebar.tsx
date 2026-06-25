@@ -101,7 +101,7 @@ export default function AppSidebar() {
         /> */}
       <SidebarHeader className="flex items-center gap-2 px-4 py-3 text-primary font-semibold text-lg">
         <BriefcaseMedical className="w-5 h-5"/>
-        {isOpen && <span className="truncate">SennioSentry</span>}
+        {isOpen && <span className="truncate">SenioSentry</span>}
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>

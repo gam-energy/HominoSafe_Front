@@ -35,17 +35,9 @@ export default function OverviewLayout({
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col bg-white dark:bg-zinc-900 transition-colors duration-300">
-      <header className="p-4 md:px-6">
-        <h2 className="text-2xl font-bold tracking-tight">
-          {t('hi_welcome_back', { name: user.first_name })}
-        </h2>
-      </header>
-
-      <main className="flex-1 h-full overflow-y-auto">
-        {patient}
-        {children}
-      </main>
+    <div className="flex-1 h-full overflow-y-auto">
+      {patient}
+      {children}
     </div>
   );
 }

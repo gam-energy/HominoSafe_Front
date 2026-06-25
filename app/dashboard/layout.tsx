@@ -9,7 +9,7 @@ import { NotificationProvider } from '@/context/NotificationContext';
 
 
 export const metadata: Metadata = {
-  title: 'SennioSentry Dashboard',
+  title: 'SenioSentry Dashboard',
   description: 'A Monitoring System for Elderly Care',
 };
 

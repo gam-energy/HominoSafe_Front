@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
 import { Activity } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 type OverviewData = {
   wearable: {
@@ -62,6 +63,7 @@ function generateMockOverviewData(index: number): OverviewData {
 }
 
 const Dashboard = () => {
+  const { t } = useTranslation();
   const { user } = useUser();
   const userId = user?.id ?? 0;
   const [metric, setMetric] = useState<Metric>("heart_rate");
@@ -101,8 +103,8 @@ const Dashboard = () => {
     <PageContainer scrollable>
       <div className="flex w-full flex-col gap-6">
         <Heading
-          title="Dashboard Overview"
-          description={`Welcome back, ${user?.first_name || "User"}!`}
+          title={t("dashboard_overview", "Dashboard Overview")}
+          description={t("hi_welcome_back", { name: user?.first_name || "User" })}
         />
 
         <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-12">
@@ -119,19 +121,20 @@ const Dashboard = () => {
             <OverviewSection data={mockOverviewData} />
           </div>
 
-          <Card className="flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800 xl:col-span-7">
+          <Card className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md xl:col-span-7">
             <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold tracking-tight">Health History</h3>
-              <div className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-                Live Data
+              <h3 className="text-lg font-bold tracking-tight">{t("health_history", "Health History")}</h3>
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-success">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
+                {t("live_data", "Live Data")}
               </div>
             </div>
             <div className="min-h-[340px] flex-1">
               {isHistoryLoading ? (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
                   <div className="flex animate-pulse flex-col items-center gap-2">
-                    <div className="h-8 w-8 animate-bounce rounded-full bg-blue-200 dark:bg-blue-800" />
-                    <span>Loading history...</span>
+                    <div className="h-8 w-8 animate-bounce rounded-full bg-primary/30" />
+                    <span>{t("loading", "Loading...")}</span>
                   </div>
                 </div>
               ) : hasHistoryData ? (
@@ -146,10 +149,10 @@ const Dashboard = () => {
                 />
               ) : (
                 <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
-                  <div className="rounded-full bg-gray-50 p-4 dark:bg-zinc-900">
+                  <div className="rounded-full bg-muted p-4">
                     <Activity className="h-8 w-8 opacity-20" />
                   </div>
-                  <p>No history data to display.</p>
+                  <p>{t("no_data", "No history data to display.")}</p>
                 </div>
               )}
             </div>

@@ -9,6 +9,7 @@ import { useRecommendation } from "../../api/patient/useGetRecommen";
 import { RecommendSection } from "./RecommendSection";
 import { Card } from "@/components/ui/card";
 import { useGetOVerview } from "../../api/patient/useGetOverview";
+import { useTranslation } from "react-i18next";
 
 const AUTO_ROTATE_DELAY = 60000;
 
@@ -169,6 +170,7 @@ const mockRecommendation = {
 };
 
 export default function Ovreview() {
+  const { t } = useTranslation();
   const { user } = useUser();
   const userId = user?.id ?? 0;
 
@@ -275,30 +277,25 @@ export default function Ovreview() {
   };
 
   return (
-    <Card className="flex h-full flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-lg transition-all duration-300 hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
+    <Card className="flex h-full flex-col rounded-2xl border border-border bg-card p-5 shadow-sm transition-all duration-300 hover:shadow-md">
       <Tabs
         value={activeTab}
         onValueChange={(val) => handleTabChange(val as TabType)}
         className="flex h-full w-full flex-col gap-4"
       >
-        <TabsList className="flex w-full gap-2 overflow-x-auto rounded-xl border-none bg-gray-100 p-1 transition-colors duration-300 dark:bg-zinc-700 sm:grid sm:grid-cols-3 sm:overflow-visible">
+        <TabsList className="flex w-full gap-1 overflow-x-auto rounded-xl border-none bg-muted p-1 transition-colors duration-300 sm:grid sm:grid-cols-3 sm:overflow-visible">
           {(["overview", "recommendation", "risk"] as TabType[]).map((tab) => {
-            let label = "";
-            if (tab === "overview") label = "Daily Overview";
-            if (tab === "recommendation") label = "Recommendation";
-            if (tab === "risk") label = "Risk";
+            const label =
+              tab === "overview"
+                ? t("daily_overview", "Daily Overview")
+                : tab === "recommendation"
+                  ? t("recommendation", "Recommendation")
+                  : t("risk", "Risk");
             return (
               <TabsTrigger
                 key={tab}
                 value={tab}
-                className={`min-w-max text-sm sm:text-base py-1 sm:py-0 px-3 sm:px-4 rounded-xl transition-colors duration-300
-                  data-[state=active]:bg-blue-600 data-[state=active]:text-white
-                  dark:data-[state=active]:bg-blue-400 dark:data-[state=active]:text-zinc-900
-                  text-gray-700 dark:text-gray-200
-                  data-[state=inactive]:bg-transparent
-                  data-[state=inactive]:text-gray-700
-                  dark:data-[state=inactive]:text-gray-200
-                `}
+                className="min-w-max rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-all duration-300 sm:text-base data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
               >
                 {label}
               </TabsTrigger>

@@ -9,18 +9,18 @@ export function OverviewSection({ data }: { data: any }) {
   const { wearable, environmental } = data;
 
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
+    <div className="flex h-full flex-col rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md">
       <Tabs defaultValue="vitals" className="flex h-full w-full flex-col">
-        <TabsList className="mx-auto grid w-full max-w-xs grid-cols-2 rounded-full bg-gray-100 p-1 transition-colors duration-300 dark:bg-zinc-700/50">
+        <TabsList className="mx-auto grid w-full max-w-xs grid-cols-2 rounded-full bg-muted p-1 transition-colors duration-300">
             <TabsTrigger
               value="vitals"
-              className="rounded-full py-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500 dark:data-[state=active]:text-white transition-all duration-300"
+              className="rounded-full py-2 text-muted-foreground transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
             >
               {t('vitals')}
             </TabsTrigger>
             <TabsTrigger
               value="environment"
-              className="rounded-full py-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500 dark:data-[state=active]:text-white transition-all duration-300"
+              className="rounded-full py-2 text-muted-foreground transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
             >
               {t('environment')}
             </TabsTrigger>

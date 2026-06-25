@@ -178,7 +178,7 @@ const uiMessages: MessageType[] = useMemo(() => {
   }
 
   return (
-    <div className="relative h-svh flex flex-col">
+    <div className="relative h-full flex flex-col">
       {chatInfo && (
         <ChatHeader chat={chatInfo} currentUserId={currentUserId} />
       )}

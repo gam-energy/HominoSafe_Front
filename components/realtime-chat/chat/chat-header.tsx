@@ -20,34 +20,29 @@ const ChatHeader = ({ chat, currentUserId }: ChatHeaderProps) => {
   );
 
   return (
-    <div className="sticky top-0 flex items-center gap-5 border-b border-border bg-card px-2 z-50">
-      <div className="h-14 px-4 flex items-center">
+    <div className="sticky top-0 flex items-center justify-between border-b border-border bg-card/80 backdrop-blur-md px-4 py-2.5 z-50 h-16">
+      <div className="flex items-center gap-3">
         <ArrowLeft
-          className="w-5 h-5 inline-block lg:hidden text-muted-foreground cursor-pointer mr-2"
-          onClick={() => router.push("/chat")}
+          className="w-5 h-5 inline-block lg:hidden text-muted-foreground hover:text-foreground cursor-pointer transition-colors me-1"
+          onClick={() => router.push("/dashboard/chat")}
         />
 
         <AvatarWithBadge
           name={name}
           src={avatar}
           isGroup={isGroup}
-          // isOnline={isOnline}
         />
 
-        <div className="ml-2">
-          <h5 className="font-semibold">{name}</h5>
-          <p
-            className={`text-sm ${
-              false ? "text-green-500" : "text-muted-foreground"
-            }`}
-          >
+        <div className="flex flex-col">
+          <h5 className="font-bold text-sm text-foreground leading-none mb-1">{name}</h5>
+          <p className="text-xs text-muted-foreground leading-none">
             {subheading}
           </p>
         </div>
       </div>
 
-      <div className="flex-1 text-center py-4 h-full border-b-2 border-primary font-medium text-primary">
-        Chat
+      <div className="flex items-center gap-2">
+        {/* Optional header actions can go here in the future */}
       </div>
     </div>
   );

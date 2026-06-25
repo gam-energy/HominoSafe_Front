@@ -1,7 +1,7 @@
 {
-  "name": "SennioSentry",
-  "short_name": "SennioSentry",
-  "description": "Monitoring and management platform for SennioSentry",
+  "name": "SenioSentry",
+  "short_name": "SenioSentry",
+  "description": "Monitoring and management platform for SenioSentry",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

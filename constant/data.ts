@@ -63,6 +63,13 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       isActive: false,
       items: [],
     },
+    {
+      title: 'Health KPIs',
+      url: '/dashboard/health-kpis',
+      icon: 'healthKpi',
+      isActive: false,
+      items: [],
+    },
   ],
   caregiver: [
     {
