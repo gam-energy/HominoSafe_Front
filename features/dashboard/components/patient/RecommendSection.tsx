@@ -1,5 +1,8 @@
 import { FC } from "react";
-import { AlertCircle, ClipboardList, CheckCircle } from "lucide-react";
+import { AlertCircle, ClipboardList, CheckCircle, Sparkles } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
 
 /* =======================
    Types
@@ -30,25 +33,34 @@ export type SectionType = "daily" | "alerts" | "risk" | "kpis";
 
 const alertMeta = {
   "0": {
-    label: "Low Risk",
-    description: "All monitored parameters are within safe ranges.",
+    labelKey: "low_risk",
+    defaultLabel: "Low Risk",
+    descriptionKey: "low_risk_description",
+    defaultDesc: "All monitored parameters are within safe ranges.",
     className:
-      "bg-green-50 border-green-300 text-green-700 dark:bg-green-900/30 dark:text-green-200",
+      "bg-emerald-50/80 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-900/30 dark:text-emerald-300",
     icon: CheckCircle,
+    iconColor: "text-emerald-500",
   },
   "1": {
-    label: "Moderate Risk",
-    description: "Some parameters require closer attention.",
+    labelKey: "moderate_risk",
+    defaultLabel: "Moderate Risk",
+    descriptionKey: "moderate_risk_description",
+    defaultDesc: "Some parameters require closer clinical attention.",
     className:
-      "bg-yellow-50 border-yellow-300 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-200",
+      "bg-amber-50/80 border-amber-200 text-amber-800 dark:bg-amber-950/20 dark:border-amber-900/30 dark:text-amber-300",
     icon: AlertCircle,
+    iconColor: "text-amber-500",
   },
   "2": {
-    label: "High Risk",
-    description: "Immediate medical attention is recommended.",
+    labelKey: "high_risk",
+    defaultLabel: "High Risk",
+    descriptionKey: "high_risk_description",
+    defaultDesc: "Immediate medical review or intervention is advised.",
     className:
-      "bg-red-50 border-red-300 text-red-700 dark:bg-red-900/30 dark:text-red-200",
+      "bg-rose-50/80 border-rose-200 text-rose-700 dark:bg-rose-950/20 dark:border-rose-900/30 dark:text-rose-300",
     icon: AlertCircle,
+    iconColor: "text-rose-500",
   },
 };
 
@@ -74,60 +86,78 @@ function formatISODate(iso: string) {
 export const RecommendSection: FC<{
   data: RecommendData;
   activeSection: SectionType;
+  onSectionChange?: (section: SectionType) => void;
 }> = ({ data, activeSection }) => {
-  const alert = alertMeta[data.alert_level_value];
+  const { t } = useTranslation();
+  const alert = alertMeta[data.alert_level_value] || alertMeta["0"];
   const AlertIcon = alert.icon;
 
   return (
-    <section className="bg-white dark:bg-zinc-800 rounded-xl p-4 space-y-6 transition-colors">
-      {/* ===== Overall Health Status ===== */}
-      <div
-        className={`flex items-start gap-3 border rounded-lg p-3 ${alert.className}`}
+    <section className="space-y-6 pt-2 w-full max-w-full overflow-hidden">
+      {/* ===== Overall Health Status Card ===== */}
+      <motion.div
+        initial={{ opacity: 0, y: 5 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={cn(
+          "flex items-start gap-4 border rounded-2xl p-4 shadow-sm backdrop-blur-md transition-all duration-300",
+          alert.className
+        )}
       >
-        <AlertIcon className="w-6 h-6 mt-0.5 flex-shrink-0" />
-        <div className="flex-1">
-          <div className="flex items-center justify-between">
-            <p className="font-semibold text-sm">
-              Overall Health Status: {alert.label}
+        <div className={cn("p-2 rounded-xl bg-background/50 dark:bg-zinc-900/50 flex-shrink-0", alert.iconColor)}>
+          <AlertIcon className="w-5.5 h-5.5" />
+        </div>
+        <div className="flex-1 space-y-1">
+          <div className="flex items-center justify-between gap-2 flex-wrap">
+            <p className="font-bold text-sm tracking-tight">
+              {t('overall_health_status', 'Overall Health Status')}: {t(alert.labelKey, alert.defaultLabel)}
             </p>
-            <span className="text-xs opacity-70">
-              {formatISODate(data.timestamp)}
+            <span className="text-xs opacity-70 font-semibold ltr-nums">
+              🕒 {formatISODate(data.timestamp)}
             </span>
           </div>
-          <p className="text-xs opacity-80 mt-1">{alert.description}</p>
+          <p className="text-xs opacity-85 font-medium leading-relaxed">{t(alert.descriptionKey, alert.defaultDesc)}</p>
         </div>
-      </div>
+      </motion.div>
 
       {/* ===== System Recommendations ===== */}
       {activeSection === "alerts" && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">
-              System Recommendations
+        <motion.div 
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-3.5"
+        >
+          <div className="flex items-center gap-2 pb-1">
+            <ClipboardList className="w-5 h-5 text-primary" />
+            <h2 className="text-sm font-black uppercase tracking-wider text-muted-foreground">
+              {t('system_recommendations', 'System Recommendations')}
             </h2>
           </div>
 
-          {data.general_recommendations.length === 0 ? (
-            <p className="text-sm text-gray-500 dark:text-gray-400 italic">
-              No recommendations at this time
+          {(!data.general_recommendations || data.general_recommendations.length === 0) ? (
+            <p className="text-sm text-gray-500 dark:text-zinc-400 italic py-8 text-center bg-muted/20 rounded-2xl border border-dashed">
+              {t('no_recommendations', 'No recommendations at this time.')}
             </p>
           ) : (
-            <ul className="space-y-2">
+            <ul className="space-y-3">
               {data.general_recommendations.map((rec, idx) => (
-                <li
+                <motion.li
+                  initial={{ opacity: 0, x: 4 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: idx * 0.05 }}
                   key={idx}
-                  className="flex items-start gap-2 p-2 rounded-md bg-blue-50/70 dark:bg-blue-900/20 text-sm"
+                  className="flex items-start gap-3.5 p-4 rounded-2xl bg-primary/5 dark:bg-blue-500/5 border border-primary/10 text-xs font-semibold leading-relaxed hover:bg-primary/10 transition-colors duration-300"
                 >
-                  <CheckCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
-                  <span className="text-gray-800 dark:text-gray-100">
+                  <div className="p-1 bg-primary/10 rounded-lg text-primary flex-shrink-0 mt-0.5">
+                    <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                  </div>
+                  <span className="text-zinc-800 dark:text-zinc-200">
                     {rec}
                   </span>
-                </li>
+                </motion.li>
               ))}
             </ul>
           )}
-        </div>
+        </motion.div>
       )}
     </section>
   );

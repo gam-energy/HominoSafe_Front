@@ -1,5 +1,6 @@
 import AppSidebar from '@/components/layout/app-sidebar';
 import Header from '@/components/layout/header';
+import MobileBottomNav from '@/components/layout/mobile-bottom-nav';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
@@ -26,12 +27,13 @@ export default async function DashboardLayout({
       <LayoutSidebarProvider>
         <NotificationProvider>
       <AppSidebar />
-      <SidebarInset>
+      <SidebarInset className="pb-24 md:pb-0">
         <AssistantModal />
         <Header />
         {/* page main content */}
         {children}
         {/* page main content ends */}
+        <MobileBottomNav />
       </SidebarInset>
       </NotificationProvider>
       </LayoutSidebarProvider>

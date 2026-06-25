@@ -1,258 +1,515 @@
-"use client";
-import React, { useState } from "react";
+'use client';
+
+import React, { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { AlertType } from "../types/AlertSchema";
 import { sampleAlerts } from "../types/data";
+import { motion, AnimatePresence } from "framer-motion";
+import { 
+  Heart, 
+  Activity, 
+  Thermometer, 
+  Droplets, 
+  Brain, 
+  UserCheck, 
+  Clock, 
+  ChevronDown, 
+  Search, 
+  AlertTriangle, 
+  CheckCircle2, 
+  ShieldAlert,
+  Info,
+  Calendar,
+  Sparkles
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
-const severityColors: Record<
+const severityConfig: Record<
   AlertType["severity"],
-  { light: string; dark: string }
+  { 
+    labelKey: string; 
+    defaultLabel: string;
+    border: string; 
+    bg: string; 
+    text: string; 
+    iconColor: string;
+    badgeBg: string;
+    gradient: string;
+    glow: string;
+  }
 > = {
-  critical: { light: "bg-red-500", dark: "bg-red-700" },
-  high: { light: "bg-orange-400", dark: "bg-orange-600" },
-  medium: { light: "bg-yellow-300", dark: "bg-yellow-600" },
-  low: { light: "bg-green-400", dark: "bg-green-700" },
+  critical: { 
+    labelKey: "critical", 
+    defaultLabel: "Critical",
+    border: "border-rose-500 dark:border-rose-600", 
+    bg: "bg-rose-50/80 dark:bg-rose-950/20", 
+    text: "text-rose-700 dark:text-rose-300",
+    iconColor: "text-rose-500",
+    badgeBg: "bg-rose-500",
+    gradient: "from-rose-500/10 to-transparent",
+    glow: "shadow-rose-500/10"
+  },
+  high: { 
+    labelKey: "high", 
+    defaultLabel: "High",
+    border: "border-amber-500 dark:border-amber-600", 
+    bg: "bg-amber-50/80 dark:bg-amber-950/20", 
+    text: "text-amber-700 dark:text-amber-300",
+    iconColor: "text-amber-500",
+    badgeBg: "bg-amber-500",
+    gradient: "from-amber-500/10 to-transparent",
+    glow: "shadow-amber-500/10"
+  },
+  medium: { 
+    labelKey: "medium", 
+    defaultLabel: "Medium",
+    border: "border-sky-500 dark:border-sky-600", 
+    bg: "bg-sky-50/80 dark:bg-sky-950/20", 
+    text: "text-sky-700 dark:text-sky-300",
+    iconColor: "text-sky-500",
+    badgeBg: "bg-sky-500",
+    gradient: "from-sky-500/10 to-transparent",
+    glow: "shadow-sky-500/10"
+  },
+  low: { 
+    labelKey: "low", 
+    defaultLabel: "Low",
+    border: "border-emerald-500 dark:border-emerald-600", 
+    bg: "bg-emerald-50/80 dark:bg-emerald-950/20", 
+    text: "text-emerald-700 dark:text-emerald-300",
+    iconColor: "text-emerald-500",
+    badgeBg: "bg-emerald-500",
+    gradient: "from-emerald-500/10 to-transparent",
+    glow: "shadow-emerald-500/10"
+  },
 };
 
-const borderColors: Record<AlertType["severity"], string> = {
-  critical: "border-red-500",
-  high: "border-orange-400",
-  medium: "border-yellow-300",
-  low: "border-green-400",
+const alertTypeLabels: Record<string, { en: string; fa: string }> = {
+  FALL_DETECTED: { en: "Fall Detected", fa: "سقوط شناسایی شده" },
+  PREDICTED_ORTHOSTATIC_HYPOTENSION: { en: "Predicted Orthostatic Hypotension", fa: "پیش‌بینی افت فشار ارتواستاتیک" },
+  HR_SPIKE: { en: "Heart Rate Spike", fa: "افزایش شدید ضربان قلب" },
+  OXYGEN_LOW: { en: "Low Oxygen Saturation", fa: "کاهش اکسیژن خون" },
+  TEMP_HIGH: { en: "High Body Temperature", fa: "دمای بالای بدن" },
+  BP_DROP: { en: "Blood Pressure Drop", fa: "افت فشار خون" },
+  OTHER: { en: "Alert", fa: "هشدار" }
 };
-
-const severityLabels: Record<AlertType["severity"], string> = {
-  critical: "Critical",
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-};
-
-const CheckIcon = () => (
-  <svg
-    className="inline-block mr-1"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-    stroke="green"
-    width="18"
-    height="18"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={3}
-      d="M5 13l4 4L19 7"
-    />
-  </svg>
-);
 
 const AlertCard: React.FC<{ alert: AlertType }> = ({ alert }) => {
-  const [open, setOpen] = useState(false);
+  const { t, i18n } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
+  const isRtl = (i18n.language || 'en').startsWith('fa');
+  
+  const config = severityConfig[alert.severity];
+  const typeLabel = alertTypeLabels[alert.alertType] 
+    ? (isRtl ? alertTypeLabels[alert.alertType].fa : alertTypeLabels[alert.alertType].en)
+    : alert.alertType.replace(/_/g, " ");
 
   return (
-    <div
-      className={`max-w-3xl m-auto rounded-xl border-l-4 ${borderColors[alert.severity]} bg-white/80 dark:bg-zinc-900 shadow-md mb-4 transition-all hover:shadow-lg hover:scale-[1.02]`}
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -15 }}
+      transition={{ type: "spring", stiffness: 350, damping: 25 }}
+      className={cn(
+        "group relative mx-auto mb-5 overflow-hidden rounded-2xl border bg-white/70 shadow-sm transition-all duration-300 hover:scale-[1.01] hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md",
+        isOpen ? "shadow-md ring-1 ring-primary/10" : ""
+      )}
     >
+      {/* Accent Gradient Border */}
+      <div className={cn("absolute inset-y-0 w-1.5", isRtl ? "right-0" : "left-0", config.badgeBg)} />
+
       <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex justify-between items-center p-4 focus:outline-none"
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative w-full flex flex-col sm:flex-row justify-between items-start sm:items-center p-5 text-start focus:outline-none gap-4"
       >
-        <div className="flex items-center">
-          <span
-            className={`inline-block w-3 h-3 rounded-full mr-2 ${
-              alert.severity === "critical"
-                ? "bg-red-500 animate-pulse"
-                : alert.severity === "high"
-                  ? "bg-orange-400 dark:bg-orange-600"
-                  : alert.severity === "medium"
-                    ? "bg-yellow-300 dark:bg-yellow-600"
-                    : "bg-green-400 dark:bg-green-700"
-            }`}
-          />
-          <span className="font-bold text-blue-800 dark:text-blue-400">
-            Alert: {alert.alertType.replace("_", " ")}
-          </span>
+        <div className={cn("flex items-center gap-3.5", isRtl ? "pr-2" : "pl-2")}>
+          <div className={cn(
+            "p-2.5 rounded-xl transition-transform duration-300 group-hover:scale-110",
+            alert.severity === "critical" ? "animate-pulse" : "",
+            config.bg,
+            config.iconColor
+          )}>
+            {alert.severity === "critical" ? (
+              <AlertTriangle className="h-5 w-5" />
+            ) : alert.severity === "high" ? (
+              <ShieldAlert className="h-5 w-5" />
+            ) : alert.severity === "medium" ? (
+              <Activity className="h-5 w-5" />
+            ) : (
+              <Info className="h-5 w-5" />
+            )}
+          </div>
+          
+          <div className="space-y-1">
+            <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase ltr-nums">
+              {new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <h3 className="text-base font-bold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
+              {typeLabel}
+            </h3>
+          </div>
         </div>
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold text-white ${severityColors[alert.severity].light} dark:${severityColors[alert.severity].dark}`}
-        >
-          {severityLabels[alert.severity]}
-        </span>
+
+        <div className={cn("flex items-center gap-3.5 self-stretch sm:self-auto justify-between sm:justify-end", isRtl ? "pl-2" : "pr-2")}>
+          <span className={cn(
+            "px-3 py-1 rounded-full text-xs font-bold text-white uppercase tracking-wider",
+            config.badgeBg
+          )}>
+            {t(config.labelKey, config.defaultLabel)}
+          </span>
+
+          <div className="flex items-center gap-3">
+            {alert.isAcknowledged ? (
+              <span className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/20 px-2.5 py-1 rounded-full">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                {t('acknowledged', 'Acknowledged')}
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/20 px-2.5 py-1 rounded-full">
+                <Clock className="h-3.5 w-3.5 animate-pulse" />
+                {t('pending', 'Pending')}
+              </span>
+            )}
+
+            <motion.div
+              animate={{ rotate: isOpen ? 180 : 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              className="text-muted-foreground p-1.5 hover:bg-muted rounded-full"
+            >
+              <ChevronDown className="h-4 w-4" />
+            </motion.div>
+          </div>
+        </div>
       </button>
 
-      {open && (
-        <div className="p-4 pt-0 text-gray-700 dark:text-gray-200 text-sm space-y-3 border-t border-gray-200 dark:border-zinc-700">
-          <div>
-            <strong>Time:</strong>
-            <div className="ml-2">
-              {new Date(alert.timestamp).toLocaleString()}
-            </div>
-          </div>
+      <AnimatePresence initial={false}>
+        {isOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            className="overflow-hidden"
+          >
+            <div className={cn(
+              "px-6 pb-6 pt-2 border-t border-zinc-100 dark:border-zinc-800 text-sm space-y-6",
+              isRtl ? "pr-8" : "pl-8"
+            )}>
+              {/* Grid of details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Event Metadata */}
+                <div className="bg-muted/40 dark:bg-zinc-800/20 rounded-xl p-4 space-y-3.5 border border-muted/30">
+                  <h4 className="font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5 border-b pb-2 border-zinc-100 dark:border-zinc-800">
+                    <Calendar className="h-4 w-4 text-primary" />
+                    {t('event_details', 'Event Details')}
+                  </h4>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground font-medium">{t('alert_time', 'Alert Time')}:</span>
+                      <span className="font-semibold text-gray-800 dark:text-zinc-200 ltr-nums">
+                        {new Date(alert.timestamp).toLocaleString(i18n.language)}
+                      </span>
+                    </div>
+                    {alert.predictedAt && (
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-muted-foreground font-medium flex items-center gap-1">
+                          <Sparkles className="h-3 w-3 text-violet-500 animate-pulse" />
+                          {t('predicted_time', 'Predicted Time')}:
+                        </span>
+                        <span className="font-semibold text-violet-600 dark:text-violet-400 ltr-nums">
+                          {new Date(alert.predictedAt).toLocaleString(i18n.language)}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-muted-foreground font-medium">{t('status', 'Status')}:</span>
+                      <span className="font-semibold text-gray-800 dark:text-zinc-200">
+                        {alert.isAcknowledged 
+                          ? `${t('acknowledged_by', 'Acknowledged by')} ${alert.acknowledgedBy || t('doctor', 'Doctor')}` 
+                          : t('pending_review', 'Pending Review')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-          {alert.predictedAt && (
-            <div>
-              <strong>Predicted Time:</strong>
-              <div className="ml-2">
-                {new Date(alert.predictedAt).toLocaleString()}
+                {/* Patient Vitals at time of event */}
+                {alert.sensorData && (
+                  <div className="bg-muted/40 dark:bg-zinc-800/20 rounded-xl p-4 border border-muted/30">
+                    <h4 className="font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5 border-b pb-2 border-zinc-100 dark:border-zinc-800 mb-3.5">
+                      <Heart className="h-4 w-4 text-rose-500 animate-bounce" />
+                      {t('vitals_recorded', 'Vitals Recorded')}
+                    </h4>
+                    
+                    <div className="grid grid-cols-2 gap-3.5">
+                      {alert.sensorData.heartRate !== undefined && (
+                        <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border">
+                          <Heart className="h-4 w-4 text-rose-500" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground font-semibold uppercase">{t('heart_rate', 'HR')}</p>
+                            <p className="font-bold text-sm ltr-nums">{alert.sensorData.heartRate} <span className="text-[10px] font-normal text-muted-foreground">bpm</span></p>
+                          </div>
+                        </div>
+                      )}
+                      {alert.sensorData.bp && (
+                        <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border">
+                          <Activity className="h-4 w-4 text-violet-500" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground font-semibold uppercase">{t('blood_pressure', 'BP')}</p>
+                            <p className="font-bold text-sm ltr-nums">{alert.sensorData.bp.systolic}/{alert.sensorData.bp.diastolic} <span className="text-[10px] font-normal text-muted-foreground">mmHg</span></p>
+                          </div>
+                        </div>
+                      )}
+                      {alert.sensorData.spo2 !== undefined && (
+                        <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border">
+                          <Droplets className="h-4 w-4 text-blue-500" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground font-semibold uppercase">SpO₂</p>
+                            <p className="font-bold text-sm ltr-nums">{alert.sensorData.spo2} <span className="text-[10px] font-normal text-muted-foreground">%</span></p>
+                          </div>
+                        </div>
+                      )}
+                      {alert.sensorData.temperature !== undefined && alert.sensorData.temperature !== null && (
+                        <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border">
+                          <Thermometer className="h-4 w-4 text-orange-500" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground font-semibold uppercase">{t('temperature', 'Temp')}</p>
+                            <p className="font-bold text-sm ltr-nums">{alert.sensorData.temperature} <span className="text-[10px] font-normal text-muted-foreground">°C</span></p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
 
-          {alert.sensorData && (
-            <div>
-              <strong>Sensor Data:</strong>
-              <ul className="mt-1 pl-5 list-disc space-y-1">
-                {alert.sensorData.bp && (
-                  <li>
-                    Blood Pressure: {alert.sensorData.bp.systolic}/
-                    {alert.sensorData.bp.diastolic} mmHg
-                  </li>
-                )}
-                {alert.sensorData.heartRate !== undefined && (
-                  <li>Heart Rate: {alert.sensorData.heartRate} bpm</li>
-                )}
-                {alert.sensorData.spo2 !== undefined && (
-                  <li>Oxygen Saturation: {alert.sensorData.spo2}%</li>
-                )}
-                {alert.sensorData.temperature !== undefined && (
-                  <li>Body Temperature: {alert.sensorData.temperature} °C</li>
-                )}
-                {alert.sensorData.activity && (
-                  <li>Activity: {alert.sensorData.activity}</li>
-                )}
-                {alert.sensorData.fallDetected !== undefined && (
-                  <li>
-                    Fall Detected:{" "}
-                    {alert.sensorData.fallDetected ? "Yes" : "No"}
-                  </li>
-                )}
-              </ul>
-            </div>
-          )}
+              {/* AI Explainability & SHAP Values Visualization */}
+              {alert.aiModelOutput && (
+                <div className="bg-primary/5 dark:bg-blue-950/10 rounded-xl p-4 border border-primary/10">
+                  <h4 className="font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5 border-b pb-2 border-zinc-100 dark:border-zinc-800 mb-3">
+                    <Brain className="h-4 w-4 text-primary animate-pulse" />
+                    {t('ai_insight_explainability', 'AI Predictive Insight & Explanation')}
+                  </h4>
+                  <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+                    {alert.aiModelOutput.explanation}
+                  </p>
 
-          {alert.aiModelOutput && (
-            <div>
-              <strong>AI Model Explanation:</strong>
-              <div className="ml-2">{alert.aiModelOutput.explanation}</div>
-              {alert.aiModelOutput.shapValues && (
-                <ul className="pl-5 list-disc text-xs mt-1 space-y-0.5">
-                  {Object.entries(alert.aiModelOutput.shapValues).map(
-                    ([key, val]) => (
-                      <li key={key}>
-                        {key}: {val.toFixed(2)}
-                      </li>
-                    ),
+                  {/* SHAP Progress Bars */}
+                  {alert.aiModelOutput.shapValues && (
+                    <div className="space-y-3 pt-1">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider flex items-center gap-1">
+                        <Activity className="h-3 w-3 text-primary" />
+                        {t('risk_factor_contributions', 'Risk Factor Contributions (SHAP Values)')}
+                      </p>
+                      
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        {Object.entries(alert.aiModelOutput.shapValues).map(([key, val]) => {
+                          const isPositive = val > 0;
+                          const percent = Math.min(Math.abs(val) * 100, 100);
+                          const formattedKey = key.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+                          
+                          return (
+                            <div key={key} className="space-y-1">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="font-medium text-gray-700 dark:text-zinc-300 truncate max-w-[200px]" title={formattedKey}>
+                                  {formattedKey}
+                                </span>
+                                <span className={cn(
+                                  "font-bold ltr-nums",
+                                  isPositive ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400"
+                                )}>
+                                  {isPositive ? "+" : ""}{val.toFixed(2)}
+                                </span>
+                              </div>
+                              <div className="h-2 w-full rounded-full bg-muted/60 relative overflow-hidden">
+                                <motion.div
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${percent}%` }}
+                                  transition={{ duration: 0.8, ease: "easeOut" }}
+                                  className={cn(
+                                    "absolute h-full rounded-full",
+                                    isPositive 
+                                      ? "bg-gradient-to-r from-rose-400 to-rose-600 right-0" 
+                                      : "bg-gradient-to-r from-emerald-400 to-emerald-600 left-0"
+                                  )}
+                                  style={{
+                                    [isPositive ? 'right' : 'left']: 0,
+                                    width: `${percent}%`
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   )}
-                </ul>
+                </div>
               )}
-            </div>
-          )}
 
-          <div>
-            <strong>Acknowledgement Status:</strong>
-            <div className="ml-2">
-              {alert.isAcknowledged ? (
-                <span className="text-green-600 dark:text-green-400 inline-flex items-center">
-                  <CheckIcon /> Acknowledged
-                </span>
-              ) : (
-                <div className="flex flex-col">
-                  <span className="text-red-600 dark:text-red-400">
-                    <span className="text-gray-400 text-sm">by doctor : </span>
-                    Not Acknowledged
-                  </span>
-                  <span className="text-red-600 dark:text-red-400">
-                    <span className="text-gray-400 text-sm">by LLM : </span>Not
-                    Acknowledged
-                  </span>
+              {/* Notes */}
+              {alert.notes && (
+                <div className="bg-amber-50/50 dark:bg-amber-950/10 rounded-xl p-4 border border-amber-200/50 dark:border-amber-900/30">
+                  <h4 className="font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5 border-b pb-2 border-zinc-200/50 dark:border-zinc-800 mb-2">
+                    <UserCheck className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                    {t('action_notes', 'Clinical Log & Notes')}
+                  </h4>
+                  <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed italic">
+                    "{alert.notes}"
+                  </p>
                 </div>
               )}
             </div>
-          </div>
-
-          {alert.isAcknowledged && (
-            <>
-              <div>
-                <strong>Acknowledged By:</strong>
-                <div className="ml-2">{alert.acknowledgedBy}</div>
-              </div>
-              <div>
-                <strong>Acknowledged At:</strong>
-                <div className="ml-2">
-                  {alert.acknowledgedAt
-                    ? new Date(alert.acknowledgedAt).toLocaleString()
-                    : "-"}
-                </div>
-              </div>
-            </>
-          )}
-
-          {alert.notes && (
-            <div>
-              <strong>Notes:</strong>
-              <div className="ml-2">{alert.notes}</div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
-const severityOrder: AlertType["severity"][] = [
-  "critical",
-  "high",
-  "medium",
-  "low",
-];
-
 const AlertList: React.FC = () => {
+  const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState<AlertType["severity"] | "all">("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const isRtl = (i18n.language || 'en').startsWith('fa');
 
-  const filteredAlerts = sampleAlerts
-    .filter((alert) => filter === "all" || alert.severity === filter)
-    .sort(
-      (a, b) =>
-        severityOrder.indexOf(a.severity) - severityOrder.indexOf(b.severity) ||
-        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-    );
+  // Swipeable-styled Filter Cards (Swipe support on mobile!)
+  const severities: { id: AlertType["severity"] | "all"; label: string; count: number; color: string; badge: string; shadow: string }[] = useMemo(() => {
+    const counts = {
+      all: sampleAlerts.length,
+      critical: sampleAlerts.filter(a => a.severity === "critical").length,
+      high: sampleAlerts.filter(a => a.severity === "high").length,
+      medium: sampleAlerts.filter(a => a.severity === "medium").length,
+      low: sampleAlerts.filter(a => a.severity === "low").length,
+    };
+
+    return [
+      { id: "all", label: t('all', 'All'), count: counts.all, color: "bg-primary text-primary-foreground", badge: "bg-primary-foreground/20 text-primary-foreground", shadow: "shadow-primary/15" },
+      { id: "critical", label: t('critical', 'Critical'), count: counts.critical, color: "bg-rose-500 text-white", badge: "bg-white/25 text-white", shadow: "shadow-rose-500/15" },
+      { id: "high", label: t('high', 'High'), count: counts.high, color: "bg-amber-500 text-white", badge: "bg-white/25 text-white", shadow: "shadow-amber-500/15" },
+      { id: "medium", label: t('medium', 'Medium'), count: counts.medium, color: "bg-sky-500 text-white", badge: "bg-white/25 text-white", shadow: "shadow-sky-500/15" },
+      { id: "low", label: t('low', 'Low'), count: counts.low, color: "bg-emerald-500 text-white", badge: "bg-white/25 text-white", shadow: "shadow-emerald-500/15" },
+    ];
+  }, [t]);
+
+  const severityOrder: AlertType["severity"][] = [
+    "critical",
+    "high",
+    "medium",
+    "low",
+  ];
+
+  const filteredAlerts = useMemo(() => {
+    return sampleAlerts
+      .filter((alert) => {
+        const matchesFilter = filter === "all" || alert.severity === filter;
+        const mappedType = alertTypeLabels[alert.alertType]
+          ? (isRtl ? alertTypeLabels[alert.alertType].fa : alertTypeLabels[alert.alertType].en)
+          : alert.alertType;
+        const matchesSearch = 
+          searchQuery.trim() === "" ||
+          mappedType.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (alert.notes && alert.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (alert.sensorData?.activity && alert.sensorData.activity.toLowerCase().includes(searchQuery.toLowerCase()));
+        
+        return matchesFilter && matchesSearch;
+      })
+      .sort((a, b) => {
+        return (
+          severityOrder.indexOf(a.severity) - severityOrder.indexOf(b.severity) ||
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      });
+  }, [filter, searchQuery, isRtl]);
 
   return (
-    <div className=" mx-auto py-10 px-4 sm:px-6 bg-blue-50 dark:bg-zinc-900 min-h-screen transition-colors duration-300">
-      <h1 className="text-center mb-8 font-bold text-2xl text-blue-800 dark:text-blue-400">
-        Health Alerts Dashboard
-      </h1>
-
-      {/* Filter Buttons */}
-      <div className="flex flex-wrap gap-2 mb-6 justify-center">
-        <button
-          className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors duration-200
-            ${filter === "all" ? "bg-blue-600 text-white border-blue-600" : "bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-zinc-700 hover:bg-blue-100 dark:hover:bg-zinc-700"}`}
-          onClick={() => setFilter("all")}
-        >
-          All
-        </button>
-        {severityOrder.map((sev) => (
-          <button
-            key={sev}
-            className={`px-4 py-1.5 rounded-full text-sm font-semibold border transition-colors duration-200
-              ${filter === sev ? `${severityColors[sev].light} dark:${severityColors[sev].dark} text-white border-0` : "bg-white dark:bg-zinc-800 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-zinc-700 hover:bg-blue-100 dark:hover:bg-zinc-700"}`}
-            onClick={() => setFilter(sev)}
-          >
-            {severityLabels[sev]}
-          </button>
-        ))}
+    <div className="mx-auto min-h-screen bg-background py-8 px-4 sm:px-6 transition-colors duration-300 pb-20">
+      
+      {/* Page Header */}
+      <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
+        <h1 className="font-extrabold text-3xl tracking-tight text-gray-900 dark:text-zinc-100 flex items-center justify-center gap-2">
+          <AlertTriangle className="h-7 w-7 text-primary animate-bounce" />
+          {t('health_alerts_dashboard', 'Health Alerts Panel')}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {t('alerts_subdescription', 'Real-time physiological alerts and predictive clinical indicators powered by SenioSentry AI.')}
+        </p>
       </div>
 
-      {filteredAlerts.length === 0 ? (
-        <p className="text-center text-gray-500 dark:text-gray-300 text-lg">
-          No alerts found.
-        </p>
-      ) : (
-        filteredAlerts.map((alert) => (
-          <AlertCard key={alert.alertId} alert={alert} />
-        ))
-      )}
+      {/* Swipeable Filter Cards container (Scrollable on mobile) */}
+      <div className="mb-6 -mx-4 px-4 overflow-x-auto scrollbar-none flex items-center gap-3 pb-2 select-none">
+        {severities.map((sev) => {
+          const isSelected = filter === sev.id;
+          
+          return (
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              key={sev.id}
+              onClick={() => setFilter(sev.id)}
+              className={cn(
+                "flex items-center gap-3.5 px-4.5 py-3 rounded-2xl border text-sm font-bold min-w-[125px] flex-shrink-0 cursor-pointer shadow-sm transition-all duration-300",
+                isSelected 
+                  ? `${sev.color} ${sev.shadow} border-transparent scale-102` 
+                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
+              )}
+            >
+              <span className="truncate">{sev.label}</span>
+              <span className={cn(
+                "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-lg text-xs font-black ltr-nums",
+                isSelected ? sev.badge : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border"
+              )}>
+                {sev.count}
+              </span>
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {/* Search Input Bar */}
+      <div className="max-w-3xl mx-auto mb-8 relative">
+        <div className={cn(
+          "absolute top-1/2 -translate-y-1/2 text-muted-foreground",
+          isRtl ? "right-4" : "left-4"
+        )}>
+          <Search className="h-4 w-4" />
+        </div>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t('search_alerts_placeholder', 'Search alerts by type, description, activity...')}
+          className={cn(
+            "w-full rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/50 py-3.5 text-sm outline-none transition-all duration-300 focus:bg-white focus:ring-2 focus:ring-primary/20 dark:focus:bg-zinc-900",
+            isRtl ? "pr-11 pl-4 text-right" : "pl-11 pr-4 text-left"
+          )}
+        />
+      </div>
+
+      {/* Alerts List */}
+      <div className="max-w-3xl mx-auto space-y-4">
+        <AnimatePresence mode="popLayout">
+          {filteredAlerts.length === 0 ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="text-center py-16 bg-white/50 dark:bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center gap-3"
+            >
+              <div className="bg-primary/5 p-4 rounded-full">
+                <CheckCircle2 className="h-10 w-10 text-primary/40" />
+              </div>
+              <p className="text-zinc-500 dark:text-zinc-400 text-base font-medium">
+                {t('no_alerts_found', 'No physiological alerts found matching filters.')}
+              </p>
+            </motion.div>
+          ) : (
+            filteredAlerts.map((alert) => (
+              <AlertCard key={alert.alertId} alert={alert} />
+            ))
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

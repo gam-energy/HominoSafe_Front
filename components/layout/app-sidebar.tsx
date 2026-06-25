@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/sidebar';
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { roleNavItems } from '@/constant/data';
-import { useMediaQuery } from '@/hooks/use-media-query';
+import { useIsDesktop } from '@/hooks/use-media-query';
 import {
   IconBell,
   IconChevronRight,
@@ -68,7 +68,7 @@ export default function AppSidebar() {
   const { t, i18n } = useTranslation();
   const isRtl = (i18n.language || 'en').startsWith('fa');
   const pathname = usePathname();
-  const { isOpen } = useMediaQuery();
+  const { isDesktop } = useIsDesktop();
   const logoutMutation = useSignOut();
   const router = useRouter();
   const { user } = useUser();
@@ -90,10 +90,10 @@ export default function AppSidebar() {
   
   
   if (!user || !role || navItems.length === 0) {
-    return null; // یا spinner
+    return null;
   }
   return (
-    <Sidebar collapsible="icon" side={isRtl ? 'right' : 'left'}>
+    <Sidebar collapsible="icon" side={isRtl ? 'right' : 'left'} className="hidden md:flex">
         {/* <OrgSwitcher
           tenants={tenants}
           defaultTenant={activeTenant}
@@ -101,7 +101,7 @@ export default function AppSidebar() {
         /> */}
       <SidebarHeader className="flex items-center gap-2 px-4 py-3 text-primary font-semibold text-lg">
         <BriefcaseMedical className="w-5 h-5"/>
-        {isOpen && <span className="truncate">SenioSentry</span>}
+        {isDesktop && <span className="truncate">SenioSentry</span>}
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>

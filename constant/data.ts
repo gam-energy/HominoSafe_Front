@@ -57,13 +57,6 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
-      title: 'Visualizations',
-      url: '/dashboard/visualizations',
-      icon: 'kanban',
-      isActive: false,
-      items: [],
-    },
-    {
       title: 'Health KPIs',
       url: '/dashboard/health-kpis',
       icon: 'healthKpi',
