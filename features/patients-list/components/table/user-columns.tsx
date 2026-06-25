@@ -26,7 +26,38 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
+import { useUser } from "@/context/UserContext";
 import { useState } from "react";
+
+function PatientRowActions({ user }: { user: User }) {
+  const { user: currentUser } = useUser();
+  const profileBase =
+    currentUser?.role === "caregiver"
+      ? "/dashboard/my-patients"
+      : "/dashboard/patients";
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0">
+          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44 bg-white">
+        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+        <DropdownMenuItem asChild>
+          <Link
+            href={`${profileBase}/${user.id}`}
+            className="flex items-center gap-2"
+          >
+            <User2 /> Open Profile
+          </Link>
+        </DropdownMenuItem>
+        <MessagePatientMenuItem user={user} />
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
 
 function MessagePatientMenuItem({ user }: { user: User }) {
   const router = useRouter();
@@ -138,30 +169,6 @@ export const userColumns: ColumnDef<User>[] = [
   },
   {
     id: "actions",
-    cell: ({ row }) => {
-      const user = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44 bg-white">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem asChild>
-              <Link
-                href={`/dashboard/patients/${user.id}`}
-                className="flex items-center gap-2"
-              >
-                <User2 /> Open Profile
-              </Link>
-            </DropdownMenuItem>
-            <MessagePatientMenuItem user={user} />
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
+    cell: ({ row }) => <PatientRowActions user={row.original} />,
   },
 ];

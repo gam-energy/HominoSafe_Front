@@ -20,6 +20,7 @@ const page = () => {
       return;
     }
 
+    // Redirect users who are not caregivers away from the caregiver patient list.
     switch (user.role) {
       case "admin":
         router.replace("/dashboard/users");
@@ -28,10 +29,10 @@ const page = () => {
         router.replace("/dashboard/overview");
         break;
       case "doctor":
-        router.replace("/dashboard/patients");
+        router.replace("/dashboard/doctor-overview");
         break;
       case "caregiver":
-        router.replace("/dashboard/my-patients");
+        // Caregivers belong here; do not redirect.
         break;
       default:
         router.replace("/dashboard/overview");

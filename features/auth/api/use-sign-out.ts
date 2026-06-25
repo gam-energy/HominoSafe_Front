@@ -8,35 +8,42 @@ import { LogoutResponse } from '../types/auth';
 export const useSignOut = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<LogoutResponse, AxiosError>({
-    mutationFn: async (): Promise<LogoutResponse> => {
+  const clearSession = () => {
+    queryClient.clear();
+    Cookies.remove('access_token');
+    Cookies.remove('refresh_token');
+    Cookies.remove('synapse_access_token');
+    window.location.href = '/auth/sign-in';
+  };
+
+  return useMutation<LogoutResponse | null, AxiosError>({
+    mutationFn: async (): Promise<LogoutResponse | null> => {
       const accessToken = Cookies.get('access_token');
 
-      if (!accessToken) {
-        throw new Error('No refresh token found');
+      // Best-effort server-side logout; never block the client from signing out.
+      if (accessToken) {
+        try {
+          const response = await axiosInstance.post<LogoutResponse>('/logout', {
+            access_token: accessToken,
+          });
+          return response.data;
+        } catch (error) {
+          console.error('Server logout failed, clearing session anyway:', error);
+          return null;
+        }
       }
 
-      const response = await axiosInstance.post<LogoutResponse>(
-        '/logout',
-        { access_token: accessToken },
-      );
-
-      if (response.status !== 200) {
-        throw new Error('Logout failed');
-      }
-
-      return response.data;
+      return null;
     },
 
     onSuccess: () => {
-      queryClient.clear(); 
-      Cookies.remove('access_token');
-      Cookies.remove('refresh_token');
-      window.location.href = '/auth/sign-in'; 
+      clearSession();
     },
 
     onError: (error) => {
       console.error('Logout failed:', error.response?.data || error.message);
+      // Always clear local session even if something unexpected happened.
+      clearSession();
     },
   });
 };

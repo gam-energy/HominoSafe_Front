@@ -107,6 +107,11 @@ export default function DoctorPatientDetail() {
   const createRoomMutation = useCreateRoom();
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
 
+  const patientsListRoute =
+    currentUser?.role === "caregiver"
+      ? "/dashboard/my-patients"
+      : "/dashboard/patients";
+
   // Patient user info (username, email, phone, status, etc.)
   const { data: patientInfoData, isLoading: infoLoading } =
     useGetPatientProfile(userId);
@@ -226,7 +231,7 @@ export default function DoctorPatientDetail() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push("/dashboard/patients")}
+            onClick={() => router.push(patientsListRoute)}
             className="text-muted-foreground"
           >
             <ArrowLeft className="w-4 h-4 me-1" />
