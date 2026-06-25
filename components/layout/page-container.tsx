@@ -1,25 +1,28 @@
 "use client"
-import React, { useEffect } from 'react';
+import React from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-
+import { cn } from '@/lib/utils';
 
 export default function PageContainer({
   children,
-  scrollable = true
+  scrollable = true,
+  className,
 }: {
   children: React.ReactNode;
   scrollable?: boolean;
+  className?: string;
 }) {
+  const content = (
+    <div className={cn('flex flex-1 w-full max-w-[1920px] mx-auto p-4 md:p-6', className)}>
+      {children}
+    </div>
+  );
 
-  return (
-    <>
-      {scrollable ? (
-        <ScrollArea className='h-[calc(100dvh-52px)]'>
-          <div className='flex flex-1 p-4 md:px-6'>{children}</div>
-        </ScrollArea>
-      ) : (
-        <div className='flex flex-1 p-4 md:px-6'>{children}</div>
-      )}
-    </>
+  return scrollable ? (
+    <ScrollArea className="h-[calc(100dvh-52px)]">
+      {content}
+    </ScrollArea>
+  ) : (
+    content
   );
 }

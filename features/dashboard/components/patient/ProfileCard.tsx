@@ -27,7 +27,7 @@ export default function ProfileCard() {
     user.status === 'active' ? 'bg-green-500' : 'bg-yellow-500';
 
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-lg border border-gray-100 dark:border-zinc-700 p-6 flex flex-col gap-6 transition-all duration-300 hover:shadow-xl h-full">
+    <div className="flex h-full flex-col gap-5 rounded-2xl border border-gray-100 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
       <div className="flex flex-col items-center text-center gap-4">
         <div className="relative">
           <Avatar className="h-24 w-24 border-4 border-blue-50 dark:border-zinc-700 shadow-md">

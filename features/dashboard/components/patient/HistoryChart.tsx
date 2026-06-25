@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import {
   Chart as ChartJS,
   LineElement,
@@ -84,11 +83,6 @@ export function HistoryChart({
   setMetric,
   setTimePeriod,
 }: HistoryChartProps) {
-  useEffect(() => {
-    console.log("HistoryChart data:", data);
-  }, [data]);
-
-  // فیلتر داده‌ها
   const filteredData = Array.isArray(data)
     ? data.filter((d) => d.timestamp && d.value != null && !isNaN(d.value))
     : [];
@@ -140,13 +134,39 @@ export function HistoryChart({
   };
 
   return (
-    <div className={`flex flex-col rounded-xl dark:bg-zinc-800 ${className}`}>
-      {/* ===== Chart یا پیام "No data" ===== */}
-      <div className="flex-1 overflow-auto p-4">
+    <div className={`flex h-full flex-col rounded-xl ${className}`}>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <select
+          value={metric}
+          onChange={(e) => setMetric(e.target.value as Metric)}
+          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+        >
+          {METRIC_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        <select
+          value={timePeriod}
+          onChange={(e) => setTimePeriod(e.target.value as TimePeriod)}
+          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-900"
+        >
+          {TIME_OPTIONS.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="min-h-[260px] flex-1">
         {filteredData.length === 0 ? (
-          <p className="text-sm text-gray-500 text-center">
-            No data available for this metric.
-          </p>
+          <div className="flex h-full items-center justify-center">
+            <p className="text-sm text-muted-foreground">
+              No data available for this metric.
+            </p>
+          </div>
         ) : (
           <Line data={chartData} options={chartOptions} />
         )}

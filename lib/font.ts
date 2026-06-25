@@ -4,10 +4,16 @@ import {
   Instrument_Sans,
   Inter,
   Mulish,
-  Noto_Sans_Mono
+  Noto_Sans_Mono,
+  Vazirmatn
 } from 'next/font/google';
 
 import { cn } from '@/lib/utils';
+
+const fontVazir = Vazirmatn({
+  subsets: ['arabic', 'latin'],
+  variable: '--font-vazir'
+});
 
 const fontSans = Geist({
   subsets: ['latin'],
@@ -45,5 +51,6 @@ export const fontVariables = cn(
   fontInstrument.variable,
   fontNotoMono.variable,
   fontMullish.variable,
-  fontInter.variable
+  fontInter.variable,
+  fontVazir.variable
 );

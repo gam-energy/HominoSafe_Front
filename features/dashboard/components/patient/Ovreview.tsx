@@ -275,13 +275,13 @@ export default function Ovreview() {
   };
 
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-xl p-4 transition-colors duration-300">
+    <Card className="flex h-full flex-col rounded-2xl border border-gray-100 bg-white p-5 shadow-lg transition-all duration-300 hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
       <Tabs
         value={activeTab}
         onValueChange={(val) => handleTabChange(val as TabType)}
-        className="w-full h-full space-y-4"
+        className="flex h-full w-full flex-col gap-4"
       >
-        <TabsList className="w-full overflow-x-auto sm:overflow-visible flex sm:grid sm:grid-cols-3 gap-2 sm:gap-0 bg-gray-100 dark:bg-zinc-700 p-1 rounded-xl transition-colors duration-300 border-none">
+        <TabsList className="flex w-full gap-2 overflow-x-auto rounded-xl border-none bg-gray-100 p-1 transition-colors duration-300 dark:bg-zinc-700 sm:grid sm:grid-cols-3 sm:overflow-visible">
           {(["overview", "recommendation", "risk"] as TabType[]).map((tab) => {
             let label = "";
             if (tab === "overview") label = "Daily Overview";
@@ -307,13 +307,13 @@ export default function Ovreview() {
         </TabsList>
 
         <div
-          className={`transition-opacity duration-300 ease-in-out ${
-            isFading ? "opacity-0 pointer-events-none" : "opacity-100"
-          } h-[200px] overflow-y-auto pr-1`}
+          className={`min-h-[320px] flex-1 overflow-y-auto pr-1 transition-opacity duration-300 ease-in-out ${
+            isFading ? "pointer-events-none opacity-0" : "opacity-100"
+          }`}
         >
           {renderTabContent()}
         </div>
       </Tabs>
-    </div>
+    </Card>
   );
 }

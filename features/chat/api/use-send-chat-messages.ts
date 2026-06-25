@@ -2,7 +2,7 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
-const MATRIX_HOMESERVER_URL = "http://192.168.100.87:8008";
+const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
 
 export const useMatrixSendMessage = () => {
   const sendMessage = async (roomId: string, text: string) => {

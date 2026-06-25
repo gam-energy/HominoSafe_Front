@@ -6,7 +6,11 @@ import axios, {
 } from 'axios';
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://192.168.100.87:8888';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8888';
+
+// #region agent log
+fetch('http://127.0.0.1:7737/ingest/4be4e099-ee11-475d-82b0-2cc77ac7d35a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e45f8c'},body:JSON.stringify({sessionId:'e45f8c',location:'axiosInstance.ts:init',message:'API base URL configured',data:{apiBaseUrl:API_BASE_URL,envUrl:process.env.NEXT_PUBLIC_API_URL??null},timestamp:Date.now(),hypothesisId:'A,C'})}).catch(()=>{});
+// #endregion
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -40,6 +44,9 @@ const processQueue = (error: any, token: string | null = null) => {
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // #region agent log
+    fetch('http://127.0.0.1:7737/ingest/4be4e099-ee11-475d-82b0-2cc77ac7d35a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e45f8c'},body:JSON.stringify({sessionId:'e45f8c',location:'axiosInstance.ts:request',message:'Outgoing API request',data:{method:config.method,url:config.url,baseURL:config.baseURL,fullUrl:`${config.baseURL??''}${config.url??''}`},timestamp:Date.now(),hypothesisId:'A,C'})}).catch(()=>{});
+    // #endregion
     const token = Cookies.get('access_token');
     if (token) {
       if (!config.headers) {
@@ -113,6 +120,10 @@ axiosInstance.interceptors.response.use(
           });
       });
     }
+
+    // #region agent log
+    fetch('http://127.0.0.1:7737/ingest/4be4e099-ee11-475d-82b0-2cc77ac7d35a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e45f8c'},body:JSON.stringify({sessionId:'e45f8c',location:'axiosInstance.ts:response-error',message:'API response error',data:{code:error.code,message:error.message,status:error.response?.status,url:error.config?.url,baseURL:error.config?.baseURL},timestamp:Date.now(),hypothesisId:'A,B,D'})}).catch(()=>{});
+    // #endregion
 
     return Promise.reject(error);
   }

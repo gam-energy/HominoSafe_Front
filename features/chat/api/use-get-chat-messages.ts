@@ -7,7 +7,7 @@ import Cookies from "js-cookie";
 // --------------------------------------------
 import { MatrixMessageType } from "../types/chat.type";
 
-const MATRIX_HOMESERVER_URL = "http://192.168.100.87:8008";
+const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
 
 // پاسخ API ماتریکس برای /messages
 export interface MatrixRoomMessagesResponse {

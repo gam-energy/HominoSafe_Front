@@ -15,6 +15,11 @@ const loginUser = async (credentials: LoginFormValues): Promise<LoginResponse> =
   formData.append('username', credentials.username);
   formData.append('password', credentials.password);
 
+  const requestUrl = `${axiosInstance.defaults.baseURL}/token`;
+  // #region agent log
+  fetch('http://127.0.0.1:7737/ingest/4be4e099-ee11-475d-82b0-2cc77ac7d35a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e45f8c'},body:JSON.stringify({sessionId:'e45f8c',location:'use-sign-in.ts:loginUser',message:'Login attempt starting',data:{requestUrl,username:credentials.username},timestamp:Date.now(),hypothesisId:'A,B'})}).catch(()=>{});
+  // #endregion
+
   const response = await axiosInstance.post<LoginResponse>('/token', formData, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
   });

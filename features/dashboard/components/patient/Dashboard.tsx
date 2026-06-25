@@ -4,13 +4,11 @@ import Ovreview from "./Ovreview";
 import { OverviewSection } from "./OverviewSection";
 import { useUser } from "@/context/UserContext";
 import { useHistory } from "../../api/patient/useGetHistory";
-import { HistoryChart } from "./HistoryChart";
+import { HistoryChart, Metric, TimePeriod } from "./HistoryChart";
 import { Card } from "@/components/ui/card";
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
 import { Activity } from "lucide-react";
-
-type Metric = "heart_rate" | "spo2" | "blood_pressure";
 
 type OverviewData = {
   wearable: {
@@ -66,8 +64,9 @@ function generateMockOverviewData(index: number): OverviewData {
 const Dashboard = () => {
   const { user } = useUser();
   const userId = user?.id ?? 0;
-  const metrics: Metric[] = ["heart_rate"];
-  const metric = metrics[0];
+  const [metric, setMetric] = useState<Metric>("heart_rate");
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("day");
+  const metrics: Metric[] = [metric];
 
   const [metricIndex, setMetricIndex] = useState(0);
   const [mockOverviewData, setMockOverviewData] = useState<OverviewData>(generateMockOverviewData(0));
@@ -95,54 +94,60 @@ const Dashboard = () => {
     !!historyData.data &&
     typeof historyData.data === "object" &&
     !Array.isArray(historyData.data) &&
-    Array.isArray((historyData.data as Record<string, any[]>)[metric]) &&
-    (historyData.data as Record<string, any[]>)[metric].length > 0;
+    Array.isArray((historyData.data as Record<string, unknown[]>)[metric]) &&
+    (historyData.data as Record<string, unknown[]>)[metric].length > 0;
 
   return (
     <PageContainer scrollable>
-      <div className="flex flex-col gap-6 p-1">
-        <div className="flex items-center justify-between">
-          <Heading title="Dashboard Overview" description={`Welcome back, ${user?.first_name || 'User'}!`} />
-        </div>
+      <div className="flex w-full flex-col gap-6">
+        <Heading
+          title="Dashboard Overview"
+          description={`Welcome back, ${user?.first_name || "User"}!`}
+        />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 h-full">
+        <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-12">
+          <div className="xl:col-span-4">
             <ProfileCard />
           </div>
-          <div className="lg:col-span-2 h-full">
+          <div className="xl:col-span-8">
             <Ovreview />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <OverviewSection data={mockOverviewData} />
-          
-          <Card className="bg-white dark:bg-zinc-800 rounded-2xl shadow-lg border border-gray-100 dark:border-zinc-700 p-6 flex flex-col transition-all duration-300 hover:shadow-xl">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold tracking-tight">Heart Rate History</h3>
-              <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
+          <div className="xl:col-span-5">
+            <OverviewSection data={mockOverviewData} />
+          </div>
+
+          <Card className="flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800 xl:col-span-7">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-lg font-bold tracking-tight">Health History</h3>
+              <div className="rounded-full bg-blue-100 px-3 py-1 text-xs font-bold uppercase tracking-wider text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
                 Live Data
               </div>
             </div>
-            <div className="flex-1 min-h-[300px]">
+            <div className="min-h-[340px] flex-1">
               {isHistoryLoading ? (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  <div className="animate-pulse flex flex-col items-center gap-2">
-                    <div className="h-8 w-8 bg-blue-200 dark:bg-blue-800 rounded-full animate-bounce" />
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <div className="flex animate-pulse flex-col items-center gap-2">
+                    <div className="h-8 w-8 animate-bounce rounded-full bg-blue-200 dark:bg-blue-800" />
                     <span>Loading history...</span>
                   </div>
                 </div>
               ) : hasHistoryData ? (
                 <HistoryChart
-                  data={((historyData.data as unknown) as Record<string, any[]>)[metric]}
+                  data={((historyData.data as unknown) as Record<string, { timestamp: string; value: number }[]>)[metric]}
                   metric={metric}
+                  timePeriod={timePeriod}
                   unit={historyData.units?.[metric as keyof typeof historyData.units]}
-                  className="w-full h-full"
+                  className="h-full w-full"
+                  setMetric={setMetric}
+                  setTimePeriod={setTimePeriod}
                 />
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground gap-2">
-                  <div className="p-4 rounded-full bg-gray-50 dark:bg-zinc-900">
-                    <Activity className="w-8 h-8 opacity-20" />
+                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                  <div className="rounded-full bg-gray-50 p-4 dark:bg-zinc-900">
+                    <Activity className="h-8 w-8 opacity-20" />
                   </div>
                   <p>No history data to display.</p>
                 </div>

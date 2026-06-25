@@ -9,10 +9,9 @@ export function OverviewSection({ data }: { data: any }) {
   const { wearable, environmental } = data;
 
   return (
-    <div className="bg-white dark:bg-zinc-800 rounded-xl shadow-lg border border-gray-100 dark:border-zinc-700 p-6 transition-all duration-300 hover:shadow-xl">
-      <div className="w-full h-full flex flex-col gap-6">
-        <Tabs defaultValue="vitals" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full max-w-xs mx-auto bg-gray-100 dark:bg-zinc-700/50 p-1 rounded-full transition-colors duration-300">
+    <div className="flex h-full flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-lg transition-all duration-300 hover:shadow-xl dark:border-zinc-700 dark:bg-zinc-800">
+      <Tabs defaultValue="vitals" className="flex h-full w-full flex-col">
+        <TabsList className="mx-auto grid w-full max-w-xs grid-cols-2 rounded-full bg-gray-100 p-1 transition-colors duration-300 dark:bg-zinc-700/50">
             <TabsTrigger
               value="vitals"
               className="rounded-full py-2 data-[state=active]:bg-blue-600 data-[state=active]:text-white dark:data-[state=active]:bg-blue-500 dark:data-[state=active]:text-white transition-all duration-300"
@@ -29,7 +28,7 @@ export function OverviewSection({ data }: { data: any }) {
 
           <TabsContent
             value="vitals"
-            className="pt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-2 gap-4 pt-5 lg:grid-cols-3"
           >
             <KpiCard
               title={t('heart_rate')}
@@ -71,7 +70,7 @@ export function OverviewSection({ data }: { data: any }) {
 
           <TabsContent
             value="environment"
-            className="pt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+            className="grid grid-cols-2 gap-4 pt-5 lg:grid-cols-4"
           >
             <KpiCard
               title={t('temperature')}
@@ -103,7 +102,6 @@ export function OverviewSection({ data }: { data: any }) {
             />
           </TabsContent>
         </Tabs>
-      </div>
     </div>
   );
 };

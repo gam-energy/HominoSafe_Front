@@ -1,21 +1,34 @@
 {
-  "name": "Homino Safe",
-  "short_name": "Homino",
-  "description": "Monitoring and management platform for Homino Safe",
+  "name": "SennioSentry",
+  "short_name": "SennioSentry",
+  "description": "Monitoring and management platform for SennioSentry",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
-  "theme_color": "#3b82f6",
+  "theme_color": "#2563eb",
+  "lang": "fa",
+  "dir": "auto",
+  "categories": ["health", "medical", "productivity"],
   "icons": [
     {
       "src": "/assets/images/logo.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/assets/images/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

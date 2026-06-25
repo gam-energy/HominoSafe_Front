@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 
-const MATRIX_HOMESERVER_URL = "http://192.168.100.87:8008";
+const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
 
 export const useMatrixRooms = () => {
   const [rooms, setRooms] = useState<any[]>([]);

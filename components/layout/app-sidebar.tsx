@@ -65,7 +65,8 @@ const tenants = [
 ];
 
 export default function AppSidebar() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = (i18n.language || 'en').startsWith('fa');
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
   const logoutMutation = useSignOut();
@@ -92,7 +93,7 @@ export default function AppSidebar() {
     return null; // یا spinner
   }
   return (
-    <Sidebar collapsible="icon">
+    <Sidebar collapsible="icon" side={isRtl ? 'right' : 'left'}>
         {/* <OrgSwitcher
           tenants={tenants}
           defaultTenant={activeTenant}
@@ -100,7 +101,7 @@ export default function AppSidebar() {
         /> */}
       <SidebarHeader className="flex items-center gap-2 px-4 py-3 text-primary font-semibold text-lg">
         <BriefcaseMedical className="w-5 h-5"/>
-        {isOpen && <span className="truncate">Homino Safe</span>}
+        {isOpen && <span className="truncate">SennioSentry</span>}
       </SidebarHeader>
       <SidebarContent className="overflow-x-hidden">
         <SidebarGroup>
@@ -124,7 +125,10 @@ export default function AppSidebar() {
                       >
                         {Icon && <Icon />}
                         <span>{t(item.title.toLowerCase().replace(/\s+/g, '_'), item.title)}</span>
-                        <IconChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                        <IconChevronRight
+                          data-chevron
+                          className="ms-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90 rtl:-scale-x-100"
+                        />
                       </SidebarMenuButton>
                     </CollapsibleTrigger>
                     <CollapsibleContent>
@@ -179,7 +183,7 @@ export default function AppSidebar() {
                       user={user}
                     />
                   )}
-                  <IconChevronsDown className="ml-auto size-4" />
+                  <IconChevronsDown className="ms-auto size-4" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
@@ -205,21 +209,21 @@ export default function AppSidebar() {
                   <DropdownMenuItem
                     onClick={() => router.push('/dashboard/profile')}
                   >
-                    <IconUserCircle className="mr-2 h-4 w-4" />
+                    <IconUserCircle className="me-2 h-4 w-4" />
                     {t('profile')}
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <IconCreditCard className="mr-2 h-4 w-4" />
+                    <IconCreditCard className="me-2 h-4 w-4" />
                     {t('billing', 'Billing')}
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <IconBell className="mr-2 h-4 w-4" />
+                    <IconBell className="me-2 h-4 w-4" />
                     {t('notifications', 'Notifications')}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
-                  <IconLogout className="mr-2 h-4 w-4" />
+                  <IconLogout className="me-2 h-4 w-4" />
                   <div onClick={handleLogout}>{t('logout')}</div>
                 </DropdownMenuItem>
               </DropdownMenuContent>

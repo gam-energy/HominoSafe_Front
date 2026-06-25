@@ -1,10 +1,7 @@
 import { Artifact } from '@/components/chat/create-artifact';
 import { DiffView } from '@/components/chat/diffview';
 import { DocumentSkeleton } from '@/components/chat/document-skeleton';
-// @ts-expect-error: text-editor might not have a module export, but we need the Editor component
 import { Editor } from '@/components/chat/text-editor';
-// If '@/components/chat/text-editor' does not export Editor, 
-// ensure the correct path and export exist.
 import {
   ClockRewind,
   CopyIcon,

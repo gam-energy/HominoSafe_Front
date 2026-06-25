@@ -40,7 +40,7 @@ function createMessage(role, content, timestamp) {
 
 export function useChatWebSocket(sessionId) {
   const ws = useRef(null);
-  const host = "192.168.100.87:8888";
+  const host = "127.0.0.1:8888";
 
   const [messages, setMessages] = useState([]);
   const [status, setStatus] = useState("connecting");

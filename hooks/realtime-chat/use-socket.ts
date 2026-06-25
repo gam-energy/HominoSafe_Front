@@ -1,7 +1,7 @@
 import { io, Socket } from "socket.io-client";
 import { create } from "zustand";
 
-const BASE_URL ='http://192.168.100.87:8888';
+const BASE_URL ='http://127.0.0.1:8888';
 
 interface SocketState {
   socket: Socket | null;

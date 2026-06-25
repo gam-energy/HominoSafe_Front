@@ -40,7 +40,7 @@ export const CreateRoomButton = () => {
       }
 
       await axios.post(
-        "http://192.168.100.87:8008/_matrix/client/v3/createRoom",
+        "http://0.0.0.0:8008/_matrix/client/v3/createRoom",
         payload,
         {
           headers: {

@@ -17,18 +17,38 @@ const META_THEME_COLORS = {
 };
 
 export const metadata: Metadata = {
-  title: 'Homino Safe',
-  description: 'Monitoring and management platform for Homino Safe',
+  applicationName: 'SennioSentry',
+  title: {
+    default: 'SennioSentry',
+    template: '%s | SennioSentry',
+  },
+  description: 'Monitoring and management platform for SennioSentry',
   manifest: '/manifest.json',
+  formatDetection: {
+    telephone: false,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
-    title: 'Homino Safe',
+    title: 'SennioSentry',
+    startupImage: ['/assets/images/logo.png'],
+  },
+  icons: {
+    icon: '/assets/images/logo.png',
+    shortcut: '/assets/images/logo.png',
+    apple: '/assets/images/logo.png',
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: META_THEME_COLORS.light
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: META_THEME_COLORS.light },
+    { media: '(prefers-color-scheme: dark)', color: META_THEME_COLORS.dark },
+  ],
 };
 
 export default async function RootLayout({
@@ -49,6 +69,12 @@ export default async function RootLayout({
                 if (localStorage.theme === 'dark' || ((!('theme' in localStorage) || localStorage.theme === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                   document.querySelector('meta[name="theme-color"]').setAttribute('content', '${META_THEME_COLORS.dark}')
                 }
+              } catch (_) {}
+              try {
+                var lang = localStorage.getItem('i18nextLng') || 'en';
+                var isFa = lang.indexOf('fa') === 0;
+                document.documentElement.lang = isFa ? 'fa' : 'en';
+                document.documentElement.dir = isFa ? 'rtl' : 'ltr';
               } catch (_) {}
             `
           }}
