@@ -1,6 +1,7 @@
 import { useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { SYNAPSE_HOMESERVER_URL } from "@/lib/constants";
 
 export const CreateRoomButton = () => {
   const [open, setOpen] = useState(false);
@@ -40,7 +41,7 @@ export const CreateRoomButton = () => {
       }
 
       await axios.post(
-        "http://0.0.0.0:8008/_matrix/client/v3/createRoom",
+        `${SYNAPSE_HOMESERVER_URL}/_matrix/client/v3/createRoom`,
         payload,
         {
           headers: {

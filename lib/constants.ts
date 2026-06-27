@@ -8,6 +8,12 @@ export const isTestEnvironment = Boolean(
     process.env.CI_PLAYWRIGHT,
 );
 
+export const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8888';
+
+export const SYNAPSE_HOMESERVER_URL =
+  process.env.NEXT_PUBLIC_SYNAPSE_URL || 'http://localhost:8008';
+
 export const guestRegex = /^guest-\d+$/;
 
 export const DUMMY_PASSWORD = generateDummyPassword();

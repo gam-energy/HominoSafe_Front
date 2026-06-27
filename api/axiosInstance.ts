@@ -6,7 +6,7 @@ import axios, {
 } from 'axios';
 import Cookies from 'js-cookie';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8888';
+import { API_BASE_URL } from '@/lib/constants';
 
 // #region agent log
 fetch('http://127.0.0.1:7737/ingest/4be4e099-ee11-475d-82b0-2cc77ac7d35a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e45f8c'},body:JSON.stringify({sessionId:'e45f8c',location:'axiosInstance.ts:init',message:'API base URL configured',data:{apiBaseUrl:API_BASE_URL,envUrl:process.env.NEXT_PUBLIC_API_URL??null},timestamp:Date.now(),hypothesisId:'A,C'})}).catch(()=>{});

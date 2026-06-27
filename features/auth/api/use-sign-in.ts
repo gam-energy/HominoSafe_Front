@@ -5,8 +5,7 @@ import axiosInstance from '@/api/axiosInstance';
 import axios from 'axios';
 import { LoginFormValues, LoginResponse } from '../types/auth';
 import {useRouter} from "next/navigation"
-
-const MATRIX_HOMESERVER_URL = 'http://localhost:8008'; // URL و پورت Synapse
+import { SYNAPSE_HOMESERVER_URL } from '@/lib/constants';
 
 // 1️⃣ ورود به اپلیکیشن خودت
 const loginUser = async (credentials: LoginFormValues): Promise<LoginResponse> => {
@@ -30,7 +29,7 @@ const loginUser = async (credentials: LoginFormValues): Promise<LoginResponse> =
 
 // 2️⃣ ورود به Synapse
 const loginToMatrix = async (username: string, password: string) => {
-  const response = await axios.post(`${MATRIX_HOMESERVER_URL}/_matrix/client/r0/login`, {
+  const response = await axios.post(`${SYNAPSE_HOMESERVER_URL}/_matrix/client/r0/login`, {
     type: 'm.login.password',
     user: "admin",
     password: "adminpass",

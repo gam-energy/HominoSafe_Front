@@ -1,25 +1,35 @@
-version: "3.9"
-
 services:
   web:
-    image: Homino
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8888}
+        NEXT_PUBLIC_SYNAPSE_URL: ${NEXT_PUBLIC_SYNAPSE_URL:-http://localhost:8008}
+    container_name: homino_web
+    restart: unless-stopped
     ports:
       - "3002:3002"
     environment:
       NODE_ENV: production
-    restart: unless-stopped
-    depends_on:
-      - synapse
+      # Backend API (auth, dashboard, /synapse/* proxy routes)
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8888}
+      # Matrix Synapse homeserver (direct client sync, send, messages)
+      NEXT_PUBLIC_SYNAPSE_URL: ${NEXT_PUBLIC_SYNAPSE_URL:-http://localhost:8008}
+      # Server-side / internal references (matches backend .env)
+      SYNAPSE_HOST: ${SYNAPSE_HOST:-synapse}
+      SYNAPSE_SERVER_URL: ${SYNAPSE_SERVER_URL:-http://synapse:8008}
+      SYNAPSE_SERVER_NAME: ${SYNAPSE_SERVER_NAME:-matrix.local}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    networks:
+      - homino_network
 
-  synapse:
-    image: matrixdotorg/synapse:latest
-    container_name: synapse
-    restart: unless-stopped
-    ports:
-      - "8008:8008"        # Synapse client API
-      # - "8448:8448"      # OPTIONAL: federation port
-    volumes:
-      - ./synapse:/data    # homeserver.yaml + keys
+networks:
+  homino_network:
+    external: true
+    name: ${HOMINO_NETWORK_NAME:-homino_network}
