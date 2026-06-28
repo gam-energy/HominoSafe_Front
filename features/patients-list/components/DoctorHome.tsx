@@ -15,6 +15,8 @@ import {
   Stethoscope,
   Loader2,
   ShieldAlert,
+  Brain,
+  FileUp,
 } from "lucide-react";
 
 import PageContainer from "@/components/layout/page-container";
@@ -64,11 +66,17 @@ const PatientRow = ({
   patient,
   onView,
   onMessage,
+  onImport,
+  onClinicalAgent,
+  showImport,
   isMessaging,
 }: {
   patient: User;
   onView: () => void;
   onMessage: () => void;
+  onImport: () => void;
+  onClinicalAgent: () => void;
+  showImport: boolean;
   isMessaging: boolean;
 }) => {
   const isActive = patient.status === "active";
@@ -92,6 +100,26 @@ const PatientRow = ({
         <p className="text-xs text-muted-foreground truncate">@{patient.username}</p>
       </div>
       <div className="flex items-center gap-1.5">
+        {showImport && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-emerald-600"
+            onClick={onImport}
+            title="Import records"
+          >
+            <FileUp className="h-4 w-4" />
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-violet-600"
+          onClick={onClinicalAgent}
+          title="Clinical agent"
+        >
+          <Brain className="h-4 w-4" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -129,6 +157,13 @@ export default function DoctorHome() {
   const [messagingId, setMessagingId] = useState<number | null>(null);
 
   const { data: patients, isLoading, error } = usePatients(true);
+
+  const isCaregiver = user?.role === "caregiver";
+  const patientsListRoute = isCaregiver
+    ? "/dashboard/my-patients"
+    : "/dashboard/patients";
+  const patientDetailBase = patientsListRoute;
+  const alertsRoute = isCaregiver ? "/dashboard/chat" : "/dashboard/patient-alert";
 
   const stats = useMemo(() => {
     const list = patients ?? [];
@@ -192,9 +227,13 @@ export default function DoctorHome() {
       <div className="flex w-full flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Heading
-            title={t("doctor_dashboard", "Doctor Dashboard")}
+            title={
+              isCaregiver
+                ? t("caregiver_dashboard", "Caregiver Dashboard")
+                : t("doctor_dashboard", "Doctor Dashboard")
+            }
             description={t("hi_welcome_back", {
-              name: user?.first_name || "Doctor",
+              name: user?.first_name || (isCaregiver ? "Caregiver" : "Doctor"),
             })}
           />
           <div className="flex items-center gap-2">
@@ -202,7 +241,7 @@ export default function DoctorHome() {
               <MessageCircle className="w-4 h-4 me-2" />
               {t("chat", "Chat")}
             </Button>
-            <Button onClick={() => router.push("/dashboard/patients")}>
+            <Button onClick={() => router.push(patientsListRoute)}>
               <Users className="w-4 h-4 me-2" />
               {t("all_patients", "All Patients")}
             </Button>
@@ -277,7 +316,18 @@ export default function DoctorHome() {
                     key={patient.id}
                     patient={patient}
                     isMessaging={messagingId === patient.id}
-                    onView={() => router.push(`/dashboard/patients/${patient.id}`)}
+                    showImport={!isCaregiver}
+                    onView={() => router.push(`${patientDetailBase}/${patient.id}`)}
+                    onImport={() =>
+                      router.push(`/dashboard/patients/${patient.id}/import`)
+                    }
+                    onClinicalAgent={() =>
+                      router.push(
+                        isCaregiver
+                          ? `/dashboard/my-patients/${patient.id}/clinical-agent`
+                          : `/dashboard/patients/${patient.id}/clinical-agent`
+                      )
+                    }
                     onMessage={() => handleMessage(patient)}
                   />
                 ))}
@@ -287,7 +337,7 @@ export default function DoctorHome() {
             <Button
               variant="ghost"
               className="self-center text-primary"
-              onClick={() => router.push("/dashboard/patients")}
+              onClick={() => router.push(patientsListRoute)}
             >
               {t("view_all_patients", "View all patients")}
               <ArrowRight className="w-4 h-4 ms-1 rtl:-scale-x-100" />
@@ -304,16 +354,24 @@ export default function DoctorHome() {
             </div>
 
             <QuickAction
-              label={t("patients", "Patients")}
+              label={isCaregiver ? t("my_patients", "My Patients") : t("patients", "Patients")}
               description={t("manage_patient_records", "View and manage patient records")}
               icon={Users}
-              onClick={() => router.push("/dashboard/patients")}
+              onClick={() => router.push(patientsListRoute)}
             />
+            {!isCaregiver && (
+              <QuickAction
+                label={t("patient_alerts", "Patient Alerts")}
+                description={t("review_clinical_alerts", "Review clinical alerts")}
+                icon={ShieldAlert}
+                onClick={() => router.push(alertsRoute)}
+              />
+            )}
             <QuickAction
-              label={t("patient_alerts", "Patient Alerts")}
-              description={t("review_clinical_alerts", "Review clinical alerts")}
-              icon={ShieldAlert}
-              onClick={() => router.push("/dashboard/patient-alert")}
+              label={t("ai_chat", "AI Chat")}
+              description={t("ai_assistant_description", "Ask the AI health assistant")}
+              icon={Brain}
+              onClick={() => router.push("/dashboard/ai")}
             />
             <QuickAction
               label={t("chat", "Chat")}

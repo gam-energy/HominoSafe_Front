@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Activity, ArrowLeft, MessageCircle } from "lucide-react";
+import { Activity, ArrowLeft, Brain, FileUp, MessageCircle } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -111,6 +111,12 @@ export default function DoctorPatientDetail() {
     currentUser?.role === "caregiver"
       ? "/dashboard/my-patients"
       : "/dashboard/patients";
+  const isDoctor = currentUser?.role === "doctor";
+  const isCaregiver = currentUser?.role === "caregiver";
+  const clinicalAgentRoute = isCaregiver
+    ? `/dashboard/my-patients/${userId}/clinical-agent`
+    : `/dashboard/patients/${userId}/clinical-agent`;
+  const importRoute = `/dashboard/patients/${userId}/import`;
 
   // Patient user info (username, email, phone, status, etc.)
   const { data: patientInfoData, isLoading: infoLoading } =
@@ -227,26 +233,46 @@ export default function DoctorPatientDetail() {
   return (
     <PageContainer scrollable>
       <div className="flex w-full flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push(patientsListRoute)}
-            className="text-muted-foreground"
+            className="h-auto self-start px-2 text-muted-foreground"
           >
-            <ArrowLeft className="w-4 h-4 me-1" />
-            {t("back_to_patients", "Back to Patients")}
+            <ArrowLeft className="w-4 h-4 me-1 shrink-0" />
+            <span className="truncate">{t("back_to_patients", "Back to Patients")}</span>
           </Button>
-          <Button
-            onClick={handleMessagePatient}
-            disabled={isCreatingRoom || !patientInfo}
-            className="h-10"
-          >
-            <MessageCircle className="w-4 h-4 me-2" />
-            {isCreatingRoom
-              ? t("starting_chat", "Starting chat...")
-              : t("message_patient", "Message Patient")}
-          </Button>
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+            {isDoctor && (
+              <Button
+                variant="outline"
+                className="h-10 w-full sm:w-auto"
+                onClick={() => router.push(importRoute)}
+              >
+                <FileUp className="w-4 h-4 me-2 shrink-0" />
+                <span className="truncate">{t("import_records", "Import Records")}</span>
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="h-10 w-full sm:w-auto"
+              onClick={() => router.push(clinicalAgentRoute)}
+            >
+              <Brain className="w-4 h-4 me-2 shrink-0" />
+              <span className="truncate">{t("clinical_agent", "Clinical Agent")}</span>
+            </Button>
+            <Button
+              onClick={handleMessagePatient}
+              disabled={isCreatingRoom || !patientInfo}
+              className="h-10 w-full sm:w-auto"
+            >
+              <MessageCircle className="w-4 h-4 me-2 shrink-0" />
+              {isCreatingRoom
+                ? t("starting_chat", "Starting chat...")
+                : t("message_patient", "Message Patient")}
+            </Button>
+          </div>
         </div>
 
         <Heading
