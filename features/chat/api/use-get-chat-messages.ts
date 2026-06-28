@@ -6,8 +6,7 @@ import Cookies from "js-cookie";
 //  IMPORT مدل استاندارد پیام ماتریکس
 // --------------------------------------------
 import { MatrixMessageType } from "../types/chat.type";
-
-const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
+import { SYNAPSE_HOMESERVER_URL } from "@/lib/constants";
 
 // پاسخ API ماتریکس برای /messages
 export interface MatrixRoomMessagesResponse {
@@ -37,7 +36,7 @@ export const useChatMessages = (roomId: string | null) => {
         setError(null);
 
         const resp = await axios.get<MatrixRoomMessagesResponse>(
-          `${MATRIX_HOMESERVER_URL}/_matrix/client/r0/rooms/${roomId}/messages`,
+          `${SYNAPSE_HOMESERVER_URL}/_matrix/client/r0/rooms/${roomId}/messages`,
           {
             headers: { Authorization: `Bearer ${accessToken}` },
             params: {

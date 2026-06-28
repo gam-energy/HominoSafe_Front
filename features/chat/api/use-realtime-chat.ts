@@ -3,8 +3,7 @@ import axios from "axios";
 import Cookies from "js-cookie";
 
 import { MatrixMessageType } from "../types/chat.type";
-
-const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
+import { SYNAPSE_HOMESERVER_URL } from "@/lib/constants";
 
 // ----------------------------
 // Matrix Sync Response Type
@@ -62,7 +61,7 @@ export const useRealtimeChatMessages = (roomId: string | null) => {
           });
 
           const resp = await axios.get<MatrixSyncResponse>(
-            `${MATRIX_HOMESERVER_URL}/_matrix/client/r0/sync`,
+            `${SYNAPSE_HOMESERVER_URL}/_matrix/client/r0/sync`,
             {
               headers: { Authorization: `Bearer ${accessToken}` },
               params: {

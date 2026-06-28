@@ -1,8 +1,7 @@
 // hooks/matrix/use-matrix-send-message.ts
 import axios from "axios";
 import Cookies from "js-cookie";
-
-const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
+import { SYNAPSE_HOMESERVER_URL } from "@/lib/constants";
 
 export const useMatrixSendMessage = () => {
   const sendMessage = async (roomId: string, text: string) => {
@@ -13,7 +12,7 @@ export const useMatrixSendMessage = () => {
 
     const txnId = Date.now(); // unique transaction ID
 
-    const url = `${MATRIX_HOMESERVER_URL}/_matrix/client/v3/rooms/${roomId}/send/m.room.message/${txnId}`;
+    const url = `${SYNAPSE_HOMESERVER_URL}/_matrix/client/v3/rooms/${roomId}/send/m.room.message/${txnId}`;
 
     const payload = {
       msgtype: "m.text",

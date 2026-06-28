@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
-
-const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
+import { SYNAPSE_HOMESERVER_URL } from "@/lib/constants";
 
 export const useMatrixRooms = () => {
   const [rooms, setRooms] = useState<any[]>([]);
@@ -19,7 +18,7 @@ export const useMatrixRooms = () => {
 
     const fetchRooms = async () => {
       try {
-        const syncResp = await axios.get(`${MATRIX_HOMESERVER_URL}/_matrix/client/r0/sync`, {
+        const syncResp = await axios.get(`${SYNAPSE_HOMESERVER_URL}/_matrix/client/r0/sync`, {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
 
