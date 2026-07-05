@@ -6,6 +6,9 @@ import { AxiosError } from 'axios';
 export type SessionItem = {
   session_id: string;
   created_at: string;
+  title?: string;
+  last_message_at?: string;
+  status?: 'active' | 'archived' | string;
 };
 
 export type SessionResponse = {

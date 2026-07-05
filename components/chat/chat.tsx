@@ -1,18 +1,21 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import  ChatHeader  from '@/components/chat/chat-header';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import ChatHeader from '@/components/chat/chat-header';
 import { Artifact } from './artifact';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import type { VisibilityType } from './visibility-selector';
 import { useArtifactSelector } from '@/hooks/chat/use-artifact';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useChatVisibility } from '@/hooks/chat/use-chat-visibility';
 import type { Attachment, ChatMessage } from '@/lib/types';
-import { Message } from '@/features/ai/types/chat';
+import type { Message } from '@/features/ai/types/chat';
 import { useAutoResume } from '@/hooks/chat/use-auto-resume';
 import { useChatWebSocket } from '@/features/ai/api/useChatWebSocket';
+import { useUpdateSession } from '@/features/ai/api/useUpdateSession';
+import { useQueryClient } from '@tanstack/react-query';
+import { useUser } from '@/context/UserContext';
 
 export interface Session {
   user: {
@@ -25,13 +28,24 @@ export interface Session {
   expires: string;
 }
 
+function mapRestMessages(data: Message): ChatMessage[] {
+  if (!data?.messages?.length) return [];
+  return data.messages.map((msg) => ({
+    id: `${msg.timestamp}-${msg.role}`,
+    role: msg.role,
+    parts: [{ type: 'text', text: msg.content }],
+    content: msg.content,
+    timestamp: msg.timestamp,
+  }));
+}
+
 export function Chat({
   id,
   initialMessages,
   initialChatModel,
   initialVisibilityType,
   isReadonly,
-  session,
+  session: sessionProp,
   autoResume,
 }: {
   id: string;
@@ -39,66 +53,92 @@ export function Chat({
   initialChatModel: string;
   initialVisibilityType?: VisibilityType;
   isReadonly?: boolean;
-  session: Session;
+  session?: Session;
   autoResume: boolean;
 }) {
-  const router = useRouter();
-  const sessionId = id; 
-  const { messages, status, sendMessage } = useChatWebSocket(sessionId);
+  const { user } = useUser();
+  const queryClient = useQueryClient();
+  const { mutate: updateSession } = useUpdateSession();
+  const hasTitledRef = useRef(false);
+
+  const session: Session = sessionProp ?? {
+    user: {
+      name: user ? `${user.first_name} ${user.last_name}`.trim() : null,
+      email: user?.email ?? null,
+      id: user?.id?.toString(),
+      role: user?.role,
+    },
+    expires: new Date(Date.now() + 3600_000).toISOString(),
+  };
+
+  const handleMessageSent = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ['sessions'] });
+  }, [queryClient]);
+
+  const { messages, status, sendMessage, isHistoryLoaded } = useChatWebSocket(
+    id,
+    { onMessageSent: handleMessageSent }
+  );
+
   const { visibilityType } = useChatVisibility({
     chatId: id,
     initialVisibilityType,
   });
 
-
   const [input, setInput] = useState<string>('');
-  const [localMessages, setLocalMessages] = useState<ChatMessage[]>(
-    Array.isArray(initialMessages) ? initialMessages : []
+  const [localMessages, setLocalMessages] = useState<ChatMessage[]>(() =>
+    mapRestMessages(initialMessages)
   );
 
   const searchParams = useSearchParams();
   const query = searchParams.get('query');
-
   const [hasAppendedQuery, setHasAppendedQuery] = useState(false);
-
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const isArtifactVisible = useArtifactSelector((state) => state.isVisible);
 
   useEffect(() => {
-    setLocalMessages(messages);
+    if (messages.length > 0) {
+      setLocalMessages(messages);
+    }
   }, [messages]);
+
+  useEffect(() => {
+    if (!isHistoryLoaded && initialMessages?.messages?.length) {
+      setLocalMessages(mapRestMessages(initialMessages));
+    }
+  }, [initialMessages, isHistoryLoaded]);
+
+  useEffect(() => {
+    if (hasTitledRef.current) return;
+    const firstUser = messages.find((m) => m.role === 'user');
+    const hasAssistant = messages.some((m) => m.role === 'assistant');
+    if (firstUser && hasAssistant && firstUser.content) {
+      const title = firstUser.content.slice(0, 40).trim();
+      if (title) {
+        updateSession({ sessionId: id, title });
+        hasTitledRef.current = true;
+      }
+    }
+  }, [messages, id, updateSession]);
 
   useEffect(() => {
     if (query && !hasAppendedQuery) {
       sendMessage(query);
       setHasAppendedQuery(true);
-      // تغییر مسیر به مسیر دلخواه با استفاده از useRouter
-      // router.replace(`/dashboard/ai/chat/${id}`);
       window.history.replaceState({}, '', `/dashboard/ai/chat/${id}`);
     }
-  }, [query, sendMessage, hasAppendedQuery, id, router]);
-
-  // const { data: votes } = useSWR<Array<Vote>>(
-  //   messages.length >= 2 ? `/api/vote?chatId=${id}` : null,
-  //   fetcher
-  // );
+  }, [query, sendMessage, hasAppendedQuery, id]);
 
   useAutoResume({
     autoResume,
-    initialMessages: Array.isArray(initialMessages)
-      ? (initialMessages as ChatMessage[])
-      : [],
-    reload: async () => null, // Provide a no-op async function returning null as needed
-    setMessages: (messages) => {
-      // If messages is a function, call it with the current localMessages
-      if (typeof messages === 'function') {
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-expect-error
-        setLocalMessages((prev) => messages(prev) as ChatMessage[]);
+    initialMessages: mapRestMessages(initialMessages),
+    reload: async () => null,
+    setMessages: (msgs) => {
+      if (typeof msgs === 'function') {
+        setLocalMessages((prev) => msgs(prev) as ChatMessage[]);
       } else {
-        // Map UIMessage<ChatMessage, UIDataTypes>[] to ChatMessage[]
         setLocalMessages(
-          messages.map((msg: any) => ('data' in msg ? msg.data : msg) as ChatMessage)
+          msgs.map((msg) => ('data' in msg ? msg.data : msg) as ChatMessage)
         );
       }
     },
@@ -108,7 +148,6 @@ export function Chat({
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
-          // @ts-expect-error ChatHeader expects props, not an intrinsic element
           chatId={id}
           selectedModelId={initialChatModel}
           selectedVisibilityType={initialVisibilityType}
@@ -118,44 +157,43 @@ export function Chat({
         <Messages
           chatId={id}
           status={status as 'submitted' | 'streaming' | 'ready' | 'error'}
-          messages={localMessages.map((msg: any) =>
+          messages={localMessages.map((msg) =>
             'parts' in msg ? msg : { ...msg, parts: [] }
           )}
           setMessages={(msgs) =>
             setLocalMessages(
               (Array.isArray(msgs)
-                ? msgs.map((msg: any) => ('data' in msg ? msg.data : msg))
+                ? msgs.map((msg) => ('data' in msg ? msg.data : msg))
                 : []) as ChatMessage[]
             )
           }
           isReadonly={isReadonly ?? false}
           isArtifactVisible={isArtifactVisible}
-          // votes={[]}
         />
 
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
           {!isReadonly && (
-        <MultimodalInput
-          chatId={id}
-          input={input}
-          setInput={setInput}
-          status={status as 'submitted' | 'streaming' | 'ready' | 'error'}
-          stop={() => {}}
-          attachments={attachments}
-          setAttachments={setAttachments}
-          messages={localMessages.map((msg: any) =>
-            'parts' in msg ? msg : { ...msg, parts: [] }
-          )}
-          setMessages={(msgs) =>
-            setLocalMessages(
-              (Array.isArray(msgs)
-                ? msgs.map((msg: any) => ('data' in msg ? msg.data : msg))
-                : []) as ChatMessage[]
-            )
-          }
-          sendMessage={sendMessage}
-          selectedVisibilityType={visibilityType}
-        />
+            <MultimodalInput
+              chatId={id}
+              input={input}
+              setInput={setInput}
+              status={status as 'submitted' | 'streaming' | 'ready' | 'error'}
+              stop={() => {}}
+              attachments={attachments}
+              setAttachments={setAttachments}
+              messages={localMessages.map((msg) =>
+                'parts' in msg ? msg : { ...msg, parts: [] }
+              )}
+              setMessages={(msgs) =>
+                setLocalMessages(
+                  (Array.isArray(msgs)
+                    ? msgs.map((msg) => ('data' in msg ? msg.data : msg))
+                    : []) as ChatMessage[]
+                )
+              }
+              sendMessage={sendMessage}
+              selectedVisibilityType={visibilityType}
+            />
           )}
         </form>
       </div>
@@ -169,19 +207,17 @@ export function Chat({
         attachments={attachments}
         setAttachments={setAttachments}
         messages={localMessages}
-        setMessages={(messages) => {
-          if (typeof messages === 'function') {
-            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-            // @ts-expect-error
-            setLocalMessages((prev) => messages(prev) as ChatMessage[]);
+        setMessages={(msgs) => {
+          if (typeof msgs === 'function') {
+            setLocalMessages((prev) => msgs(prev) as ChatMessage[]);
           } else {
             setLocalMessages(
-              messages.map((msg: any) => ('data' in msg ? msg.data : msg) as ChatMessage)
+              msgs.map((msg) => ('data' in msg ? msg.data : msg) as ChatMessage)
             );
           }
         }}
         regenerate={async () => null}
-        append={async () => {}} // Provide a no-op or actual append function if needed
+        append={async () => {}}
         isReadonly={isReadonly ?? false}
         selectedVisibilityType={visibilityType}
       />

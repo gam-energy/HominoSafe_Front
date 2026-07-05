@@ -17,7 +17,7 @@ const fetchSummary = async (userId: number): Promise<SummaryData> => {
 };
 export const useSummary = (userId: number) => {
   return useQuery<SummaryData, AxiosError>({
-    queryKey: ['summary', userId],
+    queryKey: ['dashboard-summary', userId],
     queryFn: () => fetchSummary(userId),
     enabled: !!userId,
     staleTime: 1000 * 60 * 5, // داده‌ها تا ۵ دقیقه کش بشن

@@ -29,6 +29,7 @@ import { AnalyzeLoadingOverlay } from "./AnalyzeLoadingOverlay";
 import { FindingsList } from "./FindingsList";
 import { PhysicianFeedbackForm } from "./PhysicianFeedbackForm";
 import { RecommendationsList } from "./RecommendationsList";
+import { ScheduledReportsPanel } from '@/features/clinical-reports/components/ScheduledReportsPanel';
 
 export function ClinicalAgentReport() {
   const { t } = useTranslation();
@@ -176,6 +177,8 @@ export function ClinicalAgentReport() {
             )}
           </CardHeader>
         </Card>
+
+        <ScheduledReportsPanel patientId={patientId} />
 
         {reportLoading ? (
           <Card>

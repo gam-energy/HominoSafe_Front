@@ -6,20 +6,18 @@ import axios, {
   AxiosHeaders,
 } from 'axios';
 import Cookies from 'js-cookie';
+import { getApiBaseUrl } from '@/lib/api-utils';
+import { refreshAccessToken } from '@/api/axiosInstance';
 
-const API_BASE_URL = 'http://127.0.0.1:8888';
-// const API_BASE_URL = 'http://130.185.120.67:8888';
+const API_BASE_URL = getApiBaseUrl();
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: new AxiosHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
-  // withCredentials: true,
 });
 
-// گرفتن refreshToken از کوکی
 const getRefreshToken = (): string | undefined => Cookies.get('refresh_token');
 
-// ذخیره کردن توکن‌ها در کوکی
 const saveTokens = (accessToken: string, refreshToken: string): void => {
   Cookies.set('access_token', accessToken);
   Cookies.set('refresh_token', refreshToken);
@@ -39,7 +37,6 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// اضافه کردن فیلد _retry به تایپ config
 interface AxiosRequestConfigWithRetry extends InternalAxiosRequestConfig {
   _retry?: boolean;
 }
@@ -49,31 +46,15 @@ axiosInstance.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as AxiosRequestConfigWithRetry;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
-        const refreshToken = getRefreshToken();
-        if (!refreshToken) {
-          throw new Error('❌ No refresh token found in cookies');
-        }
-
-        const refreshResponse = await axios.post(
-          `${API_BASE_URL}/refresh-token`,
-          { refresh_token: refreshToken },
-          { withCredentials: true }
-        );
-
-        const newAccessToken = refreshResponse.data.access as string;
-        const newRefreshToken = refreshResponse.data.refresh as string;
-
-        saveTokens(newAccessToken, newRefreshToken);
-
+        const newAccessToken = await refreshAccessToken();
         if (!originalRequest.headers) {
           originalRequest.headers = new AxiosHeaders();
         }
         originalRequest.headers.set('Authorization', `Bearer ${newAccessToken}`);
-
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         Cookies.remove('access_token');

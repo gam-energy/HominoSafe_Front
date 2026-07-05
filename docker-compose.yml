@@ -7,19 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3002:3002"
+      - "3000:3000"
     environment:
       NODE_ENV: production
     restart: unless-stopped
-    depends_on:
-      - synapse
-
-  synapse:
-    image: matrixdotorg/synapse:latest
-    container_name: synapse
-    restart: unless-stopped
-    ports:
-      - "8008:8008"        # Synapse client API
-      # - "8448:8448"      # OPTIONAL: federation port
-    volumes:
-      - ./synapse:/data    # homeserver.yaml + keys

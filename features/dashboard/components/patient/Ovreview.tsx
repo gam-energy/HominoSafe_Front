@@ -12,6 +12,11 @@ import { Card } from "@/components/ui/card";
 import { useGetOVerview } from "../../api/patient/useGetOverview";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
+import { useLatestPatientState } from '@/features/predictions/api/useLatestPatientState';
+import { useRiskAssessment } from '@/features/predictions/api/useRiskAssessment';
+import { Button } from '@/components/ui/button';
+import { RefreshCw } from 'lucide-react';
+import { toast } from 'sonner';
 
 const AUTO_ROTATE_DELAY = 60000;
 
@@ -170,8 +175,10 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
   const userId = userIdProp ?? user?.id ?? 0;
 
   const { data: recommendationData } = useRecommendation(userId);
-  const { data: summaryData } = useSummary(userId);
+  const { data: summaryData, refetch: refetchSummary } = useSummary(userId);
   const { data: overViewData } = useGetOVerview(userId);
+  const { data: patientState } = useLatestPatientState(userId);
+  const riskMutation = useRiskAssessment();
 
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [summaryTab, setSummaryTab] = useState<SectionType>("kpis");
@@ -228,8 +235,31 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
     return () => clearInterval(interval);
   }, [activeTab, lastInteractionTime]);
 
+  const handleRunRiskAssessment = async () => {
+    try {
+      await riskMutation.mutateAsync({ userId, body: { force_refresh: true } });
+      await refetchSummary();
+      toast.success(t('risk_assessment_complete', 'Risk assessment updated'));
+    } catch {
+      toast.error(t('risk_assessment_failed', 'Risk assessment failed'));
+    }
+  };
+
+  const buildRiskData = () => {
+    if (!summaryData) return null;
+    const assessments = [...(summaryData.risk_assessments ?? [])];
+    if (patientState && assessments.length === 0) {
+      assessments.push({
+        time: patientState.timestamp ?? new Date().toISOString(),
+        risk_level: patientState.risk_level ?? 'unknown',
+        predicted_condition: t('latest_patient_state', 'Latest patient state computed'),
+        recommendation: t('continue_monitoring', 'Continue monitoring wearable data.'),
+      });
+    }
+    return { ...summaryData, risk_assessments: assessments };
+  };
+
   const renderTabContent = () => {
-    // We fall back to mock data if the API does not respond yet to ensure a beautiful experience
     const finalSummaryData = summaryData || mockRisk;
     
     if (activeTab === "overview" && finalSummaryData) {
@@ -262,13 +292,45 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
     }
 
     if (activeTab === "risk") {
+      const riskData = buildRiskData();
+      if (!riskData) {
+        return (
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t('no_risk_data', 'No risk assessment data yet. Run an assessment after sufficient wearable data is collected.')}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRunRiskAssessment}
+              disabled={riskMutation.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 me-2 ${riskMutation.isPending ? 'animate-spin' : ''}`} />
+              {t('run_risk_assessment', 'Run Risk Assessment')}
+            </Button>
+          </div>
+        );
+      }
       return (
-        <SummarySection
-          key="risk"
-          data={mockRisk as any}
-          activeSection={summaryTab}
-          onSectionChange={setSummaryTab}
-        />
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleRunRiskAssessment}
+              disabled={riskMutation.isPending}
+            >
+              <RefreshCw className={`h-4 w-4 me-1 ${riskMutation.isPending ? 'animate-spin' : ''}`} />
+              {t('refresh', 'Refresh')}
+            </Button>
+          </div>
+          <SummarySection
+            key="risk"
+            data={riskData as any}
+            activeSection={summaryTab}
+            onSectionChange={setSummaryTab}
+          />
+        </div>
       );
     }
 
