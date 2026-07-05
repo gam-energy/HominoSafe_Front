@@ -11,53 +11,6 @@ import { useTranslation } from "react-i18next";
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
 
-const mockData = {
-  ehr_id: 1,
-  demographics: "78-year-old Hispanic female, Lives alone, retired.",
-  comorbidities: {
-    "0": "Hypertension",
-    "1": "Type 2 Diabetes Mellitus",
-    "2": "Heart Failure with preserved Ejection Fraction (HFpEF)",
-    "3": "Orthostatic Hypotension (intermittent)",
-  },
-  diagnosis:
-    "Chronic cardiovascular and metabolic conditions with predicted orthostatic hypotension related to medication and autonomic impairment.",
-  physician_notes:
-    "Morning postural transition associated with predicted systolic blood pressure decline. Reduced baroreflex compensation likely due to beta-blocker therapy, diabetic autonomic dysfunction, and HFpEF preload sensitivity. No arrhythmic, ischemic, or hypoxic patterns detected. No escalation required.",
-  timestamp: "2026-01-20T07:12:00.000000+00:00",
-  medications: [
-    {
-      id: 1,
-      name: "Beta-blocker",
-      dosage: "Not specified",
-      frequency: "Daily",
-      start_date: "2025-01-01T00:00:00.000000+00:00",
-      end_date: null,
-      notes:
-        "Rate-limiting therapy contributing to attenuated chronotropic response.",
-    },
-    {
-      id: 2,
-      name: "ACE Inhibitor",
-      dosage: "Not specified",
-      frequency: "Daily",
-      start_date: "2025-01-01T00:00:00.000000+00:00",
-      end_date: null,
-      notes: "Prescribed for long-standing hypertension management.",
-    },
-    {
-      id: 3,
-      name: "Metformin",
-      dosage: "Not specified",
-      frequency: "BID",
-      start_date: "2025-01-01T00:00:00.000000+00:00",
-      end_date: null,
-      notes: "Prescribed for type 2 diabetes mellitus.",
-    },
-  ],
-  symptoms: [],
-};
-
 const Medicine = () => {
   const { t } = useTranslation();
   const { data, isLoading, error } = useProfile();
@@ -77,7 +30,7 @@ const Medicine = () => {
     );
   }
 
-  if (error || !mockData) {
+  if (error) {
     return (
       <PageContainer>
         <div className="flex justify-center py-20">
@@ -92,6 +45,8 @@ const Medicine = () => {
       </PageContainer>
     );
   }
+
+  const medications = data?.medications ?? [];
 
   return (
     <PageContainer scrollable>
@@ -109,10 +64,10 @@ const Medicine = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
-            {mockData.medications.length === 0 ? (
+            {medications.length === 0 ? (
               <p className="text-muted-foreground text-sm">{t("no_medications")}</p>
             ) : (
-              <MedicationsCards medications={mockData.medications} />
+              <MedicationsCards medications={medications} />
             )}
           </CardContent>
         </Card>

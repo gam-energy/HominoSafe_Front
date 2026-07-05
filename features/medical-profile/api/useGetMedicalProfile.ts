@@ -1,23 +1,25 @@
-// hooks/useProfile.ts
+import axios from 'axios';
 import { useQuery } from '@tanstack/react-query';
-import axiosInstance from '@/api/axiosInstance'; // axios سفارشی
+import axiosInstance from '@/api/axiosInstance';
 import { AxiosError } from 'axios';
-import {ProfileData} from "@/features/medical-profile/types/medicalprofile"
+import type { ProfileData } from '@/features/medical-profile/types/medicalprofile';
 
-// توابع درخواست API
-const fetchProfile = async (): Promise<ProfileData> => {
-  const response = await axiosInstance.get<ProfileData>('/api/profile/ehr');
-  if (response.status !== 200) {
-    throw new Error('Failed to fetch profile data');
+const fetchProfile = async (): Promise<ProfileData | null> => {
+  try {
+    const response = await axiosInstance.get<ProfileData>('/api/profile/ehr');
+    return response.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    throw error;
   }
-  return response.data;
 };
 
-// هوک useProfile
 export const useProfile = () => {
-  return useQuery<ProfileData, AxiosError>({
+  return useQuery<ProfileData | null, AxiosError>({
     queryKey: ['medical-profile'],
     queryFn: fetchProfile,
-    staleTime: 1000 * 60 * 5, // کش تا ۵ دقیقه
+    staleTime: 1000 * 60 * 5,
   });
 };

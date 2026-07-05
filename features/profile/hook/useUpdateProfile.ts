@@ -37,9 +37,9 @@ export const useUpdateProfile = () => {
 
   return useMutation<ProfileData, AxiosError, UpdateProfileInput>({
     mutationFn: updateProfile,
-    onSuccess: (data) => {
-      // پس از موفقیت، پروفایل را invalidate می‌کنیم تا fresh data گرفته شود
-    //   queryClient.invalidateQueries(['user']);
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      queryClient.invalidateQueries({ queryKey: ['profile-stats'] });
     },
   });
 };

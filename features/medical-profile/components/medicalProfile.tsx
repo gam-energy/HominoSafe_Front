@@ -2,6 +2,9 @@
 
 import { FC, JSX } from "react";
 import { useProfile } from "@/features/medical-profile/api/useGetMedicalProfile";
+import {
+  normalizeComorbidities,
+} from "@/features/medical-profile/utils/profile";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
@@ -29,53 +32,6 @@ const iconMap: Record<string, JSX.Element> = {
   Symptoms: <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
 };
 
-const mockData = {
-  ehr_id: 1,
-  demographics: "78-year-old Hispanic female, Lives alone, retired.",
-  comorbidities: {
-    "0": "Hypertension",
-    "1": "Type 2 Diabetes Mellitus",
-    "2": "Heart Failure with preserved Ejection Fraction (HFpEF)",
-    "3": "Orthostatic Hypotension (intermittent)",
-  },
-  diagnosis:
-    "Chronic cardiovascular and metabolic conditions with predicted orthostatic hypotension related to medication and autonomic impairment.",
-  physician_notes:
-    "Morning postural transition associated with predicted systolic blood pressure decline. Reduced baroreflex compensation likely due to beta-blocker therapy, diabetic autonomic dysfunction, and HFpEF preload sensitivity. No arrhythmic, ischemic, or hypoxic patterns detected. No escalation required.",
-  timestamp: "2026-01-20T07:12:00.000000+00:00",
-  medications: [
-    {
-      id: 1,
-      name: "Beta-blocker",
-      dosage: "Not specified",
-      frequency: "Daily",
-      start_date: "2025-01-01T00:00:00.000000+00:00",
-      end_date: null,
-      notes:
-        "Rate-limiting therapy contributing to attenuated chronotropic response.",
-    },
-    {
-      id: 2,
-      name: "ACE Inhibitor",
-      dosage: "Not specified",
-      frequency: "Daily",
-      start_date: "2025-01-01T00:00:00.000000+00:00",
-      end_date: null,
-      notes: "Prescribed for long-standing hypertension management.",
-    },
-    {
-      id: 3,
-      name: "Metformin",
-      dosage: "Not specified",
-      frequency: "BID",
-      start_date: "2025-01-01T00:00:00.000000+00:00",
-      end_date: null,
-      notes: "Prescribed for type 2 diabetes mellitus.",
-    },
-  ],
-  symptoms: [],
-};
-
 const ProfileSection: FC = () => {
   const { t } = useTranslation();
   const { data, isLoading, error } = useProfile();
@@ -95,7 +51,7 @@ const ProfileSection: FC = () => {
     );
   }
 
-  if (error || !mockData) {
+  if (error) {
     return (
       <PageContainer>
         <div className="flex justify-center py-20">
@@ -110,6 +66,33 @@ const ProfileSection: FC = () => {
       </PageContainer>
     );
   }
+
+  if (!data) {
+    return (
+      <PageContainer scrollable>
+        <div className="flex w-full flex-col gap-6">
+          <Heading
+            title={t("medical_profile")}
+            description={t("ehr_overview")}
+          />
+          <Alert className="max-w-xl">
+            <AlertTriangle className="h-5 w-5" />
+            <AlertTitle>{t("no_profile_title", "No medical profile yet")}</AlertTitle>
+            <AlertDescription>
+              {t(
+                "no_profile_desc",
+                "Your medical records have not been added yet. Contact your care team to set up your profile."
+              )}
+            </AlertDescription>
+          </Alert>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  const comorbidityEntries = normalizeComorbidities(data.comorbidities);
+  const medications = data.medications ?? [];
+  const symptoms = data.symptoms ?? [];
 
   const SectionCard = ({
     titleKey,
@@ -144,67 +127,70 @@ const ProfileSection: FC = () => {
           description={t("ehr_overview")}
         />
 
+        {data.timestamp && (
+          <p className="text-sm text-muted-foreground">
+            {t("last_updated", "Last updated")}:{" "}
+            {new Date(data.timestamp).toLocaleString()}
+          </p>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* DEMOGRAPHICS */}
           <SectionCard titleKey="demographics" titleDefault="Demographics">
-            <p className="font-medium text-foreground">{mockData.demographics || t("no_demographics")}</p>
+            <p className="font-medium text-foreground">
+              {data.demographics || t("no_demographics")}
+            </p>
           </SectionCard>
 
-          {/* COMORBIDITIES */}
           <SectionCard titleKey="comorbidities" titleDefault="Comorbidities">
-            {Object.entries(mockData.comorbidities).length === 0 ? (
+            {comorbidityEntries.length === 0 ? (
               <p>{t("no_comorbidities")}</p>
             ) : (
               <ul className="list-disc list-inside space-y-1.5">
-                {Object.entries(mockData.comorbidities).map(([key, value]) => {
-                  const isEmpty =
-                    typeof value === "object" &&
-                    Object.keys(value).length === 0;
-
-                  return (
-                    <li key={key} className="text-muted-foreground">
-                      <strong className="text-blue-600 dark:text-blue-400 font-semibold">
-                        {key.replace(/_/g, " ")}:
-                      </strong>{" "}
-                      <span className="text-foreground font-medium">
-                        {isEmpty ? "No Data" : String(value)}
-                      </span>
-                    </li>
-                  );
-                })}
+                {comorbidityEntries.map(([key, value]) => (
+                  <li key={key} className="text-muted-foreground">
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">
+                      {key.replace(/_/g, " ")}:
+                    </strong>{" "}
+                    <span className="text-foreground font-medium">
+                      {value || t("no_data", "No data")}
+                    </span>
+                  </li>
+                ))}
               </ul>
             )}
           </SectionCard>
 
-          {/* DIAGNOSIS */}
           <SectionCard titleKey="diagnosis" titleDefault="Diagnosis">
-            <p className="text-foreground font-medium">{mockData.diagnosis}</p>
+            <p className="text-foreground font-medium">
+              {data.diagnosis || t("no_diagnosis", "No diagnosis recorded.")}
+            </p>
           </SectionCard>
 
-          {/* PHYSICIAN NOTES */}
           <SectionCard titleKey="physician_notes" titleDefault="Physician Notes">
-            <p className="text-foreground font-medium">{mockData.physician_notes}</p>
+            <p className="text-foreground font-medium">
+              {data.physician_notes || t("no_notes", "No notes available.")}
+            </p>
           </SectionCard>
 
-          {/* MEDICATIONS */}
           <SectionCard titleKey="medicine" titleDefault="Medications">
-            {mockData.medications.length === 0 ? (
+            {medications.length === 0 ? (
               <p>{t("no_medications")}</p>
             ) : (
-              <MedicationsList medications={mockData.medications} />
+              <MedicationsList medications={medications} />
             )}
           </SectionCard>
 
-          {/* SYMPTOMS */}
           <SectionCard titleKey="symptoms" titleDefault="Symptoms">
-            {mockData.symptoms.length === 0 ? (
+            {symptoms.length === 0 ? (
               <p>{t("no_symptoms")}</p>
             ) : (
               <ul className="list-disc list-inside space-y-1.5">
-                {mockData.symptoms.map((symptom: any) => (
+                {symptoms.map((symptom) => (
                   <li key={symptom.id} className="text-foreground">
-                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">{symptom.name}</strong> —
-                    {t("severity")}: {symptom.severity}
+                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">
+                      {symptom.name}
+                    </strong>{" "}
+                    — {t("severity")}: {symptom.severity}
                     {symptom.notes && (
                       <span className="italic text-muted-foreground">
                         {" "}

@@ -19,7 +19,7 @@ export type Symptom = {
 export type ProfileData = {
   ehr_id: number;
   demographics: string;
-  comorbidities: Record<string, string>;
+  comorbidities: Record<string, string | unknown> | string[];
   diagnosis: string;
   physician_notes: string;
   timestamp: string;

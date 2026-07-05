@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SummarySection, SectionType } from "./SummarySection";
+import { SummarySection } from "./SummarySection";
 import { useSummary } from "../../api/patient/useGetSummary";
 import { useUser } from "@/context/UserContext";
 import { useRecommendation } from "../../api/patient/useGetRecommen";
@@ -15,157 +15,18 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLatestPatientState } from '@/features/predictions/api/useLatestPatientState';
 import { useRiskAssessment } from '@/features/predictions/api/useRiskAssessment';
 import { Button } from '@/components/ui/button';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  enrichSummary,
+  hasOverviewContent,
+} from '@/features/dashboard/utils/enrichSummary';
 
 const AUTO_ROTATE_DELAY = 60000;
 
 type TabType = "overview" | "recommendation" | "risk";
 
-const mockRisk = {
-  user_id: 4,
-  last_updated: "2026-06-25T05:10:28.866975Z",
-  kpis: {
-    heart_rate: {
-      value: 50.7,
-      trend: "decreasing",
-      average_last_24h: 69.8,
-      average_last_7d: 75.6,
-      unit: "bpm",
-    },
-    bp_systolic: {
-      value: 111.3,
-      trend: "stable",
-      average_last_24h: 118.6,
-      average_last_7d: 122.6,
-      unit: "mmHg",
-    },
-    bp_diastolic: {
-      value: 80.1,
-      trend: "stable",
-      average_last_24h: 79.3,
-      average_last_7d: 79.0,
-      unit: "mmHg",
-    },
-    spo2: {
-      value: 94.9,
-      trend: "stable",
-      average_last_24h: 94.5,
-      average_last_7d: 94.5,
-      unit: "%",
-    },
-    temperature: {
-      value: null,
-      trend: "not_enough_data",
-      average_last_24h: null,
-      average_last_7d: null,
-      unit: "°C",
-    },
-    body_temperature: {
-      value: 37.0,
-      trend: "stable",
-      average_last_24h: 37.1,
-      average_last_7d: 37.0,
-      unit: "°C",
-    },
-    humidity: {
-      value: null,
-      trend: "not_enough_data",
-      average_last_24h: null,
-      average_last_7d: null,
-      unit: "%",
-    },
-    mq2: {
-      value: null,
-      trend: "not_enough_data",
-      average_last_24h: null,
-      average_last_7d: null,
-      unit: "µg/m³",
-    },
-    CO2: {
-      value: null,
-      trend: "not_enough_data",
-      average_last_24h: null,
-      average_last_7d: null,
-      unit: "ppm",
-    },
-  },
-  recent_alerts: [
-    "Fall risk increased due to overnight hypotension (SBP 110). Recommendation: supervised ambulation.",
-    "Heart rate elevated to 92 BPM following postural transition. Patient may be in brief distress.",
-    "SpO2 dropped to 91% during sleep. Possible mild sleep apnea. Continue monitoring.",
-  ],
-  risk_assessments: [
-    {
-      time: "2026-06-25T07:12:00.000Z",
-      risk_level: "medium",
-      predicted_condition:
-        "Predicted orthostatic hypotension | Composite physiologic risk score: 42.7/100",
-      recommendation:
-        "Clinical monitoring recommended during early-morning postural transitions. No immediate intervention required.",
-    },
-    {
-      time: "2026-06-25T07:12:00.000Z",
-      risk_level: "medium",
-      predicted_condition:
-        "Short-term blood pressure instability (30–45 min window) | Score: 39/100",
-      recommendation:
-        "Observe trends and recurrence patterns. Review timing and cumulative effects of rate-limiting therapy if episodes persist.",
-    },
-    {
-      time: "2026-06-25T07:12:00.000Z",
-      risk_level: "low",
-      predicted_condition:
-        "Fall risk secondary to hemodynamic instability | Score: 18/100",
-      recommendation:
-        "No escalation required. No fall, gait abnormality, or activity anomaly detected.",
-    },
-    {
-      time: "2026-06-25T07:12:00.000Z",
-      risk_level: "low",
-      predicted_condition:
-        "Acute cardiac or hypoxic event risk | Score: 12/100",
-      recommendation:
-        "No arrhythmic, ischemic, or hypoxic patterns identified. Routine monitoring only.",
-    },
-  ],
-};
-
-const mockRecommendation = {
-  timestamp: "2026-06-25T07:12:45.000Z",
-  user_id: 1,
-  health_metrics: {
-    heart_rate: {
-      value: 58,
-      status: "normal" as const,
-      reference_range: "60-100",
-      recommendation: "Regular resting rate.",
-      priority: "low" as const
-    },
-    blood_pressure: {
-      value: 118,
-      status: "normal" as const,
-      reference_range: "110-130",
-      recommendation: "Stable pressure.",
-      priority: "low" as const
-    }
-  },
-  environment_metrics: {},
-  general_recommendations: [
-    "Take extra time when changing positions in the morning.",
-    "Remain seated briefly before standing fully after waking.",
-    "Continue routine monitoring of blood pressure trends.",
-    "Observe for recurring morning patterns related to posture or timing of medications.",
-  ],
-  alert_level_value: "1" as const,
-};
-
 interface OvreviewProps {
-  /**
-   * Optional user id to load data for. When provided (e.g. a doctor
-   * viewing a specific patient), data is fetched for that user instead
-   * of the currently logged-in user.
-   */
   userId?: number;
 }
 
@@ -174,14 +35,24 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
   const { user } = useUser();
   const userId = userIdProp ?? user?.id ?? 0;
 
-  const { data: recommendationData } = useRecommendation(userId);
-  const { data: summaryData, refetch: refetchSummary } = useSummary(userId);
-  const { data: overViewData } = useGetOVerview(userId);
+  const {
+    data: summaryData,
+    refetch: refetchSummary,
+    isLoading: summaryLoading,
+  } = useSummary(userId);
+  const { data: recommendationData, isLoading: recLoading } =
+    useRecommendation(userId);
+  const { data: overViewData, isLoading: overviewLoading } =
+    useGetOVerview(userId);
   const { data: patientState } = useLatestPatientState(userId);
   const riskMutation = useRiskAssessment();
 
+  const enrichedSummary = useMemo(
+    () => enrichSummary(summaryData, overViewData, userId),
+    [summaryData, overViewData, userId]
+  );
+
   const [activeTab, setActiveTab] = useState<TabType>("overview");
-  const [summaryTab, setSummaryTab] = useState<SectionType>("kpis");
 
   const [isFading, setIsFading] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
@@ -205,11 +76,6 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
 
     const timer = setTimeout(() => {
       setActiveTab(pendingTab);
-
-      if (pendingTab === "overview") setSummaryTab("kpis");
-      else if (pendingTab === "recommendation") setSummaryTab("alerts");
-      else if (pendingTab === "risk") setSummaryTab("risk");
-
       setIsFading(false);
       setPendingTab(null);
     }, 200);
@@ -223,9 +89,7 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
 
     const interval = setInterval(() => {
       const now = Date.now();
-      const timeSinceLastInteraction = now - lastInteractionTime;
-
-      if (timeSinceLastInteraction < AUTO_ROTATE_DELAY) return;
+      if (now - lastInteractionTime < AUTO_ROTATE_DELAY) return;
 
       const nextIndex = (index + 1) % tabs.length;
       autoRotateTab(tabs[nextIndex]);
@@ -246,8 +110,7 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
   };
 
   const buildRiskData = () => {
-    if (!summaryData) return null;
-    const assessments = [...(summaryData.risk_assessments ?? [])];
+    const assessments = [...(enrichedSummary.risk_assessments ?? [])];
     if (patientState && assessments.length === 0) {
       assessments.push({
         time: patientState.timestamp ?? new Date().toISOString(),
@@ -256,48 +119,85 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
         recommendation: t('continue_monitoring', 'Continue monitoring wearable data.'),
       });
     }
-    return { ...summaryData, risk_assessments: assessments };
+    return { ...enrichedSummary, risk_assessments: assessments };
   };
 
+  const isLoading = summaryLoading || overviewLoading;
+
   const renderTabContent = () => {
-    const finalSummaryData = summaryData || mockRisk;
-    
-    if (activeTab === "overview" && finalSummaryData) {
+    if (isLoading && activeTab === "overview") {
+      return (
+        <div className="flex flex-col items-center justify-center gap-3 py-16 text-muted-foreground">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm">{t("loading_overview", "Loading daily overview...")}</p>
+        </div>
+      );
+    }
+
+    if (activeTab === "overview") {
+      if (!hasOverviewContent(enrichedSummary, overViewData)) {
+        return (
+          <div className="flex flex-col items-center justify-center gap-3 py-12 text-center px-4">
+            <p className="text-sm text-muted-foreground max-w-sm">
+              {t(
+                "overview_empty_hint",
+                "No health data yet. Connect your smart watch from the profile card to populate your daily overview with live vitals."
+              )}
+            </p>
+          </div>
+        );
+      }
+
       return (
         <SummarySection
           key="overview"
-          data={finalSummaryData as any}
+          data={enrichedSummary}
           liveData={overViewData}
-          activeSection={summaryTab}
-          onSectionChange={setSummaryTab}
+          activeSection="kpis"
+          layout="full"
         />
       );
     }
 
     if (activeTab === "recommendation") {
-      const finalRecData = recommendationData || mockRecommendation;
-      if (!finalRecData) return null;
+      if (recLoading) {
+        return (
+          <div className="flex justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        );
+      }
+      if (!recommendationData) {
+        return (
+          <p className="text-sm text-muted-foreground italic py-8 text-center">
+            {t("no_recommendations", "No recommendations available yet.")}
+          </p>
+        );
+      }
       return (
         <RecommendSection
           key="recommendation"
           data={{
-            ...finalRecData,
-            alert_level_value:
-              (finalRecData as any).alert_level_value ?? "0",
+            ...recommendationData,
+            alert_level_value: (
+              (recommendationData as { alert_level_value?: string }).alert_level_value ?? "0"
+            ) as "0" | "1" | "2",
           }}
-          activeSection={summaryTab}
-          onSectionChange={setSummaryTab}
+          activeSection="alerts"
         />
       );
     }
 
     if (activeTab === "risk") {
       const riskData = buildRiskData();
-      if (!riskData) {
+      if (!riskData.risk_assessments?.length) {
         return (
           <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
             <p className="text-sm text-muted-foreground">
-              {t('no_risk_data', 'No risk assessment data yet. Run an assessment after sufficient wearable data is collected.')}
+              {t(
+                'no_risk_data',
+                'No risk assessment data yet. Run an assessment after sufficient wearable data is collected.'
+              )}
             </p>
             <Button
               size="sm"
@@ -305,7 +205,9 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
               onClick={handleRunRiskAssessment}
               disabled={riskMutation.isPending}
             >
-              <RefreshCw className={`h-4 w-4 me-2 ${riskMutation.isPending ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 me-2 ${riskMutation.isPending ? 'animate-spin' : ''}`}
+              />
               {t('run_risk_assessment', 'Run Risk Assessment')}
             </Button>
           </div>
@@ -320,15 +222,16 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
               onClick={handleRunRiskAssessment}
               disabled={riskMutation.isPending}
             >
-              <RefreshCw className={`h-4 w-4 me-1 ${riskMutation.isPending ? 'animate-spin' : ''}`} />
+              <RefreshCw
+                className={`h-4 w-4 me-1 ${riskMutation.isPending ? 'animate-spin' : ''}`}
+              />
               {t('refresh', 'Refresh')}
             </Button>
           </div>
           <SummarySection
             key="risk"
-            data={riskData as any}
-            activeSection={summaryTab}
-            onSectionChange={setSummaryTab}
+            data={riskData}
+            activeSection="risk"
           />
         </div>
       );
@@ -369,7 +272,7 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, x: 8 }}
-              animate={{ opacity: 1, x: 0 }}
+              animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, x: -8 }}
               transition={{ duration: 0.25, ease: "easeInOut" }}
               className="h-full w-full pb-6"
