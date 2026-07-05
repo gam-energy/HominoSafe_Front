@@ -1,6 +1,43 @@
 import type { DashboardData } from '@/features/dashboard/types/patient/overview';
-import type { SummaryData } from '@/features/dashboard/types/patient/summery';
+import type { SummaryData, RecentAlert } from '@/features/dashboard/types/patient/summery';
 import type { KPI } from '@/features/dashboard/types/patient/summery';
+
+export function normalizeRecentAlerts(alerts: unknown[] | undefined): RecentAlert[] {
+  if (!alerts?.length) return [];
+
+  return alerts.map((item, index) => {
+    if (typeof item === 'string') {
+      return { id: index, message: item };
+    }
+
+    if (item && typeof item === 'object') {
+      const obj = item as Record<string, unknown>;
+      const message =
+        typeof obj.message === 'string'
+          ? obj.message
+          : typeof obj.alert_type === 'string'
+            ? obj.alert_type.replace(/_/g, ' ')
+            : 'Alert';
+
+      return {
+        id: (obj.id as string | number) ?? index,
+        message,
+        alert_type:
+          typeof obj.alert_type === 'string' ? obj.alert_type : undefined,
+        severity:
+          typeof obj.severity === 'string' ? obj.severity : undefined,
+        time:
+          typeof obj.time === 'string'
+            ? obj.time
+            : typeof obj.timestamp === 'string'
+              ? obj.timestamp
+              : undefined,
+      };
+    }
+
+    return { id: index, message: String(item) };
+  });
+}
 
 function kpi(
   value: number | null | undefined,
@@ -59,7 +96,9 @@ export function enrichSummary(
     user_id: summary?.user_id ?? userId,
     last_updated: now,
     kpis,
-    recent_alerts: summary?.recent_alerts ?? [],
+    recent_alerts: normalizeRecentAlerts(
+      summary?.recent_alerts as unknown[] | undefined
+    ),
     risk_assessments: summary?.risk_assessments ?? [],
     daily_overview: {
       date: daily.date ?? new Date().toISOString().slice(0, 10),

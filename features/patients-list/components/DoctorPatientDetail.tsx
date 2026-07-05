@@ -289,7 +289,14 @@ export default function DoctorPatientDetail() {
             <ProfileCard viewedUser={patientInfo} />
           </div>
           <div className="xl:col-span-8">
-            <Ovreview userId={userId} />
+            <Ovreview
+              userId={userId}
+              patientName={
+                patientInfo
+                  ? `${patientInfo.first_name} ${patientInfo.last_name}`.trim()
+                  : undefined
+              }
+            />
           </div>
         </div>
 

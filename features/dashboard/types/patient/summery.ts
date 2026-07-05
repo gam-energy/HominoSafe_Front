@@ -2,7 +2,7 @@
 
 export type KPI = {
   value: number;
-  trend: number | null;
+  trend: string | number | null;
   average_last_24h: number | null;
   average_last_7d: number | null;
   unit: string;
@@ -15,11 +15,19 @@ type RiskAssessment = {
   recommendation: string;
 };
 
+export type RecentAlert = {
+  id?: string | number;
+  message: string;
+  alert_type?: string;
+  severity?: string;
+  time?: string;
+};
+
 export type SummaryData = {
   user_id: number;
   last_updated: string;
   kpis: Record<string, KPI>;
-  recent_alerts: string[];
+  recent_alerts: RecentAlert[];
   risk_assessments: RiskAssessment[];  // <-- اصلاح اینجا
   daily_overview: {
     date: string;

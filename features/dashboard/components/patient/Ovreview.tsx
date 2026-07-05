@@ -21,6 +21,7 @@ import {
   enrichSummary,
   hasOverviewContent,
 } from '@/features/dashboard/utils/enrichSummary';
+import { KpiExportMenu } from './KpiExportMenu';
 
 const AUTO_ROTATE_DELAY = 60000;
 
@@ -28,9 +29,10 @@ type TabType = "overview" | "recommendation" | "risk";
 
 interface OvreviewProps {
   userId?: number;
+  patientName?: string;
 }
 
-export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
+export default function Ovreview({ userId: userIdProp, patientName: patientNameProp }: OvreviewProps = {}) {
   const { t } = useTranslation();
   const { user } = useUser();
   const userId = userIdProp ?? user?.id ?? 0;
@@ -53,10 +55,29 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
   );
 
   const [activeTab, setActiveTab] = useState<TabType>("overview");
-
   const [isFading, setIsFading] = useState(false);
   const [pendingTab, setPendingTab] = useState<TabType | null>(null);
   const [lastInteractionTime, setLastInteractionTime] = useState(Date.now());
+
+  const patientName =
+    patientNameProp ??
+    (user ? `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() : undefined);
+
+  const exportSummary = useMemo(() => {
+    const assessments = [...(enrichedSummary.risk_assessments ?? [])];
+    if (patientState && assessments.length === 0) {
+      assessments.push({
+        time: patientState.timestamp ?? new Date().toISOString(),
+        risk_level: patientState.risk_level ?? 'unknown',
+        predicted_condition: t('latest_patient_state', 'Latest patient state computed'),
+        recommendation: t('continue_monitoring', 'Continue monitoring wearable data.'),
+      });
+    }
+    return { ...enrichedSummary, risk_assessments: assessments };
+  }, [enrichedSummary, patientState, t]);
+
+  const canExport = hasOverviewContent(enrichedSummary, overViewData);
+  const isLoading = summaryLoading || overviewLoading;
 
   const handleTabChange = (tab: TabType) => {
     if (tab === activeTab) return;
@@ -73,29 +94,24 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
 
   useEffect(() => {
     if (!isFading || pendingTab === null) return;
-
     const timer = setTimeout(() => {
       setActiveTab(pendingTab);
       setIsFading(false);
       setPendingTab(null);
     }, 200);
-
     return () => clearTimeout(timer);
   }, [isFading, pendingTab]);
 
   useEffect(() => {
     const tabs: TabType[] = ["overview", "recommendation", "risk"];
     let index = tabs.indexOf(activeTab);
-
     const interval = setInterval(() => {
       const now = Date.now();
       if (now - lastInteractionTime < AUTO_ROTATE_DELAY) return;
-
       const nextIndex = (index + 1) % tabs.length;
       autoRotateTab(tabs[nextIndex]);
       index = nextIndex;
     }, 4500);
-
     return () => clearInterval(interval);
   }, [activeTab, lastInteractionTime]);
 
@@ -109,21 +125,6 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
     }
   };
 
-  const buildRiskData = () => {
-    const assessments = [...(enrichedSummary.risk_assessments ?? [])];
-    if (patientState && assessments.length === 0) {
-      assessments.push({
-        time: patientState.timestamp ?? new Date().toISOString(),
-        risk_level: patientState.risk_level ?? 'unknown',
-        predicted_condition: t('latest_patient_state', 'Latest patient state computed'),
-        recommendation: t('continue_monitoring', 'Continue monitoring wearable data.'),
-      });
-    }
-    return { ...enrichedSummary, risk_assessments: assessments };
-  };
-
-  const isLoading = summaryLoading || overviewLoading;
-
   const renderTabContent = () => {
     if (isLoading && activeTab === "overview") {
       return (
@@ -135,7 +136,7 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
     }
 
     if (activeTab === "overview") {
-      if (!hasOverviewContent(enrichedSummary, overViewData)) {
+      if (!canExport) {
         return (
           <div className="flex flex-col items-center justify-center gap-3 py-12 text-center px-4">
             <p className="text-sm text-muted-foreground max-w-sm">
@@ -189,8 +190,7 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
     }
 
     if (activeTab === "risk") {
-      const riskData = buildRiskData();
-      if (!riskData.risk_assessments?.length) {
+      if (!exportSummary.risk_assessments?.length) {
         return (
           <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
             <p className="text-sm text-muted-foreground">
@@ -230,7 +230,7 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
           </div>
           <SummarySection
             key="risk"
-            data={riskData}
+            data={exportSummary}
             activeSection="risk"
           />
         </div>
@@ -242,6 +242,25 @@ export default function Ovreview({ userId: userIdProp }: OvreviewProps = {}) {
 
   return (
     <Card className="flex h-full flex-col rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
+      <div className="flex items-center justify-end mb-1">
+        <KpiExportMenu
+          summary={exportSummary}
+          recommendations={
+            recommendationData
+              ? {
+                  ...recommendationData,
+                  alert_level_value: (
+                    (recommendationData as { alert_level_value?: string }).alert_level_value ?? "0"
+                  ) as "0" | "1" | "2",
+                }
+              : null
+          }
+          patientId={userId}
+          patientName={patientName || undefined}
+          activity={overViewData?.wearable?.activity}
+          disabled={!canExport || isLoading}
+        />
+      </div>
       <Tabs
         value={activeTab}
         onValueChange={(val) => handleTabChange(val as TabType)}

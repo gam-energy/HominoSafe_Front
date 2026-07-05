@@ -1,12 +1,15 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { useUser } from "@/context/UserContext";
+import { HealthKpisExportMenu } from "@/features/dashboard/components/patient/HealthKpisExportMenu";
+import type { HealthKpisReportData } from "@/features/dashboard/utils/exportHealthKpisReport";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -196,10 +199,22 @@ const barColor: Record<string, string> = {
 
 /* ===================== sub-components ===================== */
 
-function ProgressRing({ value, color }: { value: number; color: string }) {
+function ProgressRing({
+  value,
+  color,
+  exportTitle,
+}: {
+  value: number;
+  color: string;
+  exportTitle?: string;
+}) {
   const data = [{ name: "score", value, fill: color }];
   return (
-    <div className="relative h-28 w-28">
+    <div
+      className="relative h-28 w-28"
+      data-export-chart={exportTitle ? `system-${exportTitle}` : undefined}
+      data-export-chart-title={exportTitle}
+    >
       <ResponsiveContainer width="100%" height="100%">
         <RadialBarChart
           innerRadius="72%"
@@ -223,7 +238,75 @@ function ProgressRing({ value, color }: { value: number; color: string }) {
 
 export default function HealthKpisPage() {
   const { t } = useTranslation();
+  const { user } = useUser();
   const data = useMemo(() => chartData, []);
+
+  const reportData = useMemo((): HealthKpisReportData => {
+    const hrStats = chartStats(data.map((d) => d.heartRate));
+    const spo2Stats = chartStats(data.map((d) => d.spo2));
+    const bpSysStats = chartStats(data.map((d) => d.bpSystolic));
+    const tempStats = chartStats(data.map((d) => d.temperature));
+
+    return {
+      patientName: user ? `${user.first_name} ${user.last_name}`.trim() : undefined,
+      userId: user?.id,
+      generatedAt: new Date().toLocaleString(),
+      heroCards: heroCards.map((card) => ({
+        label: t(card.key),
+        value: card.value,
+        suffix: card.suffix,
+        delta: card.delta,
+        deltaUp: card.deltaUp,
+      })),
+      systemScores: systemScores.map((s) => ({
+        label: t(s.key),
+        value: s.value,
+      })),
+      riskBreakdown: riskBreakdown.map((r) => ({
+        label: t(r.key),
+        level: t(r.level),
+        score: r.score,
+      })),
+      vitals: [
+        {
+          label: t("heart_rate", "Heart Rate"),
+          unit: t("bpm", "bpm"),
+          ...hrStats,
+          readings: data.map((d) => ({
+            time: d.time,
+            display: `${d.heartRate} bpm`,
+          })),
+        },
+        {
+          label: t("spo2", "SpO2"),
+          unit: "%",
+          ...spo2Stats,
+          readings: data.map((d) => ({
+            time: d.time,
+            display: `${d.spo2}%`,
+          })),
+        },
+        {
+          label: t("blood_pressure", "Blood Pressure"),
+          unit: "mmHg",
+          ...bpSysStats,
+          readings: data.map((d) => ({
+            time: d.time,
+            display: `${d.bpSystolic}/${d.bpDiastolic} mmHg`,
+          })),
+        },
+        {
+          label: t("temperature", "Temperature"),
+          unit: "°C",
+          ...tempStats,
+          readings: data.map((d) => ({
+            time: d.time,
+            display: `${d.temperature} °C`,
+          })),
+        },
+      ],
+    };
+  }, [data, t, user]);
 
   const chartTabs: { key: MetricKey; label: string; icon: typeof HeartPulse; color: string; unit: string }[] = [
     { key: "heartRate", label: t("heart_rate", "Heart Rate"), icon: HeartPulse, color: "#ef4444", unit: t("bpm", "bpm") },
@@ -235,7 +318,10 @@ export default function HealthKpisPage() {
   return (
     <PageContainer scrollable>
       <div className="flex w-full flex-col gap-6">
-        <Heading title={t("kpi_dashboard")} description={t("kpi_description")} />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <Heading title={t("kpi_dashboard")} description={t("kpi_description")} />
+          <HealthKpisExportMenu buildReport={() => reportData} />
+        </div>
 
         {/* Hero KPI cards */}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -275,7 +361,11 @@ export default function HealthKpisPage() {
                     </div>
                   </div>
 
-                  <div className="-mb-2 -mx-2 h-10">
+                  <div
+                    className="-mb-2 -mx-2 h-10"
+                    data-export-chart={`hero-${card.key}`}
+                    data-export-chart-title={t(card.key)}
+                  >
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={card.trend} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
                         <defs>
@@ -318,7 +408,7 @@ export default function HealthKpisPage() {
                       key={s.key}
                       className="flex flex-col items-center gap-2 rounded-xl border border-border bg-muted/30 p-4"
                     >
-                      <ProgressRing value={s.value} color={s.color} />
+                      <ProgressRing value={s.value} color={s.color} exportTitle={t(s.key)} />
                       <div className="flex items-center gap-1.5 text-sm font-medium">
                         <Icon className="h-4 w-4 text-muted-foreground" />
                         {t(s.key)}
@@ -391,7 +481,7 @@ export default function HealthKpisPage() {
                 })}
               </TabsList>
 
-              <TabsContent value="heartRate" className="flex flex-col gap-5">
+              <TabsContent value="heartRate" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-lg">{t("heart_rate", "Heart Rate")} <span className="text-sm font-normal text-muted-foreground">({t("bpm", "bpm")})</span></CardTitle>
@@ -399,7 +489,11 @@ export default function HealthKpisPage() {
                   <TrendBadge trend={chartStats(data.map((d) => d.heartRate)).trend} />
                 </div>
                 <StatGrid values={data.map((d) => d.heartRate)} unit={t("bpm", "bpm")} />
-                <div className="h-[280px] w-full">
+                <div
+                  className="h-[280px] w-full"
+                  data-export-chart="vital-heartRate"
+                  data-export-chart-title={t("heart_rate", "Heart Rate")}
+                >
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                       <defs>
@@ -418,13 +512,17 @@ export default function HealthKpisPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="spo2" className="flex flex-col gap-5">
+              <TabsContent value="spo2" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{t("spo2", "SpO2")} <span className="text-sm font-normal text-muted-foreground">(%)</span></CardTitle>
                   <TrendBadge trend={chartStats(data.map((d) => d.spo2)).trend} />
                 </div>
                 <StatGrid values={data.map((d) => d.spo2)} unit="%" />
-                <div className="h-[280px] w-full">
+                <div
+                  className="h-[280px] w-full"
+                  data-export-chart="vital-spo2"
+                  data-export-chart-title={t("spo2", "SpO2")}
+                >
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -437,13 +535,17 @@ export default function HealthKpisPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="bloodPressure" className="flex flex-col gap-5">
+              <TabsContent value="bloodPressure" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{t("blood_pressure", "Blood Pressure")} <span className="text-sm font-normal text-muted-foreground">(mmHg)</span></CardTitle>
                   <TrendBadge trend={chartStats(data.map((d) => d.bpSystolic)).trend} />
                 </div>
                 <StatGrid values={data.map((d) => d.bpSystolic)} unit="mmHg" />
-                <div className="h-[280px] w-full">
+                <div
+                  className="h-[280px] w-full"
+                  data-export-chart="vital-bloodPressure"
+                  data-export-chart-title={t("blood_pressure", "Blood Pressure")}
+                >
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -458,13 +560,17 @@ export default function HealthKpisPage() {
                 </div>
               </TabsContent>
 
-              <TabsContent value="temperature" className="flex flex-col gap-5">
+              <TabsContent value="temperature" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{t("temperature", "Temperature")} <span className="text-sm font-normal text-muted-foreground">(°C)</span></CardTitle>
                   <TrendBadge trend={chartStats(data.map((d) => d.temperature)).trend} />
                 </div>
                 <StatGrid values={data.map((d) => d.temperature)} unit="°C" />
-                <div className="h-[280px] w-full">
+                <div
+                  className="h-[280px] w-full"
+                  data-export-chart="vital-temperature"
+                  data-export-chart-title={t("temperature", "Temperature")}
+                >
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                       <defs>
