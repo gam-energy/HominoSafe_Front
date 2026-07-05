@@ -5,6 +5,7 @@ import { Breadcrumbs } from '../breadcrumbs';
 import { UserNav } from './user-nav';
 import { ModeToggle } from './ThemeToggle/theme-toggle';
 import { LanguageToggle } from './language-toggle';
+import { AlertBar } from '@/features/dashboard/components/patient/AlertBar';
 // import CtaGithub from './cta-github';
 
 export default function Header() {
@@ -18,8 +19,8 @@ export default function Header() {
         <Breadcrumbs />
       </div>
 
-      <div className='flex items-center gap-2 px-4'>
-        {/* <CtaGithub /> */}
+      <div className='flex items-center gap-1 px-4'>
+        <AlertBar />
         <LanguageToggle />
         <UserNav />
         <ModeToggle />

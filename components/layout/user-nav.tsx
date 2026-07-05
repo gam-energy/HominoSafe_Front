@@ -27,10 +27,9 @@ export function UserNav() {
         </Button>
       </DropdownMenuTrigger>
         <DropdownMenuContent
-          className='w-56'
-          align='end'
+          className="w-56"
+          align="end"
           sideOffset={10}
-          forceMount
         >
           <DropdownMenuLabel className='font-normal'>
             <div className='flex flex-col space-y-1'>
@@ -52,6 +51,11 @@ export function UserNav() {
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
               Settings
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => router.push('/dashboard/settings#notifications')}
+            >
+              Notifications
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />

@@ -1,18 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -31,35 +26,51 @@ import {
   AlertTriangle,
   Info,
   ChevronDown,
+  ExternalLink,
+  Settings,
 } from "lucide-react";
 
 import { useNotifications } from "@/context/NotificationContext";
+import { useUser } from "@/context/UserContext";
+import { cn } from "@/lib/utils";
 
-const severityIcons: Record<string, any> = {
+const SETTINGS_NOTIFICATIONS_HREF = "/dashboard/settings#notifications";
+
+const severityIcons: Record<string, typeof AlertCircle> = {
   HIGH: AlertCircle,
   MEDIUM: AlertTriangle,
   LOW: Info,
 };
 
-const severityColors: Record<string, string> = {
-  HIGH: "#f87171",
-  MEDIUM: "#fbbf24",
-  LOW: "#60a5fa",
+const severityStyles: Record<string, string> = {
+  HIGH: "text-rose-600 dark:text-rose-400 bg-rose-500/10",
+  MEDIUM: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
+  LOW: "text-sky-600 dark:text-sky-400 bg-sky-500/10",
 };
 
+function alertsPageForRole(role: string): string {
+  if (role === "doctor") return "/dashboard/patient-alert";
+  return "/dashboard/alert";
+}
+
 export function AlertBar() {
-  const isRtl = true;
-  const router = useRouter();
+  const { t, i18n } = useTranslation();
+  const { role } = useUser();
 
-  const { notifications, removeNotification, clearNotifications } =
-    useNotifications();
+  const {
+    notifications,
+    unreadCount,
+    removeNotification,
+    markAsRead,
+    clearNotifications,
+  } = useNotifications();
 
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("ALL");
   const [expanded, setExpanded] = useState<string | null>(null);
 
   const filtered = notifications.filter(
-    (n) => activeTab === "ALL" || n.severity === activeTab,
+    (n) => activeTab === "ALL" || n.severity === activeTab
   );
 
   const count = {
@@ -69,135 +80,164 @@ export function AlertBar() {
     LOW: notifications.filter((n) => n.severity === "LOW").length,
   };
 
+  const alertsHref = alertsPageForRole(role);
+
   return (
-    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-      {/* Trigger */}
-      <SheetTrigger asChild>
-        <div className="relative cursor-pointer">
-          <Bell className="w-6 h-6 text-gray-700" />
-          {notifications.length > 0 && (
-            <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1 shadow-md animate-pulse">
-              {notifications.length}
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="relative h-9 w-9 rounded-full"
+          aria-label={t("notifications", "Notifications")}
+        >
+          <Bell className="h-[1.15rem] w-[1.15rem]" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-destructive-foreground ring-2 ring-background">
+              {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           )}
-        </div>
-      </SheetTrigger>
+        </Button>
+      </PopoverTrigger>
 
-      {/* Content */}
-      <SheetContent
-        side={isRtl ? "right" : "left"}
-        className="w-80 sm:w-96 border-l bg-white/95 shadow-2xl p-4 z-50"
+      <PopoverContent
+        align="end"
+        sideOffset={8}
+        className="flex w-[min(100vw-2rem,24rem)] flex-col p-0 sm:w-96"
       >
-        <SheetHeader>
-          <SheetTitle className="flex justify-between items-center text-lg font-semibold">
-            Alerts
-            {notifications.length > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="hover:bg-red-50 hover:text-red-600 transition"
-                onClick={clearNotifications}
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            )}
-          </SheetTitle>
-        </SheetHeader>
-
-        <Separator className="my-4" />
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid grid-cols-4 gap-1 p-1 rounded-xl text-xs">
-            {["ALL", "HIGH", "MEDIUM", "LOW"].map((severity) => (
-              <TabsTrigger
-                key={severity}
-                value={severity}
-                className="rounded-lg py-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-400 data-[state=active]:to-blue-300 data-[state=active]:shadow-md"
-              >
-                {severity} ({count[severity as keyof typeof count]})
-              </TabsTrigger>
-            ))}
-          </TabsList>
-        </Tabs>
-
-        {/* Alerts */}
-        <ScrollArea className="h-[70vh] mt-4 pr-2">
-          {filtered.length === 0 ? (
-            <p className="text-center text-muted-foreground mt-10 text-sm">
-              No alerts available
+        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <Bell className="h-4 w-4 shrink-0 text-primary" />
+            <p className="truncate text-sm font-bold">
+              {t("health_alerts", "Health Alerts")}
             </p>
+            {notifications.length > 0 && (
+              <Badge variant="secondary" className="font-mono text-[10px]">
+                {notifications.length}
+              </Badge>
+            )}
+          </div>
+          {notifications.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive"
+              onClick={clearNotifications}
+              aria-label={t("clear_all", "Clear all")}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
+
+        <div className="px-4 pt-3">
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid h-auto w-full grid-cols-4 gap-1 p-1">
+              {(["ALL", "HIGH", "MEDIUM", "LOW"] as const).map((severity) => (
+                <TabsTrigger
+                  key={severity}
+                  value={severity}
+                  className="rounded-md py-1.5 text-[10px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                >
+                  {severity === "ALL" ? t("all", "All") : severity} ({count[severity]})
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        </div>
+
+        <ScrollArea className="max-h-[min(50vh,320px)] px-4 py-3">
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center gap-2 py-10 text-center">
+              <div className="rounded-full bg-muted p-3">
+                <Bell className="h-6 w-6 text-muted-foreground/50" />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {t("no_alerts_available", "No alerts available")}
+              </p>
+            </div>
           ) : (
             filtered.map((n) => {
               const Icon = severityIcons[n.severity] || Info;
-              const isOpen = expanded === n.id;
+              const isExpanded = expanded === n.id;
 
               return (
                 <Card
                   key={n.id}
-                  className="mb-3 rounded-xl shadow-sm hover:shadow-md transition overflow-hidden"
+                  className={cn(
+                    "mb-2 overflow-hidden rounded-lg border shadow-none",
+                    !n.read && "border-primary/30 bg-accent/30"
+                  )}
                 >
                   <CardHeader
-                    className="flex justify-between items-center gap-3 p-3 cursor-pointer"
-                    onClick={() => setExpanded(isOpen ? null : n.id)}
+                    className="flex cursor-pointer flex-row items-start justify-between gap-2 p-3"
+                    onClick={() => {
+                      if (!n.read) markAsRead(n.id);
+                      setExpanded(isExpanded ? null : n.id);
+                    }}
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon
-                        className="w-5 h-5"
-                        color={severityColors[n.severity]}
-                      />
-                      <div>
-                        <CardTitle className="text-sm font-semibold">
-                          {n.alert_type || "Environmental Alert"}
+                    <div className="flex min-w-0 items-start gap-2">
+                      <div
+                        className={cn(
+                          "rounded-md p-1.5 shrink-0",
+                          severityStyles[n.severity]
+                        )}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </div>
+                      <div className="min-w-0 space-y-0.5">
+                        <CardTitle className="text-xs font-semibold leading-snug">
+                          {n.message ||
+                            n.alert_type?.replace(/_/g, " ") ||
+                            t("health_alert", "Health Alert")}
                         </CardTitle>
-                        <CardDescription className="text-xs text-gray-500">
-                          {n.location || "Hall 1"}
+                        <CardDescription className="text-[10px]">
+                          {n.location && `${n.location} · `}
                           {n.timestamp &&
-                            ` • ${new Date(n.timestamp).toLocaleString(
-                              "fa-IR",
-                            )}`}
+                            new Date(n.timestamp).toLocaleString(i18n.language)}
                         </CardDescription>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-0.5">
                       {!n.read && (
-                        <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                        <span className="h-1.5 w-1.5 rounded-full bg-primary" />
                       )}
                       <Button
                         variant="ghost"
                         size="icon"
+                        className="h-6 w-6"
                         onClick={(e) => {
                           e.stopPropagation();
                           removeNotification(n.id);
                         }}
                       >
-                        <X className="w-4 h-4" />
+                        <X className="h-3 w-3" />
                       </Button>
                       <ChevronDown
-                        className={`w-4 h-4 transition-transform ${
-                          isOpen ? "rotate-180" : ""
-                        }`}
+                        className={cn(
+                          "h-3.5 w-3.5 text-muted-foreground transition-transform",
+                          isExpanded && "rotate-180"
+                        )}
                       />
                     </div>
                   </CardHeader>
 
-                  <Collapsible open={isOpen}>
+                  <Collapsible open={isExpanded}>
                     <CollapsibleContent>
-                      <CardContent className="p-3 pt-0 text-sm text-gray-700">
+                      <CardContent className="space-y-1 border-t px-3 pb-3 pt-2 text-[11px] text-muted-foreground">
                         <p>
-                          <strong>Details:</strong>{" "}
-                          {n.message || "افزایش غیرعادی CO₂ یا NH₃"}
+                          <span className="font-semibold text-foreground">
+                            {t("severity", "Severity")}:
+                          </span>{" "}
+                          {n.severity}
                         </p>
                         {n.sensor && (
                           <p>
-                            <strong>Sensor:</strong> {n.sensor}
-                          </p>
-                        )}
-                        {n.timestamp && (
-                          <p>
-                            <strong>Time:</strong>{" "}
-                            {new Date(n.timestamp).toLocaleString("fa-IR")}
+                            <span className="font-semibold text-foreground">
+                              {t("sensor", "Sensor")}:
+                            </span>{" "}
+                            {n.sensor}
                           </p>
                         )}
                       </CardContent>
@@ -209,19 +249,21 @@ export function AlertBar() {
           )}
         </ScrollArea>
 
-        {/* View All */}
-        <Button
-          className="w-full mt-4 rounded-xl bg-gradient-to-r from-blue-400 to-blue-300 text-white shadow-md hover:shadow-lg"
-          onClick={() => {
-            setSheetOpen(false);
-            setTimeout(() => {
-              router.replace("/dashboard/patient-alert");
-            }, 150);
-          }}
-        >
-          View All Alerts
-        </Button>
-      </SheetContent>
-    </Sheet>
+        <div className="flex flex-col gap-2 border-t border-border p-3">
+          <Button variant="outline" size="sm" className="w-full gap-2 rounded-lg" asChild>
+            <Link href={SETTINGS_NOTIFICATIONS_HREF} onClick={() => setOpen(false)}>
+              <Settings className="h-3.5 w-3.5" />
+              {t("notification_settings", "Notification Settings")}
+            </Link>
+          </Button>
+          <Button size="sm" className="w-full gap-2 rounded-lg" asChild>
+            <Link href={alertsHref} onClick={() => setOpen(false)}>
+              {t("view_all_alerts", "View All Alerts")}
+              <ExternalLink className="h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

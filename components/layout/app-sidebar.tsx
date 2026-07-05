@@ -40,6 +40,7 @@ import {
   IconCreditCard,
   IconLogout,
   IconPhotoUp,
+  IconSettings,
   IconUserCircle,
 } from '@tabler/icons-react';
 import Link from 'next/link';
@@ -189,7 +190,7 @@ export default function AppSidebar() {
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent
-                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg bg-white"
+                className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
                 side="bottom"
                 align="end"
                 sideOffset={4}
@@ -209,18 +210,28 @@ export default function AppSidebar() {
 
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    onClick={() => router.push('/dashboard/profile')}
+                    onClick={() => router.push("/dashboard/profile")}
                   >
                     <IconUserCircle className="me-2 h-4 w-4" />
-                    {t('profile')}
+                    {t("profile", "Profile")}
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/dashboard/billing")}
+                  >
                     <IconCreditCard className="me-2 h-4 w-4" />
-                    {t('billing', 'Billing')}
+                    {t("billing", "Billing")}
                   </DropdownMenuItem>
-                  <DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/dashboard/settings#notifications")}
+                  >
                     <IconBell className="me-2 h-4 w-4" />
-                    {t('notifications', 'Notifications')}
+                    {t("notifications", "Notifications")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => router.push("/dashboard/settings")}
+                  >
+                    <IconSettings className="me-2 h-4 w-4" />
+                    {t("settings", "Settings")}
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />

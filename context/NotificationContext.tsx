@@ -1,71 +1,88 @@
 "use client";
-import React, { createContext, useContext, useState } from 'react';
-import { AlertData, BehaviorAlertType, SmartSensorType } from '@/features/dashboard/types/patient/alert';
+
+import React, { createContext, useContext, useMemo, useState } from 'react';
+import {
+  AlertData,
+  BehaviorAlertType,
+  SmartSensorType,
+} from '@/features/dashboard/types/patient/alert';
 
 interface NotificationContextType {
   notifications: AlertData[];
+  unreadCount: number;
   addNotification: (notification: AlertData) => void;
   removeNotification: (id: string) => void;
+  markAsRead: (id: string) => void;
   clearNotifications: () => void;
 }
 
-// Sample initial alerts for smart senior sensors
 const sampleAlerts: AlertData[] = [
   {
     id: 'alert-ortho-001',
     timestamp: '2026-01-20T07:12:30Z',
     alert_type: 'predicted_orthostatic_hypotension' as BehaviorAlertType,
     severity: 'MEDIUM',
-    message:
-      'Predicted blood pressure instability following morning postural change',
+    message: 'Predicted blood pressure instability following morning postural change',
     location: 'Bedroom',
     related_sensors: ['bp', 'heart_rate', 'activity'] as SmartSensorType[],
     details: {
-      duration: 45 * 60, // predicted risk window: 45 minutes
+      duration: 45 * 60,
       confidence: 0.91,
-      sensor_readings: [
-        {
-          sensor_id: 'bp-wrist-01',
-          sensor_type: 'bp',
-          value: {
-            systolic: 118,
-            diastolic: 72,
-            predicted_systolic_min: 98
-          },
-          timestamp: '2026-01-20T07:12:00Z',
-        },
-        {
-          sensor_id: 'hr-wrist-01',
-          sensor_type: 'heart_rate',
-          value: 58,
-          timestamp: '2026-01-20T07:12:00Z',
-        },
-        {
-          sensor_id: 'activity-wrist-01',
-          sensor_type: 'activity',
-          value: 'Supine → Standing',
-          timestamp: '2026-01-20T07:12:00Z',
-        },
-      ],
     },
-    sensor_icon: undefined,
     read: false,
-    sensor: undefined
+    sensor: undefined,
+    sensor_icon: undefined,
+  },
+  {
+    id: 'alert-hr-002',
+    timestamp: '2026-01-20T06:45:00Z',
+    alert_type: 'possible_fall' as BehaviorAlertType,
+    severity: 'HIGH',
+    message: 'Heart rate spike detected — 104 bpm during hallway activity',
+    location: 'Hallway',
+    read: false,
+    sensor: 'heart_rate',
+    sensor_icon: undefined,
+  },
+  {
+    id: 'alert-spo2-003',
+    timestamp: '2026-01-19T22:10:00Z',
+    alert_type: 'sensor_event' as BehaviorAlertType,
+    severity: 'LOW',
+    message: 'SpO₂ briefly dropped to 94% — recovered within 5 minutes',
+    location: 'Bedroom',
+    read: true,
+    sensor: 'spo2',
+    sensor_icon: undefined,
   },
 ];
 
+const NotificationContext = createContext<NotificationContextType | undefined>(
+  undefined
+);
 
-const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
-
-export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [notifications, setNotifications] = useState<AlertData[]>(sampleAlerts);
 
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !n.read).length,
+    [notifications]
+  );
+
   const addNotification = (notification: AlertData) => {
-    setNotifications(prev => [notification, ...prev].slice(0, 10)); // keep last 10 alerts
+    setNotifications((prev) => [notification, ...prev].slice(0, 20));
   };
 
   const removeNotification = (id: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== id));
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const markAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
   };
 
   const clearNotifications = () => {
@@ -76,8 +93,10 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     <NotificationContext.Provider
       value={{
         notifications,
+        unreadCount,
         addNotification,
         removeNotification,
+        markAsRead,
         clearNotifications,
       }}
     >

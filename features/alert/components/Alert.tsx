@@ -5,24 +5,26 @@ import { useTranslation } from "react-i18next";
 import { AlertType } from "../types/AlertSchema";
 import { sampleAlerts } from "../types/data";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  Heart, 
-  Activity, 
-  Thermometer, 
-  Droplets, 
-  Brain, 
-  UserCheck, 
-  Clock, 
-  ChevronDown, 
-  Search, 
-  AlertTriangle, 
-  CheckCircle2, 
+import PageContainer from "@/components/layout/page-container";
+import { Heading } from "@/components/ui/heading";
+import { cn } from "@/lib/utils";
+import {
+  Heart,
+  Activity,
+  Thermometer,
+  Droplets,
+  Brain,
+  UserCheck,
+  Clock,
+  ChevronDown,
+  Search,
+  AlertTriangle,
+  CheckCircle2,
   ShieldAlert,
   Info,
   Calendar,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 const severityConfig: Record<
   AlertType["severity"],
@@ -112,8 +114,8 @@ const AlertCard: React.FC<{ alert: AlertType }> = ({ alert }) => {
       exit={{ opacity: 0, y: -15 }}
       transition={{ type: "spring", stiffness: 350, damping: 25 }}
       className={cn(
-        "group relative mx-auto mb-5 overflow-hidden rounded-2xl border bg-white/70 shadow-sm transition-all duration-300 hover:scale-[1.01] hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md",
-        isOpen ? "shadow-md ring-1 ring-primary/10" : ""
+        "group relative mb-4 w-full overflow-hidden rounded-2xl border bg-card shadow-sm transition-all duration-300 hover:shadow-md",
+        isOpen ? "ring-1 ring-primary/10" : ""
       )}
     >
       {/* Accent Gradient Border */}
@@ -424,93 +426,101 @@ const AlertList: React.FC = () => {
   }, [filter, searchQuery, isRtl]);
 
   return (
-    <div className="mx-auto min-h-screen bg-background py-8 px-4 sm:px-6 transition-colors duration-300 pb-20">
-      
-      {/* Page Header */}
-      <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-        <h1 className="font-extrabold text-3xl tracking-tight text-gray-900 dark:text-zinc-100 flex items-center justify-center gap-2">
-          <AlertTriangle className="h-7 w-7 text-primary animate-bounce" />
-          {t('health_alerts_dashboard', 'Health Alerts Panel')}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {t('alerts_subdescription', 'Real-time physiological alerts and predictive clinical indicators powered by SenioSentry AI.')}
-        </p>
-      </div>
-
-      {/* Swipeable Filter Cards container (Scrollable on mobile) */}
-      <div className="mb-6 -mx-4 px-4 overflow-x-auto scrollbar-none flex items-center gap-3 pb-2 select-none">
-        {severities.map((sev) => {
-          const isSelected = filter === sev.id;
-          
-          return (
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              key={sev.id}
-              onClick={() => setFilter(sev.id)}
-              className={cn(
-                "flex items-center gap-3.5 px-4.5 py-3 rounded-2xl border text-sm font-bold min-w-[125px] flex-shrink-0 cursor-pointer shadow-sm transition-all duration-300",
-                isSelected 
-                  ? `${sev.color} ${sev.shadow} border-transparent scale-102` 
-                  : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
-              )}
-            >
-              <span className="truncate">{sev.label}</span>
-              <span className={cn(
-                "h-5 min-w-5 px-1.5 flex items-center justify-center rounded-lg text-xs font-black ltr-nums",
-                isSelected ? sev.badge : "bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border"
-              )}>
-                {sev.count}
-              </span>
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Search Input Bar */}
-      <div className="max-w-3xl mx-auto mb-8 relative">
-        <div className={cn(
-          "absolute top-1/2 -translate-y-1/2 text-muted-foreground",
-          isRtl ? "right-4" : "left-4"
-        )}>
-          <Search className="h-4 w-4" />
-        </div>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t('search_alerts_placeholder', 'Search alerts by type, description, activity...')}
-          className={cn(
-            "w-full rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-white/70 dark:bg-zinc-900/50 py-3.5 text-sm outline-none transition-all duration-300 focus:bg-white focus:ring-2 focus:ring-primary/20 dark:focus:bg-zinc-900",
-            isRtl ? "pr-11 pl-4 text-right" : "pl-11 pr-4 text-left"
+    <PageContainer scrollable>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <Heading
+          title={t("health_alerts_dashboard", "Health Alerts Panel")}
+          description={t(
+            "alerts_subdescription",
+            "Real-time physiological alerts and predictive clinical indicators powered by SenioSentry AI."
           )}
         />
-      </div>
 
-      {/* Alerts List */}
-      <div className="max-w-3xl mx-auto space-y-4">
-        <AnimatePresence mode="popLayout">
-          {filteredAlerts.length === 0 ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="text-center py-16 bg-white/50 dark:bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 flex flex-col items-center gap-3"
-            >
-              <div className="bg-primary/5 p-4 rounded-full">
-                <CheckCircle2 className="h-10 w-10 text-primary/40" />
-              </div>
-              <p className="text-zinc-500 dark:text-zinc-400 text-base font-medium">
-                {t('no_alerts_found', 'No physiological alerts found matching filters.')}
-              </p>
-            </motion.div>
-          ) : (
-            filteredAlerts.map((alert) => (
-              <AlertCard key={alert.alertId} alert={alert} />
-            ))
-          )}
-        </AnimatePresence>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {severities.map((sev) => {
+            const isSelected = filter === sev.id;
+
+            return (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                key={sev.id}
+                type="button"
+                onClick={() => setFilter(sev.id)}
+                className={cn(
+                  "flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold shadow-sm transition-all duration-200",
+                  isSelected
+                    ? `${sev.color} ${sev.shadow} border-transparent`
+                    : "border-border bg-card text-foreground hover:bg-muted/50"
+                )}
+              >
+                <span className="truncate">{sev.label}</span>
+                <span
+                  className={cn(
+                    "flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-bold ltr-nums",
+                    isSelected
+                      ? sev.badge
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {sev.count}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="relative w-full">
+          <div
+            className={cn(
+              "pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground",
+              isRtl ? "right-3.5" : "left-3.5"
+            )}
+          >
+            <Search className="h-4 w-4" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t(
+              "search_alerts_placeholder",
+              "Search alerts by type, description, activity..."
+            )}
+            className={cn(
+              "w-full rounded-xl border border-border bg-background py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-primary/20",
+              isRtl ? "pr-10 pl-4 text-right" : "pl-10 pr-4 text-left"
+            )}
+          />
+        </div>
+
+        <div className="w-full space-y-3">
+          <AnimatePresence mode="popLayout">
+            {filteredAlerts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center"
+              >
+                <div className="rounded-full bg-muted p-4">
+                  <CheckCircle2 className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {t(
+                    "no_alerts_found",
+                    "No physiological alerts found matching filters."
+                  )}
+                </p>
+              </motion.div>
+            ) : (
+              filteredAlerts.map((alert) => (
+                <AlertCard key={alert.alertId} alert={alert} />
+              ))
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 
