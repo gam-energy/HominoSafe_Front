@@ -1,16 +1,18 @@
 "use client";
 
-import { FC, JSX } from "react";
+import { FC, type ReactNode } from "react";
 import { useProfile } from "@/features/medical-profile/api/useGetMedicalProfile";
-import {
-  normalizeComorbidities,
-} from "@/features/medical-profile/utils/profile";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { normalizeComorbidities } from "@/features/medical-profile/utils/profile";
+import type { Symptom } from "@/features/medical-profile/types/medicalprofile";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
+import { useUser } from "@/context/UserContext";
 import PageContainer from "@/components/layout/page-container";
-import { Heading } from "@/components/ui/heading";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import {
   AlertTriangle,
   User,
@@ -19,33 +21,257 @@ import {
   FileText,
   Pill,
   Activity,
+  Clock,
+  ClipboardList,
+  FileHeart,
 } from "lucide-react";
 import { LoaderIcon } from "@/components/chat/icons";
 import { MedicationsList } from "./MedicationsList";
+import { MedicalProfileExportMenu } from "./MedicalProfileExportMenu";
+import type { MedicalProfileReportData } from "@/features/medical-profile/utils/exportMedicalProfileReport";
+import type { ProfileData } from "@/features/medical-profile/types/medicalprofile";
 
-const iconMap: Record<string, JSX.Element> = {
-  Demographics: <User className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
-  Comorbidities: <HeartPulse className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
-  Diagnosis: <Stethoscope className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
-  "Physician Notes": <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
-  Medications: <Pill className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
-  Symptoms: <Activity className="h-5 w-5 text-blue-600 dark:text-blue-400 me-2" />,
+const fadeUp = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0 },
 };
+
+function formatLabel(key: string): string {
+  return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function severityStyle(severity: string): string {
+  const s = severity.toLowerCase();
+  if (s.includes("high") || s.includes("severe") || s.includes("critical")) {
+    return "bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20";
+  }
+  if (s.includes("moderate") || s.includes("medium")) {
+    return "bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20";
+  }
+  return "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20";
+}
+
+function SectionShell({
+  icon: Icon,
+  iconClass,
+  iconBg,
+  title,
+  description,
+  children,
+  className,
+}: {
+  icon: typeof User;
+  iconClass: string;
+  iconBg: string;
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card
+      className={cn(
+        "group relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md",
+        className
+      )}
+    >
+      <div
+        className={cn(
+          "pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b to-transparent opacity-60",
+          iconBg.replace("/10", "/5")
+        )}
+      />
+      <CardHeader className="relative pb-3">
+        <div className="flex items-start gap-3">
+          <div className={cn("rounded-xl p-2.5 shrink-0", iconBg)}>
+            <Icon className={cn("h-5 w-5", iconClass)} />
+          </div>
+          <div className="min-w-0 space-y-0.5">
+            <CardTitle className="text-base font-bold tracking-tight">{title}</CardTitle>
+            {description && (
+              <p className="text-xs text-muted-foreground">{description}</p>
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="relative pt-0">{children}</CardContent>
+    </Card>
+  );
+}
+
+function SymptomRow({ symptom }: { symptom: Symptom }) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex items-start justify-between gap-3 rounded-xl border border-border bg-muted/30 p-3 transition-colors hover:bg-muted/50">
+      <div className="min-w-0 space-y-1">
+        <p className="font-semibold text-sm text-foreground">{symptom.name}</p>
+        {symptom.onset_date && (
+          <p className="text-xs text-muted-foreground">
+            {t("onset", "Onset")}:{" "}
+            {new Date(symptom.onset_date).toLocaleDateString()}
+          </p>
+        )}
+        {symptom.notes && (
+          <p className="text-xs italic text-muted-foreground border-s-2 border-primary/30 ps-2.5">
+            {symptom.notes}
+          </p>
+        )}
+      </div>
+      <Badge
+        variant="outline"
+        className={cn("shrink-0 capitalize", severityStyle(symptom.severity))}
+      >
+        {symptom.severity}
+      </Badge>
+    </div>
+  );
+}
+
+function ProfileSkeleton() {
+  return (
+    <PageContainer scrollable>
+      <div className="flex w-full flex-col gap-6">
+        <Skeleton className="h-10 w-64" />
+        <Skeleton className="h-36 w-full rounded-2xl" />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <Skeleton className="h-48 rounded-2xl lg:col-span-2" />
+          <Skeleton className="h-48 rounded-2xl" />
+          <Skeleton className="h-56 rounded-2xl lg:col-span-2" />
+          <Skeleton className="h-56 rounded-2xl" />
+        </div>
+      </div>
+    </PageContainer>
+  );
+}
+
+function formatExportDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  try {
+    return new Date(dateStr).toLocaleDateString(undefined, {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return dateStr;
+  }
+}
+
+function usePatientDisplayName(): string {
+  const { t } = useTranslation();
+  const { user } = useUser();
+  return user
+    ? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || user.username
+    : t("your", "Your");
+}
+
+function useProfilePageTitle(): string {
+  const { t } = useTranslation();
+  const name = usePatientDisplayName();
+  return t("name_medical_profile", "{{name}} Medical Profile", { name });
+}
+
+function buildMedicalProfileReport(
+  data: ProfileData,
+  pageTitle: string,
+  patientName: string,
+  userId?: number
+): MedicalProfileReportData {
+  const comorbidityEntries = normalizeComorbidities(data.comorbidities);
+  const medications = data.medications ?? [];
+  const symptoms = data.symptoms ?? [];
+
+  return {
+    pageTitle,
+    patientName,
+    userId,
+    ehrId: data.ehr_id > 0 ? data.ehr_id : undefined,
+    generatedAt: new Date().toLocaleString(),
+    lastUpdated: data.timestamp
+      ? new Date(data.timestamp).toLocaleString()
+      : undefined,
+    demographics: data.demographics,
+    diagnosis: data.diagnosis,
+    physicianNotes: data.physician_notes,
+    comorbidities: comorbidityEntries.map(([key, value]) => ({
+      label: formatLabel(key),
+      value: value || "—",
+    })),
+    medications: medications.map((med) => ({
+      name: med.name,
+      dosage: med.dosage,
+      frequency: med.frequency,
+      startDate: formatExportDate(med.start_date),
+      endDate: formatExportDate(med.end_date),
+      notes: med.notes,
+      active: !med.end_date || new Date(med.end_date) >= new Date(),
+    })),
+    symptoms: symptoms.map((s) => ({
+      name: s.name,
+      severity: s.severity,
+      onsetDate: s.onset_date ? formatExportDate(s.onset_date) : undefined,
+      notes: s.notes,
+    })),
+    stats: {
+      conditions: comorbidityEntries.length,
+      medications: medications.length,
+      symptoms: symptoms.length,
+    },
+  };
+}
+
+function HeroTitleRow({
+  pageTitle,
+  ehrId,
+  exportMenu,
+}: {
+  pageTitle: string;
+  ehrId?: number;
+  exportMenu?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-center gap-4 min-w-0">
+        <div className="rounded-2xl bg-primary/10 p-3.5 shrink-0 dark:bg-blue-500/15">
+          <FileHeart className="h-7 w-7 text-primary dark:text-blue-400" />
+        </div>
+        <h1 className="text-xl font-bold tracking-tight sm:text-2xl truncate">
+          {pageTitle}
+        </h1>
+      </div>
+      <div className="flex items-center gap-2 shrink-0">
+        {ehrId != null && ehrId > 0 && (
+          <Badge variant="outline" className="font-mono text-xs">
+            EHR #{ehrId}
+          </Badge>
+        )}
+        {exportMenu}
+      </div>
+    </div>
+  );
+}
 
 const ProfileSection: FC = () => {
   const { t } = useTranslation();
+  const { user } = useUser();
   const { data, isLoading, error } = useProfile();
+  const pageTitle = useProfilePageTitle();
+  const patientName = usePatientDisplayName();
 
   if (isLoading) {
     return (
       <PageContainer>
-        <div className="flex flex-col items-center justify-center py-32 gap-4">
+        <div className="flex flex-col items-center justify-center py-32 gap-4 lg:hidden">
           <div className="animate-spin text-blue-600 dark:text-blue-500">
             <LoaderIcon size={40} />
           </div>
           <p className="text-muted-foreground font-medium text-lg">
             {t("loading_profile")}
           </p>
+        </div>
+        <div className="hidden lg:block">
+          <ProfileSkeleton />
         </div>
       </PageContainer>
     );
@@ -58,9 +284,7 @@ const ProfileSection: FC = () => {
           <Alert variant="destructive" className="max-w-xl shadow-lg rounded-2xl">
             <AlertTriangle className="h-5 w-5" />
             <AlertTitle>{t("error")}</AlertTitle>
-            <AlertDescription>
-              {t("error_loading_profile")}
-            </AlertDescription>
+            <AlertDescription>{t("error_loading_profile")}</AlertDescription>
           </Alert>
         </div>
       </PageContainer>
@@ -71,20 +295,30 @@ const ProfileSection: FC = () => {
     return (
       <PageContainer scrollable>
         <div className="flex w-full flex-col gap-6">
-          <Heading
-            title={t("medical_profile")}
-            description={t("ehr_overview")}
-          />
-          <Alert className="max-w-xl">
-            <AlertTriangle className="h-5 w-5" />
-            <AlertTitle>{t("no_profile_title", "No medical profile yet")}</AlertTitle>
-            <AlertDescription>
-              {t(
-                "no_profile_desc",
-                "Your medical records have not been added yet. Contact your care team to set up your profile."
-              )}
-            </AlertDescription>
-          </Alert>
+          <Card className="relative overflow-hidden rounded-2xl border border-border shadow-sm">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-violet-500/5 dark:from-blue-500/10 dark:to-violet-500/5" />
+            <CardContent className="relative p-6 sm:p-8">
+              <HeroTitleRow pageTitle={pageTitle} />
+            </CardContent>
+          </Card>
+          <Card className="max-w-2xl rounded-2xl border-dashed">
+            <CardContent className="flex flex-col items-center gap-4 py-12 text-center">
+              <div className="rounded-2xl bg-muted p-4">
+                <ClipboardList className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div className="space-y-1">
+                <p className="font-semibold text-lg">
+                  {t("no_profile_title", "No medical profile yet")}
+                </p>
+                <p className="text-sm text-muted-foreground max-w-md">
+                  {t(
+                    "no_profile_desc",
+                    "Your medical records have not been added yet. Contact your care team to set up your profile."
+                  )}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </PageContainer>
     );
@@ -94,116 +328,212 @@ const ProfileSection: FC = () => {
   const medications = data.medications ?? [];
   const symptoms = data.symptoms ?? [];
 
-  const SectionCard = ({
-    titleKey,
-    titleDefault,
-    children,
-  }: {
-    titleKey: string;
-    titleDefault: string;
-    children: React.ReactNode;
-  }) => (
-    <Card className="rounded-2xl border border-border bg-card shadow-sm hover:shadow-md transition-all duration-300">
-      <CardHeader className="pb-3">
-        <div className="flex items-center">
-          {iconMap[titleDefault]}
-          <CardTitle className="text-lg font-bold text-foreground">
-            {t(titleKey, titleDefault)}
-          </CardTitle>
-        </div>
-      </CardHeader>
-      <Separator />
-      <CardContent className="pt-4 text-muted-foreground leading-relaxed space-y-2 text-sm">
-        {children}
-      </CardContent>
-    </Card>
-  );
+  const stats = [
+    {
+      label: t("comorbidities", "Conditions"),
+      value: comorbidityEntries.length,
+      icon: HeartPulse,
+      color: "text-rose-500",
+      bg: "bg-rose-500/10",
+    },
+    {
+      label: t("medicine", "Medications"),
+      value: medications.length,
+      icon: Pill,
+      color: "text-blue-500",
+      bg: "bg-blue-500/10",
+    },
+    {
+      label: t("symptoms", "Symptoms"),
+      value: symptoms.length,
+      icon: Activity,
+      color: "text-violet-500",
+      bg: "bg-violet-500/10",
+    },
+  ];
+
+  const buildReport = () =>
+    buildMedicalProfileReport(data, pageTitle, patientName, user?.id);
 
   return (
     <PageContainer scrollable>
-      <div className="flex w-full flex-col gap-6">
-        <Heading
-          title={t("medical_profile")}
-          description={t("ehr_overview")}
-        />
+      <motion.div
+        className="flex w-full flex-col gap-6"
+        initial="initial"
+        animate="animate"
+        transition={{ staggerChildren: 0.06 }}
+      >
+        <motion.div variants={fadeUp}>
+          <Card className="relative overflow-hidden rounded-2xl border border-border shadow-sm">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-violet-500/5 dark:from-blue-500/10 dark:to-violet-500/5" />
+            <CardContent className="relative flex flex-col gap-5 p-6 sm:p-8">
+              <HeroTitleRow
+                pageTitle={pageTitle}
+                ehrId={data.ehr_id}
+                exportMenu={<MedicalProfileExportMenu buildReport={buildReport} />}
+              />
 
-        {data.timestamp && (
-          <p className="text-sm text-muted-foreground">
-            {t("last_updated", "Last updated")}:{" "}
-            {new Date(data.timestamp).toLocaleString()}
-          </p>
-        )}
+              {data.timestamp && (
+                <div className="flex items-center gap-2 w-fit rounded-full border border-border bg-background/80 px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-sm">
+                  <Clock className="h-3.5 w-3.5" />
+                  {t("last_updated", "Last updated")}:{" "}
+                  <span className="font-medium text-foreground">
+                    {new Date(data.timestamp).toLocaleString()}
+                  </span>
+                </div>
+              )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <SectionCard titleKey="demographics" titleDefault="Demographics">
-            <p className="font-medium text-foreground">
-              {data.demographics || t("no_demographics")}
-            </p>
-          </SectionCard>
+              <div className="grid grid-cols-3 gap-3 sm:gap-4">
+                {stats.map((stat) => {
+                  const Icon = stat.icon;
+                  return (
+                    <div
+                      key={stat.label}
+                      className="flex flex-col items-center gap-2 rounded-xl border border-border/60 bg-background/60 p-3 backdrop-blur-sm sm:p-4"
+                    >
+                      <div className={cn("rounded-xl p-2", stat.bg)}>
+                        <Icon className={cn("h-4 w-4", stat.color)} />
+                      </div>
+                      <p className="ltr-nums text-xl font-bold sm:text-2xl">{stat.value}</p>
+                      <p className="text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground sm:text-xs">
+                        {stat.label}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-          <SectionCard titleKey="comorbidities" titleDefault="Comorbidities">
-            {comorbidityEntries.length === 0 ? (
-              <p>{t("no_comorbidities")}</p>
-            ) : (
-              <ul className="list-disc list-inside space-y-1.5">
-                {comorbidityEntries.map(([key, value]) => (
-                  <li key={key} className="text-muted-foreground">
-                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">
-                      {key.replace(/_/g, " ")}:
-                    </strong>{" "}
-                    <span className="text-foreground font-medium">
-                      {value || t("no_data", "No data")}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SectionCard>
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          {/* Demographics + Diagnosis */}
+          <motion.div variants={fadeUp} className="flex flex-col gap-6 lg:col-span-2">
+            <SectionShell
+              icon={User}
+              iconClass="text-blue-500"
+              iconBg="bg-blue-500/10"
+              title={t("demographics", "Demographics")}
+              description={t("demographics_desc", "Patient background and identifiers")}
+            >
+              <p className="text-sm leading-relaxed text-foreground">
+                {data.demographics || (
+                  <span className="text-muted-foreground">{t("no_demographics")}</span>
+                )}
+              </p>
+            </SectionShell>
 
-          <SectionCard titleKey="diagnosis" titleDefault="Diagnosis">
-            <p className="text-foreground font-medium">
-              {data.diagnosis || t("no_diagnosis", "No diagnosis recorded.")}
-            </p>
-          </SectionCard>
+            <SectionShell
+              icon={Stethoscope}
+              iconClass="text-emerald-500"
+              iconBg="bg-emerald-500/10"
+              title={t("diagnosis", "Diagnosis")}
+              description={t("diagnosis_desc", "Primary clinical diagnosis")}
+            >
+              {data.diagnosis ? (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+                  <p className="text-sm font-medium leading-relaxed text-foreground">
+                    {data.diagnosis}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t("no_diagnosis", "No diagnosis recorded.")}
+                </p>
+              )}
+            </SectionShell>
 
-          <SectionCard titleKey="physician_notes" titleDefault="Physician Notes">
-            <p className="text-foreground font-medium">
-              {data.physician_notes || t("no_notes", "No notes available.")}
-            </p>
-          </SectionCard>
+            <SectionShell
+              icon={FileText}
+              iconClass="text-amber-500"
+              iconBg="bg-amber-500/10"
+              title={t("physician_notes", "Physician Notes")}
+              description={t("physician_notes_desc", "Notes from your care team")}
+            >
+              {data.physician_notes ? (
+                <blockquote className="rounded-xl border-s-4 border-amber-500/40 bg-muted/40 px-4 py-3 text-sm leading-relaxed text-foreground italic">
+                  {data.physician_notes}
+                </blockquote>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  {t("no_notes", "No notes available.")}
+                </p>
+              )}
+            </SectionShell>
+          </motion.div>
 
-          <SectionCard titleKey="medicine" titleDefault="Medications">
-            {medications.length === 0 ? (
-              <p>{t("no_medications")}</p>
-            ) : (
-              <MedicationsList medications={medications} />
-            )}
-          </SectionCard>
-
-          <SectionCard titleKey="symptoms" titleDefault="Symptoms">
-            {symptoms.length === 0 ? (
-              <p>{t("no_symptoms")}</p>
-            ) : (
-              <ul className="list-disc list-inside space-y-1.5">
-                {symptoms.map((symptom) => (
-                  <li key={symptom.id} className="text-foreground">
-                    <strong className="text-blue-600 dark:text-blue-400 font-semibold">
-                      {symptom.name}
-                    </strong>{" "}
-                    — {t("severity")}: {symptom.severity}
-                    {symptom.notes && (
-                      <span className="italic text-muted-foreground">
-                        {" "}
-                        ({symptom.notes})
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </SectionCard>
+          {/* Comorbidities sidebar */}
+          <motion.div variants={fadeUp}>
+            <SectionShell
+              icon={HeartPulse}
+              iconClass="text-rose-500"
+              iconBg="bg-rose-500/10"
+              title={t("comorbidities", "Comorbidities")}
+              description={t("comorbidities_desc", "Existing conditions")}
+              className="h-full"
+            >
+              {comorbidityEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("no_comorbidities")}</p>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {comorbidityEntries.map(([key, value]) => (
+                    <div
+                      key={key}
+                      className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 transition-colors hover:bg-muted/50"
+                    >
+                      <p className="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">
+                        {formatLabel(key)}
+                      </p>
+                      <p className="mt-0.5 text-sm font-medium text-foreground">
+                        {value || t("no_data", "No data")}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </SectionShell>
+          </motion.div>
         </div>
-      </div>
+
+        {/* Medications + Symptoms */}
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+          <motion.div variants={fadeUp} className="xl:col-span-3">
+            <SectionShell
+              icon={Pill}
+              iconClass="text-blue-500"
+              iconBg="bg-blue-500/10"
+              title={t("medicine", "Medications")}
+              description={t("medications_desc", "Active prescriptions and dosages")}
+            >
+              {medications.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("no_medications")}</p>
+              ) : (
+                <MedicationsList medications={medications} />
+              )}
+            </SectionShell>
+          </motion.div>
+
+          <motion.div variants={fadeUp} className="xl:col-span-2">
+            <SectionShell
+              icon={Activity}
+              iconClass="text-violet-500"
+              iconBg="bg-violet-500/10"
+              title={t("symptoms", "Symptoms")}
+              description={t("symptoms_desc", "Reported symptoms and severity")}
+            >
+              {symptoms.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t("no_symptoms")}</p>
+              ) : (
+                <div className="flex flex-col gap-2.5">
+                  {symptoms.map((symptom) => (
+                    <SymptomRow key={symptom.id} symptom={symptom} />
+                  ))}
+                </div>
+              )}
+            </SectionShell>
+          </motion.div>
+        </div>
+      </motion.div>
     </PageContainer>
   );
 };
