@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { getChatWsUrl } from '@/lib/api-utils';
 import { refreshAccessToken } from '@/api/axiosInstance';
 import type { MessageItem } from '../types/chat';
+import { normalizeMessageText } from '../utils/normalizeMessageText';
 
 type ChatMessage = {
   id: string;
@@ -16,50 +17,14 @@ type ChatMessage = {
 };
 
 function extractContentText(input: unknown): string {
-  try {
-    const parsed = typeof input === 'string' ? JSON.parse(input) : input;
-
-    if (typeof parsed === 'object' && parsed !== null && 'content' in parsed) {
-      const content = (parsed as { content: unknown }).content;
-      if (typeof content === 'string') return content;
-      if (typeof content === 'object' && content !== null && 'message' in content) {
-        return String((content as { message: unknown }).message);
-      }
-      return JSON.stringify(content);
-    }
-
-    if (
-      typeof parsed === 'object' &&
-      parsed !== null &&
-      'parts' in parsed &&
-      Array.isArray((parsed as { parts: unknown[] }).parts)
-    ) {
-      const parts = (parsed as { parts: Array<{ text?: string }> }).parts;
-      if (parts[0]?.text) return parts[0].text;
-    }
-
-    if (typeof parsed === 'string') return parsed;
-    return JSON.stringify(parsed);
-  } catch {
-    return typeof input === 'string' ? input : JSON.stringify(input);
-  }
+  return normalizeMessageText(input);
 }
 
 function toChatMessage(msg: MessageItem): ChatMessage {
-  let content = msg.content;
-  if (msg.role === 'user' && typeof msg.content === 'string') {
-    try {
-      const userParsed = JSON.parse(msg.content);
-      if (userParsed.parts?.[0]?.text) {
-        content = userParsed.parts[0].text;
-      }
-    } catch {
-      // keep raw content
-    }
-  }
+  const content = normalizeMessageText(msg.content);
 
   return {
-    id: uuidv4(),
+    id: `${msg.timestamp}-${msg.role}`,
     role: msg.role,
     parts: [{ type: 'text', text: content }],
     content,

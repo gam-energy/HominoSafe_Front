@@ -31,9 +31,15 @@ export function AiLayoutShell({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <DataStreamProvider>
-        <SidebarProvider defaultOpen={!isCollapsed} dir="ltr">
+        <SidebarProvider
+          defaultOpen={!isCollapsed}
+          dir="ltr"
+          className="min-h-0 h-[calc(100dvh-4rem)]"
+        >
+          <SidebarInset className="min-h-0 overflow-hidden p-0">
+            {children}
+          </SidebarInset>
           <AppSidebar user={mappedUser} />
-          <SidebarInset>{children}</SidebarInset>
         </SidebarProvider>
       </DataStreamProvider>
     </ThemeProvider>

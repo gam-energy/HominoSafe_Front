@@ -11,6 +11,7 @@ import { useSearchParams } from 'next/navigation';
 import { useChatVisibility } from '@/hooks/chat/use-chat-visibility';
 import type { Attachment, ChatMessage } from '@/lib/types';
 import type { Message } from '@/features/ai/types/chat';
+import { normalizeMessageText } from '@/features/ai/utils/normalizeMessageText';
 import { useAutoResume } from '@/hooks/chat/use-auto-resume';
 import { useChatWebSocket } from '@/features/ai/api/useChatWebSocket';
 import { useUpdateSession } from '@/features/ai/api/useUpdateSession';
@@ -30,13 +31,16 @@ export interface Session {
 
 function mapRestMessages(data: Message): ChatMessage[] {
   if (!data?.messages?.length) return [];
-  return data.messages.map((msg) => ({
-    id: `${msg.timestamp}-${msg.role}`,
-    role: msg.role,
-    parts: [{ type: 'text', text: msg.content }],
-    content: msg.content,
-    timestamp: msg.timestamp,
-  }));
+  return data.messages.map((msg) => {
+    const text = normalizeMessageText(msg.content);
+    return {
+      id: `${msg.timestamp}-${msg.role}`,
+      role: msg.role,
+      parts: [{ type: 'text', text }],
+      content: text,
+      timestamp: msg.timestamp,
+    };
+  });
 }
 
 export function Chat({
@@ -146,7 +150,7 @@ export function Chat({
 
   return (
     <>
-      <div className="flex flex-col min-w-0 h-dvh bg-background">
+      <div className="flex flex-col min-w-0 h-full bg-background">
         <ChatHeader
           chatId={id}
           selectedModelId={initialChatModel}

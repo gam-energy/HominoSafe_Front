@@ -18,7 +18,7 @@ export function ChatKnowledgeGate({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen w-full">
+      <div className="flex flex-col items-center justify-center h-full w-full">
         <div className="animate-spin w-10 h-10 text-blue-500 mb-4 flex items-center justify-center">
           <LoaderIcon size={40} />
         </div>

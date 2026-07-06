@@ -13,6 +13,7 @@ import { Button } from '../ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 import type { UseChatHelpers } from '@ai-sdk/react';
 import type { ChatMessages as OriginalChatMessage } from '@/lib/types';
+import { normalizeMessageText } from '@/features/ai/utils/normalizeMessageText';
 
 type MessagePart = {
   type: string;
@@ -91,14 +92,7 @@ const PurePreviewMessage = ({
   const key = `message-${message.id}-part-${index}`;
 
   if (part.type === 'text') {
-    const text =
-      typeof part.text === 'string'
-        ? part.text
-        : part.text?.message
-        ? String(part.text.message)
-        : '';
-      console.log("textS",text);
-      
+    const text = normalizeMessageText(part.text ?? message.content);
 
     return (
       <div key={key} className="flex flex-row gap-2 items-start">

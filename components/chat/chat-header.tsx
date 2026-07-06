@@ -5,6 +5,7 @@ import { useWindowSize } from 'usehooks-ts';
 import { Button } from '@/components/ui/button';
 import { PlusIcon } from './icons';
 import { useSidebar } from '../ui/sidebar';
+import { SidebarTrigger } from '../ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../ui/tooltip';
 
 import { useCreateSession } from '@/features/ai/api/useCreateSession';
