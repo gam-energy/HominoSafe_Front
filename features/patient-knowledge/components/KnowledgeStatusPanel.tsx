@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
+import { AlertCircle, CheckCircle2, FileText, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,14 +10,27 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { useKnowledgeStatus } from "../api/useKnowledgeStatus";
 import { useRefreshKnowledge } from "../api/useRefreshKnowledge";
-import type { KnowledgeStatusResponse } from "../types/knowledge";
+import type {
+  KnowledgeDocument,
+  KnowledgeStatusResponse,
+} from "../types/knowledge";
+import {
+  documentDisplayName,
+  documentStatusLabel,
+  knowledgeLabel,
+} from "../utils/knowledgeLabels";
 
 interface KnowledgeStatusPanelProps {
   userId: number;
+  knowledge?: KnowledgeStatusResponse;
+  documents?: KnowledgeDocument[];
+  isLoading?: boolean;
+  isFetching?: boolean;
   poll?: boolean;
   clinicalAgentHref: string;
+  onRefetch?: () => void;
+  onReindexStarted?: () => void;
 }
 
 const statusVariant = (status?: string) => {
@@ -26,6 +39,8 @@ const statusVariant = (status?: string) => {
       return "default" as const;
     case "failed":
       return "destructive" as const;
+    case "idle":
+      return "outline" as const;
     default:
       return "secondary" as const;
   }
@@ -33,20 +48,24 @@ const statusVariant = (status?: string) => {
 
 export function KnowledgeStatusPanel({
   userId,
+  knowledge,
+  documents = [],
+  isLoading = false,
+  isFetching = false,
   poll = false,
   clinicalAgentHref,
+  onRefetch,
+  onReindexStarted,
 }: KnowledgeStatusPanelProps) {
   const { t } = useTranslation();
   const refreshMutation = useRefreshKnowledge();
-  const { data, isLoading, isFetching, refetch } = useKnowledgeStatus(userId, {
-    poll,
-  });
 
   const handleRefresh = async () => {
     try {
       await refreshMutation.mutateAsync(userId);
       toast.success(t("reindex_started", "Re-indexing started"));
-      void refetch();
+      onReindexStarted?.();
+      onRefetch?.();
     } catch {
       toast.error(t("reindex_failed", "Failed to start re-indexing"));
     }
@@ -63,18 +82,22 @@ export function KnowledgeStatusPanel({
     );
   }
 
-  const status = data as KnowledgeStatusResponse | undefined;
+  const status = knowledge;
 
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-col items-start gap-2 px-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-        <CardTitle className="text-lg sm:text-xl">{t("knowledge_status", "Knowledge Status")}</CardTitle>
+        <CardTitle className="text-lg sm:text-xl">
+          {t("knowledge_status", "Knowledge Status")}
+        </CardTitle>
         <Badge variant={statusVariant(status?.refresh_status)} className="shrink-0">
-          {status?.refresh_status ?? t("unknown", "Unknown")}
+          {knowledgeLabel(status?.refresh_status)}
         </Badge>
       </CardHeader>
       <CardContent className="space-y-4 px-4 sm:px-6">
-        {(poll || status?.refresh_status === "processing" || status?.refresh_status === "pending") && (
+        {(poll ||
+          status?.refresh_status === "processing" ||
+          status?.refresh_status === "pending") && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
             {t("indexing_in_progress", "Indexing in progress...")}
@@ -115,6 +138,35 @@ export function KnowledgeStatusPanel({
             <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
               {status.summary}
             </p>
+          </div>
+        )}
+
+        {documents.length > 0 && (
+          <div className="rounded-lg border bg-muted/20 p-4 space-y-2">
+            <p className="text-sm font-semibold">
+              {t("indexed_documents", "Indexed Documents")}
+            </p>
+            <ul className="space-y-1.5">
+              {documents.map((doc, index) => (
+                <li
+                  key={String(doc.id ?? doc.original_filename ?? doc.filename ?? index)}
+                  className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+                >
+                  <FileText className="h-3.5 w-3.5 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {documentDisplayName(doc)}
+                    {doc.document_type
+                      ? ` (${String(doc.document_type).replace(/_/g, " ")})`
+                      : ""}
+                  </span>
+                  {doc.status && (
+                    <Badge variant="outline" className="shrink-0 text-xs">
+                      {documentStatusLabel(doc.status)}
+                    </Badge>
+                  )}
+                </li>
+              ))}
+            </ul>
           </div>
         )}
 

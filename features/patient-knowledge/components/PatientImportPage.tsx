@@ -6,15 +6,25 @@ import { useTranslation } from "react-i18next";
 import { ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
 import { Button } from "@/components/ui/button";
 import { LoaderIcon } from "@/components/chat/icons";
 import { useUser } from "@/context/UserContext";
-import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patient-profile";
+import { usePatientImportRecords } from "@/features/patient-knowledge/api/usePatientKnowledge";
 
 import { PatientImportForm } from "./PatientImportForm";
 import { KnowledgeStatusPanel } from "./KnowledgeStatusPanel";
+import { PatientKnowledgeSnapshot } from "./PatientKnowledgeSnapshot";
+import {
+  formSeedKey,
+  patientDisplayName,
+  profileToFormSeed,
+} from "../utils/profileMappers";
+import { parsePatientKnowledgeError } from "../utils/patientKnowledgeErrors";
+import { isStaffRole, staffPatientRoutes } from "../utils/staffRoutes";
 
 export function PatientImportPage() {
   const { t } = useTranslation();
@@ -23,14 +33,43 @@ export function PatientImportPage() {
   const { user } = useUser();
   const [pollStatus, setPollStatus] = useState(false);
 
-  const userId = Number(Array.isArray(params.id) ? params.id[0] : params.id);
+  const patientId = Number(Array.isArray(params.id) ? params.id[0] : params.id);
+  const routes = staffPatientRoutes(user?.role, patientId);
 
-  const { data: patientInfoData, isLoading } = useGetPatientProfile(userId);
-  const patientInfo = useMemo(() => {
-    if (!patientInfoData) return undefined;
-    if (Array.isArray(patientInfoData)) return patientInfoData[0];
-    return patientInfoData as { first_name?: string; last_name?: string; id?: number };
-  }, [patientInfoData]);
+  const {
+    data: knowledgeData,
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = usePatientImportRecords(patientId, { poll: pollStatus });
+
+  const formSeed = useMemo(
+    () => (knowledgeData ? profileToFormSeed(knowledgeData) : undefined),
+    [knowledgeData]
+  );
+
+  const formRemountKey = useMemo(
+    () => (formSeed ? formSeedKey(formSeed) : "empty"),
+    [formSeed]
+  );
+
+  const loadError = isError ? parsePatientKnowledgeError(error) : null;
+
+  useEffect(() => {
+    const status = knowledgeData?.knowledge?.refresh_status;
+    if (status === "ready" || status === "failed") {
+      setPollStatus(false);
+    }
+  }, [knowledgeData?.knowledge?.refresh_status]);
+
+  useEffect(() => {
+    if (loadError?.kind === "not_found") {
+      toast.error(loadError.message);
+      router.replace(routes.listRoute);
+    }
+  }, [loadError, router, routes.listRoute]);
 
   useEffect(() => {
     if (user === null) return;
@@ -40,12 +79,11 @@ export function PatientImportPage() {
       return;
     }
 
-    if (user.role !== "doctor") {
-      toast.error(t("import_doctor_only", "Patient import is available to doctors only"));
+    if (!isStaffRole(user.role)) {
+      toast.error(
+        t("import_staff_only", "Import Records is available to doctors and caregivers only")
+      );
       switch (user.role) {
-        case "caregiver":
-          router.replace("/dashboard/my-patients");
-          break;
         case "admin":
           router.replace("/dashboard/users");
           break;
@@ -56,7 +94,7 @@ export function PatientImportPage() {
     }
   }, [user, router, t]);
 
-  if (isLoading || user === null || user.role !== "doctor") {
+  if (isLoading || user === null || !isStaffRole(user.role)) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center">
@@ -69,9 +107,18 @@ export function PatientImportPage() {
     );
   }
 
-  const fullName = patientInfo
-    ? `${patientInfo.first_name ?? ""} ${patientInfo.last_name ?? ""}`.trim()
-    : `Patient #${userId}`;
+  if (loadError?.kind === "not_found") {
+    return null;
+  }
+
+  const fullName = knowledgeData
+    ? patientDisplayName(knowledgeData)
+    : `Patient #${patientId}`;
+
+  const startPolling = () => {
+    setPollStatus(true);
+    void refetch();
+  };
 
   return (
     <PageContainer scrollable>
@@ -80,7 +127,7 @@ export function PatientImportPage() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push(`/dashboard/patients/${userId}`)}
+            onClick={() => router.push(routes.detailRoute)}
             className="h-auto px-2 text-muted-foreground"
           >
             <ArrowLeft className="w-4 h-4 me-1 shrink-0" />
@@ -90,19 +137,61 @@ export function PatientImportPage() {
 
         <Heading
           title={t("import_records", "Import Records")}
-          description={`${fullName} • ID ${userId}`}
+          description={`${fullName} • ID ${patientId}`}
         />
 
-        <PatientImportForm
-          userId={userId}
-          onSubmitted={() => setPollStatus(true)}
-        />
+        {loadError && (
+          <Alert variant="destructive">
+            <ExclamationTriangleIcon className="h-4 w-4" />
+            <AlertTitle>
+              {loadError.kind === "forbidden"
+                ? t("access_denied", "Access denied")
+                : t("load_failed", "Failed to load patient record")}
+            </AlertTitle>
+            <AlertDescription className="flex flex-wrap items-center gap-3">
+              <span>{loadError.message}</span>
+              {loadError.kind !== "forbidden" && (
+                <Button variant="outline" size="sm" onClick={() => void refetch()}>
+                  {t("retry", "Retry")}
+                </Button>
+              )}
+              {loadError.kind === "forbidden" && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push(routes.listRoute)}
+                >
+                  {t("back_to_list", "Back to patient list")}
+                </Button>
+              )}
+            </AlertDescription>
+          </Alert>
+        )}
 
-        <KnowledgeStatusPanel
-          userId={userId}
-          poll={pollStatus}
-          clinicalAgentHref={`/dashboard/patients/${userId}/clinical-agent`}
-        />
+        {knowledgeData && <PatientKnowledgeSnapshot data={knowledgeData} />}
+
+        {!loadError && (
+          <PatientImportForm
+            key={`${patientId}-${formRemountKey}`}
+            userId={patientId}
+            initialProfile={formSeed}
+            onSubmitted={startPolling}
+          />
+        )}
+
+        {!loadError && (
+          <KnowledgeStatusPanel
+            userId={patientId}
+            knowledge={knowledgeData?.knowledge}
+            documents={knowledgeData?.documents}
+            isLoading={false}
+            isFetching={isFetching}
+            poll={pollStatus}
+            clinicalAgentHref={routes.clinicalAgentRoute}
+            onRefetch={() => void refetch()}
+            onReindexStarted={startPolling}
+          />
+        )}
       </div>
     </PageContainer>
   );

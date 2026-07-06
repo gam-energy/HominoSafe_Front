@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -28,6 +28,8 @@ import {
   type DocumentType,
   type PatientProfileJson,
 } from "../types/knowledge";
+import type { ProfileFormSeed } from "../utils/profileMappers";
+import { hasProfileContent } from "../utils/profileMappers";
 
 const medicationSchema = z.object({
   name: z.string().min(1),
@@ -46,9 +48,9 @@ const symptomSchema = z.object({
 });
 
 const profileSchema = z.object({
-  diagnosis: z.string().min(1),
+  diagnosis: z.string(),
   comorbidities: z.string(),
-  physician_notes: z.string().min(1),
+  physician_notes: z.string(),
   medical_history: z.string().optional(),
   age: z.string().optional(),
   weight: z.string().optional(),
@@ -60,6 +62,19 @@ const profileSchema = z.object({
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
+const EMPTY_FORM_VALUES: ProfileFormValues = {
+  diagnosis: "",
+  comorbidities: "",
+  physician_notes: "",
+  medical_history: "",
+  age: "",
+  weight: "",
+  height: "",
+  gender: "",
+  medications: [],
+  symptoms: [],
+};
+
 interface UploadedFile {
   id: string;
   file: File;
@@ -68,14 +83,24 @@ interface UploadedFile {
 
 interface PatientImportFormProps {
   userId: number;
+  initialProfile?: ProfileFormSeed;
   onSubmitted?: () => void;
 }
 
-export function PatientImportForm({ userId, onSubmitted }: PatientImportFormProps) {
+export function PatientImportForm({
+  userId,
+  initialProfile,
+  onSubmitted,
+}: PatientImportFormProps) {
   const { t } = useTranslation();
   const ingestMutation = useIngestKnowledge();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+
+  const defaultValues = useMemo(
+    () => initialProfile ?? EMPTY_FORM_VALUES,
+    [initialProfile]
+  );
 
   const {
     register,
@@ -85,19 +110,15 @@ export function PatientImportForm({ userId, onSubmitted }: PatientImportFormProp
     formState: { errors, isSubmitting },
   } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
-    defaultValues: {
-      diagnosis: "",
-      comorbidities: "",
-      physician_notes: "",
-      medical_history: "",
-      age: "",
-      weight: "",
-      height: "",
-      gender: "",
-      medications: [],
-      symptoms: [],
-    },
+    defaultValues,
   });
+
+  const hasExistingProfile = Boolean(
+    initialProfile?.diagnosis ||
+      initialProfile?.physician_notes ||
+      initialProfile?.medications.length ||
+      initialProfile?.symptoms.length
+  );
 
   const addFiles = useCallback((fileList: FileList | File[]) => {
     const files = Array.from(fileList);
@@ -131,6 +152,12 @@ export function PatientImportForm({ userId, onSubmitted }: PatientImportFormProp
     if (data.height) demographics.height = Number(data.height);
     if (data.gender) demographics.gender = data.gender;
 
+    const toIsoDate = (value?: string) => {
+      if (!value) return undefined;
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? value : parsed.toISOString();
+    };
+
     return {
       diagnosis: data.diagnosis,
       comorbidities,
@@ -141,31 +168,50 @@ export function PatientImportForm({ userId, onSubmitted }: PatientImportFormProp
         name: med.name,
         dosage: med.dosage,
         frequency: med.frequency,
-        start_date: med.start_date,
-        end_date: med.end_date,
+        start_date: toIsoDate(med.start_date),
+        end_date: toIsoDate(med.end_date),
         notes: med.notes,
       })),
       symptoms: data.symptoms.map((sym) => ({
         name: sym.name,
         severity: sym.severity,
-        onset_date: sym.onset_date,
+        onset_date: toIsoDate(sym.onset_date),
         notes: sym.notes,
       })),
     };
   };
 
   const onSubmit = handleSubmit(async (data) => {
+    const profileJson = buildProfileJson(data);
+    const files = uploadedFiles.map((item) => item.file);
+    const hasFiles = files.length > 0;
+    const hasProfile = hasProfileContent(profileJson);
+
+    if (!hasProfile && !hasFiles) {
+      toast.error(
+        t(
+          "import_requires_content",
+          "Add profile details or upload at least one document before submitting."
+        )
+      );
+      return;
+    }
+
     try {
-      await ingestMutation.mutateAsync({
+      const result = await ingestMutation.mutateAsync({
         userId,
-        profileJson: buildProfileJson(data),
-        files: uploadedFiles.map((item) => item.file),
+        profileJson,
+        files,
         documentTypes: uploadedFiles.map((item) => item.documentType),
       });
-      toast.success(t("import_submitted", "Patient knowledge submitted for indexing"));
+      toast.success(
+        result.message ??
+          t("import_submitted", "Patient knowledge submitted for indexing")
+      );
       onSubmitted?.();
-    } catch {
-      toast.error(t("import_submit_failed", "Failed to submit patient knowledge"));
+    } catch (err) {
+      const parsed = parsePatientKnowledgeError(err);
+      toast.error(parsed.message);
     }
   });
 
@@ -173,16 +219,25 @@ export function PatientImportForm({ userId, onSubmitted }: PatientImportFormProp
     <form onSubmit={onSubmit} className="min-w-0 space-y-6">
       <Card className="overflow-hidden">
         <CardHeader className="px-4 sm:px-6">
-          <CardTitle className="text-lg sm:text-xl">{t("structured_profile", "Structured Profile")}</CardTitle>
+          <CardTitle className="text-lg sm:text-xl">
+            {hasExistingProfile
+              ? t("update_structured_profile", "Update Structured Profile")
+              : t("structured_profile", "Structured Profile")}
+          </CardTitle>
+          {hasExistingProfile && (
+            <p className="text-sm text-muted-foreground">
+              {t(
+                "profile_prefilled_hint",
+                "Fields below are pre-filled from the patient's existing record. Edit and submit to update indexing."
+              )}
+            </p>
+          )}
         </CardHeader>
         <CardContent className="space-y-4 px-4 sm:px-6">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="diagnosis">{t("diagnosis", "Diagnosis")}</Label>
               <Input id="diagnosis" {...register("diagnosis")} />
-              {errors.diagnosis && (
-                <p className="text-sm text-destructive">{errors.diagnosis.message}</p>
-              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="comorbidities">{t("comorbidities", "Comorbidities")}</Label>
@@ -216,9 +271,6 @@ export function PatientImportForm({ userId, onSubmitted }: PatientImportFormProp
           <div className="space-y-2">
             <Label htmlFor="physician_notes">{t("physician_notes", "Physician Notes")}</Label>
             <Textarea id="physician_notes" rows={3} {...register("physician_notes")} />
-            {errors.physician_notes && (
-              <p className="text-sm text-destructive">{errors.physician_notes.message}</p>
-            )}
           </div>
 
           <div className="space-y-2">

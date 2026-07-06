@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosInstance from "@/api/axiosInstance";
 import { AxiosError } from "axios";
+import { patientImportRecordsQueryKey } from "./usePatientKnowledge";
 
 const refreshKnowledge = async (userId: number) => {
   const response = await axiosInstance.post(
@@ -17,6 +18,9 @@ export const useRefreshKnowledge = () => {
     onSuccess: (_data, userId) => {
       queryClient.invalidateQueries({
         queryKey: ["patient-knowledge-status", userId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: patientImportRecordsQueryKey(userId),
       });
     },
   });

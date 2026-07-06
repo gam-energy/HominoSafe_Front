@@ -5,8 +5,9 @@ import { User } from '@/features/dashboard/types/caregiver/user';
 import { AxiosError } from 'axios';
 
 const fetchPatients = async (my_patients: boolean): Promise<User[]> => {
-
-    const response = await axiosInstance.get<User[]>('/user/all/');
+  const response = await axiosInstance.get<User[]>("/user/all/", {
+    params: { my_patients },
+  });
 
   if (response.status !== 200) {
     throw new Error('Failed to fetch patients');

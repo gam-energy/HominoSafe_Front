@@ -17,7 +17,7 @@ const fetchUserProfiles = async (userId: number): Promise<UserProfile[]> => {
 
 export const useUserProfiles = (userId: number) => {
   return useQuery<UserProfile[], AxiosError>({
-    queryKey: ['user-profiles', userId],
+    queryKey: ['patient-ehr-profiles', userId],
     queryFn: () => fetchUserProfiles(userId),
     enabled: !!userId,
     staleTime: 1000 * 60 * 10,

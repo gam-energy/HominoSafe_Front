@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { useUser } from "@/context/UserContext";
 import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patient-profile";
 import { useKnowledgeStatus } from "@/features/patient-knowledge/api/useKnowledgeStatus";
+import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 import { useCdsReport } from "../api/useCdsReport";
 import { useCdsAnalyze } from "../api/useCdsAnalyze";
 import { AnalyzeLoadingOverlay } from "./AnalyzeLoadingOverlay";
@@ -39,10 +40,10 @@ export function ClinicalAgentReport() {
   const patientId = Number(Array.isArray(params.id) ? params.id[0] : params.id);
   const isDoctor = user?.role === "doctor";
   const isCaregiver = user?.role === "caregiver";
-  const backHref = isCaregiver
-    ? `/dashboard/my-patients/${patientId}`
-    : `/dashboard/patients/${patientId}`;
-  const importHref = isDoctor ? `/dashboard/patients/${patientId}/import` : undefined;
+  const routes = staffPatientRoutes(user?.role, patientId);
+  const backHref = routes.detailRoute;
+  const importHref =
+    isDoctor || isCaregiver ? routes.importRoute : undefined;
 
   const { data: patientInfoData, isLoading: patientLoading } =
     useGetPatientProfile(patientId);

@@ -63,6 +63,8 @@ const processQueue = (error: unknown, token: string | null = null) => {
       prom.reject(error);
     } else if (token) {
       prom.resolve(token);
+    } else {
+      prom.reject(new Error('Token refresh queue drained without token or error'));
     }
   });
   failedQueue = [];
@@ -109,6 +111,7 @@ axiosInstance.interceptors.response.use(
       const refreshToken = getRefreshToken();
       if (!refreshToken) {
         isRefreshing = false;
+        processQueue(new Error('No refresh token'), null);
         window.location.href = '/auth/sign-in';
         return Promise.reject(error);
       }

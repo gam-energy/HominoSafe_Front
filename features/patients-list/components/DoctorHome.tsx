@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { LoaderIcon } from "@/components/chat/icons";
 
 import { usePatients } from "@/features/patients-list/api/useGetPatients";
+import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { useUser } from "@/context/UserContext";
 import { User } from "@/features/dashboard/types/caregiver/user";
@@ -316,10 +317,10 @@ export default function DoctorHome() {
                     key={patient.id}
                     patient={patient}
                     isMessaging={messagingId === patient.id}
-                    showImport={!isCaregiver}
+                    showImport
                     onView={() => router.push(`${patientDetailBase}/${patient.id}`)}
                     onImport={() =>
-                      router.push(`/dashboard/patients/${patient.id}/import`)
+                      router.push(staffPatientRoutes(user?.role, patient.id).importRoute)
                     }
                     onClinicalAgent={() =>
                       router.push(

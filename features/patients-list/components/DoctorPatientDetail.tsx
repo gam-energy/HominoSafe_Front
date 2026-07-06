@@ -25,7 +25,7 @@ import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patie
 import { useGetOVerview } from "@/features/dashboard/api/patient/useGetOverview";
 import { useHistory } from "@/features/dashboard/api/patient/useGetHistory";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
-import { useUser } from "@/context/UserContext";
+import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 
 const heartRateList: number[] = [72, 74, 76, 78, 80, 82, 79, 77, 75, 73, 71, 70, 69, 68, 70, 72, 74, 76, 78, 80];
 const bpSystolicList: number[] = [120, 122, 121, 119, 118, 117, 116, 115, 117, 119, 121, 123, 124, 122, 120, 118, 117, 119, 121, 120];
@@ -113,10 +113,9 @@ export default function DoctorPatientDetail() {
       : "/dashboard/patients";
   const isDoctor = currentUser?.role === "doctor";
   const isCaregiver = currentUser?.role === "caregiver";
-  const clinicalAgentRoute = isCaregiver
-    ? `/dashboard/my-patients/${userId}/clinical-agent`
-    : `/dashboard/patients/${userId}/clinical-agent`;
-  const importRoute = `/dashboard/patients/${userId}/import`;
+  const routes = staffPatientRoutes(currentUser?.role, userId);
+  const clinicalAgentRoute = routes.clinicalAgentRoute;
+  const importRoute = routes.importRoute;
 
   // Patient user info (username, email, phone, status, etc.)
   const { data: patientInfoData, isLoading: infoLoading } =
@@ -244,7 +243,7 @@ export default function DoctorPatientDetail() {
             <span className="truncate">{t("back_to_patients", "Back to Patients")}</span>
           </Button>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-            {isDoctor && (
+            {(isDoctor || isCaregiver) && (
               <Button
                 variant="outline"
                 className="h-10 w-full sm:w-auto"
