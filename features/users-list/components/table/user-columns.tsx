@@ -3,7 +3,20 @@ import React, { useState } from "react";
 import { ColumnDef } from "@tanstack/react-table";
 import { User } from "@/features/dashboard/types/caregiver/user";
 import Link from "next/link";
-import { ArrowUpDown, MoreHorizontal, Edit, Trash2, User2,  } from "lucide-react";
+import {
+  ArrowUpDown,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  User2,
+  Eye,
+} from "lucide-react";
+import {
+  roleBadgeClass,
+  roleLabel,
+  statusBadgeClass,
+  statusLabel,
+} from "@/features/admin/utils/normalizeEnum";
 
 import {
   Button,
@@ -70,7 +83,18 @@ export const userColumns: ColumnDef<User>[] = [
   {
     accessorKey: "status",
     header: "Status",
-    cell: ({ row }) => row.original.status,
+    cell: ({ row }) => {
+      const status = row.original.status;
+      return (
+        <span
+          className={`text-xs px-2 py-1 rounded-full font-medium inline-block ${statusBadgeClass(
+            status,
+          )}`}
+        >
+          {statusLabel(status)}
+        </span>
+      );
+    },
   },
   {
     accessorKey: "role",
@@ -79,15 +103,11 @@ export const userColumns: ColumnDef<User>[] = [
       const role = getValue<string>();
       return (
         <span
-          className={`text-xs px-2 py-1 rounded-full font-medium inline-block ${
-            role === "doctor"
-              ? "bg-green-100 text-green-700"
-              : role === "caregiver"
-              ? "bg-red-100 text-red-700"
-              : "bg-gray-100 text-gray-700"
-          }`}
+          className={`text-xs px-2 py-1 rounded-full font-medium inline-block ${roleBadgeClass(
+            role,
+          )}`}
         >
-          {role}
+          {roleLabel(role)}
         </span>
       );
     },
@@ -144,7 +164,15 @@ export const userColumns: ColumnDef<User>[] = [
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-36 bg-white">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              {user.role === "patient" && 
+              <DropdownMenuItem asChild>
+                <Link
+                  href={`/dashboard/users/${user.id}`}
+                  className="flex items-center gap-2"
+                >
+                  <Eye className="h-4 w-4" /> View detail
+                </Link>
+              </DropdownMenuItem>
+              {user.role === "patient" &&
               <DropdownMenuItem onClick={handleAssign}
                 className="flex items-center gap-2 text-destructive">
                   <User2/> Assign To
