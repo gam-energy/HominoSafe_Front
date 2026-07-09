@@ -164,7 +164,7 @@ export default function DoctorHome() {
     ? "/dashboard/my-patients"
     : "/dashboard/patients";
   const patientDetailBase = patientsListRoute;
-  const alertsRoute = isCaregiver ? "/dashboard/chat" : "/dashboard/patient-alert";
+  const alertsRoute = '/dashboard/patient-alert';
 
   const stats = useMemo(() => {
     const list = patients ?? [];
@@ -360,14 +360,12 @@ export default function DoctorHome() {
               icon={Users}
               onClick={() => router.push(patientsListRoute)}
             />
-            {!isCaregiver && (
-              <QuickAction
-                label={t("patient_alerts", "Patient Alerts")}
-                description={t("review_clinical_alerts", "Review clinical alerts")}
-                icon={ShieldAlert}
-                onClick={() => router.push(alertsRoute)}
-              />
-            )}
+            <QuickAction
+              label={t("patient_alerts", "Patient Alerts")}
+              description={t("review_clinical_alerts", "Review clinical alerts")}
+              icon={ShieldAlert}
+              onClick={() => router.push(alertsRoute)}
+            />
             <QuickAction
               label={t("ai_chat", "AI Chat")}
               description={t("ai_assistant_description", "Ask the AI health assistant")}

@@ -64,7 +64,7 @@ const Page = () => {
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
              <Image src="/assets/images/logo.png" alt="Logo" width={32} height={32} />
              <h1 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
-                SenioSentry
+             SenioSentry
              </h1>
           </div>
           <LoginForm onSubmit={handleSubmit} />

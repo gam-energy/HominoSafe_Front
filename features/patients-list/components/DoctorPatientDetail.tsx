@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Activity, ArrowLeft, Brain, FileUp, MessageCircle } from "lucide-react";
+import { Activity, ArrowLeft, Brain, FileHeart, FileUp, Gauge, MessageCircle } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -24,8 +24,14 @@ import { useUserProfiles } from "@/features/patients-list/api/useUserProfiles";
 import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patient-profile";
 import { useGetOVerview } from "@/features/dashboard/api/patient/useGetOverview";
 import { useHistory } from "@/features/dashboard/api/patient/useGetHistory";
+import {
+  generateMockHistorySeries,
+  getMockHistoryUnit,
+} from "@/features/dashboard/utils/mockHealthHistory";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
+import { StaffPatientNav } from "@/features/patients-list/components/StaffPatientNav";
+import { useUser } from "@/context/UserContext";
 
 const heartRateList: number[] = [72, 74, 76, 78, 80, 82, 79, 77, 75, 73, 71, 70, 69, 68, 70, 72, 74, 76, 78, 80];
 const bpSystolicList: number[] = [120, 122, 121, 119, 118, 117, 116, 115, 117, 119, 121, 123, 124, 122, 120, 118, 117, 119, 121, 120];
@@ -116,6 +122,8 @@ export default function DoctorPatientDetail() {
   const routes = staffPatientRoutes(currentUser?.role, userId);
   const clinicalAgentRoute = routes.clinicalAgentRoute;
   const importRoute = routes.importRoute;
+  const medicalProfileRoute = routes.medicalProfileRoute;
+  const healthKpisRoute = routes.healthKpisRoute;
 
   // Patient user info (username, email, phone, status, etc.)
   const { data: patientInfoData, isLoading: infoLoading } =
@@ -193,6 +201,29 @@ export default function DoctorPatientDetail() {
     Array.isArray((historyData.data as Record<string, unknown[]>)[metric]) &&
     (historyData.data as Record<string, unknown[]>)[metric].length > 0;
 
+  const useMockHistory = (isCaregiver || isDoctor) && !hasHistoryData;
+
+  const chartHistoryData = useMemo(() => {
+    if (hasHistoryData && historyData?.data) {
+      return (
+        (historyData.data as unknown) as Record<
+          string,
+          { timestamp: string; value: number }[]
+        >
+      )[metric];
+    }
+    if (useMockHistory) {
+      return generateMockHistorySeries(metric, timePeriod);
+    }
+    return [];
+  }, [hasHistoryData, historyData, metric, timePeriod, useMockHistory]);
+
+  const chartHistoryUnit = hasHistoryData
+    ? historyData?.units?.[metric as keyof typeof historyData.units]
+    : getMockHistoryUnit(metric);
+
+  const showHistoryChart = chartHistoryData.length > 0;
+
   const handleMessagePatient = async () => {
     if (!patientInfo) return;
     setIsCreatingRoom(true);
@@ -243,6 +274,22 @@ export default function DoctorPatientDetail() {
             <span className="truncate">{t("back_to_patients", "Back to Patients")}</span>
           </Button>
           <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
+            <Button
+              variant="outline"
+              className="h-10 w-full sm:w-auto"
+              onClick={() => router.push(medicalProfileRoute)}
+            >
+              <FileHeart className="w-4 h-4 me-2 shrink-0" />
+              <span className="truncate">{t("medical_profile", "Medical Profile")}</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="h-10 w-full sm:w-auto"
+              onClick={() => router.push(healthKpisRoute)}
+            >
+              <Gauge className="w-4 h-4 me-2 shrink-0" />
+              <span className="truncate">{t("health_kpis", "Health KPIs")}</span>
+            </Button>
             {(isDoctor || isCaregiver) && (
               <Button
                 variant="outline"
@@ -283,6 +330,8 @@ export default function DoctorPatientDetail() {
           }
         />
 
+        <StaffPatientNav role={currentUser?.role} patientId={userId} />
+
         <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-12">
           <div className="xl:col-span-4">
             <ProfileCard viewedUser={patientInfo} />
@@ -322,15 +371,12 @@ export default function DoctorPatientDetail() {
                     <span>{t("loading", "Loading...")}</span>
                   </div>
                 </div>
-              ) : hasHistoryData ? (
+              ) : showHistoryChart ? (
                 <HistoryChart
-                  data={((historyData.data as unknown) as Record<
-                    string,
-                    { timestamp: string; value: number }[]
-                  >)[metric]}
+                  data={chartHistoryData}
                   metric={metric}
                   timePeriod={timePeriod}
-                  unit={historyData.units?.[metric as keyof typeof historyData.units]}
+                  unit={chartHistoryUnit}
                   className="h-full w-full"
                   setMetric={setMetric}
                   setTimePeriod={setTimePeriod}
@@ -356,7 +402,16 @@ export default function DoctorPatientDetail() {
                 {t("medical_records", "Medical Records")}
               </h2>
             </div>
-            {currentUser?.role === "doctor" && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                className="h-9"
+                onClick={() => router.push(medicalProfileRoute)}
+              >
+                <FileHeart className="w-4 h-4 me-2" />
+                {t("view_full_profile", "View full profile & export")}
+              </Button>
+              {currentUser?.role === "doctor" && (
               <EditThresholdsModal
                 userId={userId}
                 defaultValues={{
@@ -372,7 +427,8 @@ export default function DoctorPatientDetail() {
                   </Button>
                 }
               />
-            )}
+              )}
+            </div>
           </div>
 
           {profilesLoading ? (

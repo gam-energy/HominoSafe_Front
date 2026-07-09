@@ -88,6 +88,14 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
+      title: 'Patient Alerts',
+      url: '/dashboard/patient-alert',
+      icon: 'alertTriangle',
+      shortcut: ['a', 'l'],
+      isActive: false,
+      items: [],
+    },
+    {
       title: 'AI Chat',
       url: '/dashboard/ai',
       icon: 'brain',

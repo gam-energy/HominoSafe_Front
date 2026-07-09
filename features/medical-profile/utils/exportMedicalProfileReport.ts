@@ -329,7 +329,7 @@ export function buildMedicalProfileReportHtml(data: MedicalProfileReportData): s
       ${symptomsHtml}
     </section>
 
-    <p class="footer">HominoSafe / SenioSentry — Confidential medical record. For authorized care use only.</p>
+    <p class="footer">SenioSentry / SenioSentry — Confidential medical record. For authorized care use only.</p>
   </div>
 </body>
 </html>`;

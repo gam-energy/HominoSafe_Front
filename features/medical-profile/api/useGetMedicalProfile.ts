@@ -16,10 +16,11 @@ const fetchProfile = async (): Promise<ProfileData | null> => {
   }
 };
 
-export const useProfile = () => {
+export const useProfile = (options?: { enabled?: boolean }) => {
   return useQuery<ProfileData | null, AxiosError>({
     queryKey: ['medical-profile'],
     queryFn: fetchProfile,
     staleTime: 1000 * 60 * 5,
+    enabled: options?.enabled ?? true,
   });
 };

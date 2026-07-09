@@ -1,9 +1,14 @@
 "use client";
 
-import { FC, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { useProfile } from "@/features/medical-profile/api/useGetMedicalProfile";
 import { normalizeComorbidities } from "@/features/medical-profile/utils/profile";
 import type { Symptom } from "@/features/medical-profile/types/medicalprofile";
+import Link from "next/link";
+import { useUserProfiles } from "@/features/patients-list/api/useUserProfiles";
+import {
+  pickLatestUserProfile,
+} from "@/features/patients-list/utils/mapUserProfileToProfileData";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -158,20 +163,6 @@ function formatExportDate(dateStr: string | null | undefined): string {
   }
 }
 
-function usePatientDisplayName(): string {
-  const { t } = useTranslation();
-  const { user } = useUser();
-  return user
-    ? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || user.username
-    : t("your", "Your");
-}
-
-function useProfilePageTitle(): string {
-  const { t } = useTranslation();
-  const name = usePatientDisplayName();
-  return t("name_medical_profile", "{{name}} Medical Profile", { name });
-}
-
 function buildMedicalProfileReport(
   data: ProfileData,
   pageTitle: string,
@@ -252,12 +243,51 @@ function HeroTitleRow({
   );
 }
 
-const ProfileSection: FC = () => {
+export type MedicalProfileViewProps = {
+  patientId?: number;
+  patientName?: string;
+  backRoute?: string;
+};
+
+export function MedicalProfileView({
+  patientId,
+  patientName: patientNameProp,
+  backRoute,
+}: MedicalProfileViewProps = {}) {
   const { t } = useTranslation();
   const { user } = useUser();
-  const { data, isLoading, error } = useProfile();
-  const pageTitle = useProfilePageTitle();
-  const patientName = usePatientDisplayName();
+  const isStaffView = patientId != null && patientId > 0;
+
+  const {
+    data: ownProfile,
+    isLoading: ownLoading,
+    error: ownError,
+  } = useProfile({ enabled: !isStaffView });
+
+  const {
+    data: staffProfiles,
+    isLoading: staffLoading,
+    error: staffError,
+  } = useUserProfiles(isStaffView ? patientId : 0);
+
+  const data = isStaffView
+    ? pickLatestUserProfile(staffProfiles)
+    : ownProfile ?? null;
+
+  const isLoading = isStaffView ? staffLoading : ownLoading;
+  const error = isStaffView ? staffError : ownError;
+
+  const patientName =
+    patientNameProp ??
+    (user
+      ? `${user.first_name ?? ""} ${user.last_name ?? ""}`.trim() || user.username
+      : t("your", "Your"));
+
+  const pageTitle = t("name_medical_profile", "{{name}} Medical Profile", {
+    name: patientName,
+  });
+
+  const reportUserId = isStaffView ? patientId : user?.id;
 
   if (isLoading) {
     return (
@@ -353,7 +383,7 @@ const ProfileSection: FC = () => {
   ];
 
   const buildReport = () =>
-    buildMedicalProfileReport(data, pageTitle, patientName, user?.id);
+    buildMedicalProfileReport(data, pageTitle, patientName, reportUserId);
 
   return (
     <PageContainer scrollable>
@@ -363,6 +393,14 @@ const ProfileSection: FC = () => {
         animate="animate"
         transition={{ staggerChildren: 0.06 }}
       >
+        {backRoute && (
+          <Link
+            href={backRoute}
+            className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+          >
+            ← {t("back_to_patient", "Back to patient")}
+          </Link>
+        )}
         <motion.div variants={fadeUp}>
           <Card className="relative overflow-hidden rounded-2xl border border-border shadow-sm">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/8 via-transparent to-violet-500/5 dark:from-blue-500/10 dark:to-violet-500/5" />
@@ -538,4 +576,6 @@ const ProfileSection: FC = () => {
   );
 };
 
-export default ProfileSection;
+export default function ProfileSection() {
+  return <MedicalProfileView />;
+}

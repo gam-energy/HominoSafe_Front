@@ -8,11 +8,13 @@ import { useRouter } from "next/navigation";
 import {
   ArrowUpDown,
   MoreHorizontal,
-  Edit,
-  Trash2,
   User2,
   MessageCircle,
   Loader2,
+  FileHeart,
+  Gauge,
+  Brain,
+  FileUp,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -28,13 +30,11 @@ import {
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { useUser } from "@/context/UserContext";
 import { useState } from "react";
+import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 
 function PatientRowActions({ user }: { user: User }) {
   const { user: currentUser } = useUser();
-  const profileBase =
-    currentUser?.role === "caregiver"
-      ? "/dashboard/my-patients"
-      : "/dashboard/patients";
+  const routes = staffPatientRoutes(currentUser?.role, user.id);
 
   return (
     <DropdownMenu>
@@ -43,14 +43,31 @@ function PatientRowActions({ user }: { user: User }) {
           <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44 bg-white">
+      <DropdownMenuContent align="end" className="w-52 bg-white">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuItem asChild>
-          <Link
-            href={`${profileBase}/${user.id}`}
-            className="flex items-center gap-2"
-          >
-            <User2 /> Open Profile
+          <Link href={routes.detailRoute} className="flex items-center gap-2">
+            <User2 className="h-4 w-4" /> Open Overview
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={routes.medicalProfileRoute} className="flex items-center gap-2">
+            <FileHeart className="h-4 w-4" /> Medical Profile
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={routes.healthKpisRoute} className="flex items-center gap-2">
+            <Gauge className="h-4 w-4" /> Health KPIs
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={routes.clinicalAgentRoute} className="flex items-center gap-2">
+            <Brain className="h-4 w-4" /> Clinical Agent
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link href={routes.importRoute} className="flex items-center gap-2">
+            <FileUp className="h-4 w-4" /> Import Records
           </Link>
         </DropdownMenuItem>
         <MessagePatientMenuItem user={user} />

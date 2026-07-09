@@ -253,7 +253,7 @@ export function buildKpiReportHtml({ summary, recommendations, meta }: KpiReport
   <h2>Recommendations</h2>
   ${recommendationsSection(recommendations)}
 
-  <p class="muted" style="margin-top:32px">HominoSafe / SenioSentry — confidential health summary</p>
+  <p class="muted" style="margin-top:32px">SenioSentry / SenioSentry — confidential health summary</p>
 </body>
 </html>`;
 }
