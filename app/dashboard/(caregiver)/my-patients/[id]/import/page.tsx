@@ -1,5 +1,10 @@
 'use client';
 
+export {
+  emptyStaticParams as generateStaticParams,
+  mobileDynamicParams as dynamicParams,
+} from '@/lib/staticExportHelpers';
+
 import { useParams } from 'next/navigation';
 
 import { PatientImportPage } from '@/features/patient-knowledge/components/PatientImportPage';

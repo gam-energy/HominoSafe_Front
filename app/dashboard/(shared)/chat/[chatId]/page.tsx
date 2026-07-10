@@ -1,5 +1,10 @@
 "use client";
 
+export {
+  emptyStaticParams as generateStaticParams,
+  mobileDynamicParams as dynamicParams,
+} from "@/lib/staticExportHelpers";
+
 import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 
