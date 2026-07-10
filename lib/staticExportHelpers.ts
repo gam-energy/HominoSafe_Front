@@ -1,25 +1,20 @@
-// Helpers for making Next.js dynamic routes compatible with `output: 'export'`
-// (the static-export mode used by the Capacitor Android build) without
-// breaking the regular server-rendered web build.
+// Route segment config for Capacitor static export (Next.js 16+).
 //
-// Each dynamic route page adds a single re-export line:
+// Next.js must statically parse `generateStaticParams` and `dynamicParams`
+// in each route's server `page.tsx`. Values must be compile-time literals
+// (no `process.env` expressions).
 //
-//   export {
-//     emptyStaticParams as generateStaticParams,
-//     mobileDynamicParams as dynamicParams,
-// } from '@/lib/staticExportHelpers';
+// Add this block at the top of every dynamic route's server page.tsx:
 //
-// Behaviour:
-// - Web build (no BUILD_TARGET): `dynamicParams = true` (default) and
-//   `generateStaticParams` returns `[]`, so the page is server-rendered on
-//   demand for any ID — identical to before.
-// - Mobile build (BUILD_TARGET=mobile): `dynamicParams = false` and
-//   `generateStaticParams` returns `[]`, so no dynamic pages are prerendered
-//   but the static export build succeeds. Navigation to a specific ID at
-//   runtime is handled client-side via Next.js' router + `useParams`.
+//   export function generateStaticParams() {
+//     return [];
+//   }
+//
+//   export const dynamicParams = true;
+//
+// For Capacitor static export (`npm run mobile:build`), a prebuild script
+// temporarily flips `dynamicParams` to `false`, then restores it after build.
+//
+// Client-only routes: UI in `page-client.tsx`, thin server `page.tsx` above.
 
-export const mobileDynamicParams = process.env.BUILD_TARGET !== "mobile";
-
-export function emptyStaticParams(): never[] {
-  return [];
-}
+export {};

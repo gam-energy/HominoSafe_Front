@@ -1,7 +1,8 @@
-export {
-  emptyStaticParams as generateStaticParams,
-  mobileDynamicParams as dynamicParams,
-} from '@/lib/staticExportHelpers';
+export function generateStaticParams() {
+  return [];
+}
+
+export const dynamicParams = true;
 
 import StaffPatientMedicalProfilePage from '@/features/patients-list/components/StaffPatientMedicalProfilePage';
 

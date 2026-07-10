@@ -16,12 +16,12 @@ const withPWA = withPWAInit({
 
 const nextConfig: NextConfig = {
   reactStrictMode: false,
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
+  // next-pwa injects webpack plugins; Next 16 defaults to Turbopack for dev.
+  // An empty turbopack block acknowledges the webpack config coexistence.
+  turbopack: {},
   // Static export is required for Capacitor (it loads a folder of files).
   output: isMobileBuild ? "export" : undefined,
   // Static export needs trailing slashes so the WebView can resolve directory

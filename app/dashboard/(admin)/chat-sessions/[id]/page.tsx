@@ -1,16 +1,9 @@
-'use client';
-
-export {
-  emptyStaticParams as generateStaticParams,
-  mobileDynamicParams as dynamicParams,
-} from '@/lib/staticExportHelpers';
-
-import { useParams } from 'next/navigation';
-import { AdminChatSessionMessages } from '@/features/admin/components/AdminChatSessionMessages';
-
-export default function AdminChatSessionDetailPage() {
-  const params = useParams<{ id: string }>();
-  const id = Array.isArray(params.id) ? params.id[0] : params.id;
-  if (!id) return null;
-  return <AdminChatSessionMessages sessionId={id} />;
+export function generateStaticParams() {
+  return [];
 }
+
+export const dynamicParams = true;
+
+import PageClient from './page-client';
+
+export default PageClient;
