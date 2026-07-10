@@ -38,7 +38,6 @@ import {
   isInactive,
   isRole,
   isSynapseFailed,
-  normRole,
   roleBadgeClass,
   roleLabel,
   statusBadgeClass,
@@ -111,7 +110,6 @@ export function AdminUserDetail({ userId }: AdminUserDetailProps) {
     );
   }
 
-  const role = normRole(user.role);
   const isAdmin = isRole(user.role, 'ADMIN');
   const isPatient = isRole(user.role, 'PATIENT');
   const inactive = isInactive(user.status);

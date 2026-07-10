@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { useGetUsersByRole } from '@/features/users-list/api/use-get-users-by-role';
 import { useAssignPatient } from '../api/use-assign-patient';
 import {
-  normRole,
+  normStatus,
   roleLabel,
 } from '../utils/normalizeEnum';
 
@@ -62,7 +62,7 @@ export function AssignCareTeamDialog({
   };
 
   const activeUsers = (users ?? []).filter(
-    (u: { status?: string }) => normRole(u.status) !== 'INACTIVE',
+    (u: { status?: string }) => normStatus(u.status) !== 'INACTIVE',
   );
 
   return (

@@ -17,6 +17,9 @@ export interface AdminUserListItem {
   status: string;
   synapse_status: string;
   created_at: string;
+  // Present on patient rows; used by the legacy Users table.
+  caregiver_id?: number;
+  doctor_id?: number;
 }
 
 export interface AdminUserDetail extends AdminUserListItem {
