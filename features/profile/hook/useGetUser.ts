@@ -30,14 +30,13 @@ export function mapProfileStats(data: Partial<UserProfileData>): ProfileStats {
 }
 
 export const getUserProfile = async (): Promise<UserProfileData> => {
+  // refresh_token may be HttpOnly (not visible to js-cookie); access_token is enough
   const accessToken = Cookies.get('access_token');
-  const refreshToken = Cookies.get('refresh_token');
-
-  if (!accessToken || !refreshToken) {
-    throw new Error('No tokens available');
+  if (!accessToken) {
+    throw new Error('No access token available');
   }
 
-  const response = await axiosInstance.get<UserProfileData>('/api/profile/user/');
+  const response = await axiosInstance.get<UserProfileData>('/api/profile/user');
   return response.data;
 };
 
@@ -59,6 +58,7 @@ export const useUserProfile = () => {
     queryKey: ['user-profile'],
     queryFn: getUserProfile,
     staleTime: 60_000,
+    retry: 1,
   });
 };
 

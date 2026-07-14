@@ -1,15 +1,12 @@
-export function generateStaticParams() {
-  return [];
-}
-
-export const dynamicParams = true;
-
 import ProfileViewPage from '@/features/profile/components/profile-view-page';
+
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
 
 export const metadata = {
   title: 'Dashboard : Profile',
 };
 
-export default async function Page() {
+export default function Page() {
   return <ProfileViewPage />;
 }

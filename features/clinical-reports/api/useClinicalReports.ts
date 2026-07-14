@@ -23,5 +23,6 @@ export const useClinicalReports = (
     queryFn: () => fetchClinicalReports(patientId, options?.limit ?? 20),
     enabled: !!patientId && (options?.enabled ?? true),
     staleTime: 60_000,
+    retry: 1,
   });
 };

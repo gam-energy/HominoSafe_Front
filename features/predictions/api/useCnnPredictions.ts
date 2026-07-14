@@ -20,5 +20,6 @@ export const useCnnPredictions = (userId: number) => {
     enabled: !!userId,
     staleTime: 30_000,
     refetchInterval: 60_000,
+    retry: 1,
   });
 };

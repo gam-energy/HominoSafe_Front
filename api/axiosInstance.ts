@@ -40,7 +40,7 @@ export async function refreshAccessToken(): Promise<string> {
   const { data } = await axios.post<RefreshTokenResponse>(
     `${base}/refresh-token`,
     { refresh_token: refreshToken },
-    { headers: { 'Content-Type': 'application/json' } }
+    { headers: { 'Content-Type': 'application/json' }, timeout: 12_000 }
   );
 
   const newAccessToken = data.access_token ?? data.access;

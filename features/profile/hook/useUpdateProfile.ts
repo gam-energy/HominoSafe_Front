@@ -18,6 +18,7 @@ export interface UpdateProfileInput {
 
 // تابع API برای به‌روزرسانی پروفایل
 const updateProfile = async (data: UpdateProfileInput): Promise<ProfileData> => {
+  // FastAPI mounts PUT at /api/profile/ (trailing slash; redirect_slashes=False)
   const response = await axiosInstance.put<ProfileData>('/api/profile/', data, {
     headers: {
       'Content-Type': 'application/json',

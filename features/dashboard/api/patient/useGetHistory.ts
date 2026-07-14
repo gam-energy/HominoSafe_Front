@@ -27,13 +27,19 @@ const fetchHistory = async ({
   metrics,
   days,
 }: HistoryParams): Promise<HistoryData> => {
+  // FastAPI expects repeated query keys: metrics=heart_rate&metrics=spo2
+  // (not a single comma-joined value).
   const response = await axiosInstance.get<HistoryData>(
     "/api/dashboard/history",
     {
       params: {
         user_id: userId,
-        metrics: metrics.join(","),
-        days, // پارامتر جدید برای بازه زمانی
+        metrics,
+        ...(days != null ? { days } : {}),
+      },
+      paramsSerializer: {
+        // axios → metrics=a&metrics=b (FastAPI List[str])
+        indexes: null,
       },
     }
   );
@@ -53,7 +59,7 @@ export const useHistory = (
   metrics: string[],
   period?: TimePeriod
 ): UseHistoryResult => {
-  const days = TIME_PERIOD_TO_DAYS[period];
+  const days = period ? TIME_PERIOD_TO_DAYS[period] : 7;
 
   return useQuery<HistoryData, AxiosError>({
     queryKey: ["history", userId, metrics, days],

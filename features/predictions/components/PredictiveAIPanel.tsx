@@ -28,7 +28,7 @@ export function PredictiveAIPanel({ userId: userIdProp }: { userId?: number } = 
           title={t('predictive_ai', 'Predictive AI')}
           description={t(
             'predictive_ai_desc',
-            'CNN model predictions from your watch stream, plus clinical agent analysis'
+            'Watch CNN scores each short window into window-risk tables. The clinical agent reviews your graph and vitals on a separate 8-hour schedule into clinical agent reports.'
           )}
         />
 

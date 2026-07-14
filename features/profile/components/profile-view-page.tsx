@@ -59,7 +59,13 @@ export default function ProfileViewPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
-  const { data: profile, isLoading: isProfileLoading } = useUserProfile();
+  const {
+    data: profile,
+    isLoading: isProfileLoading,
+    isError: isProfileError,
+    error: profileError,
+    refetch: refetchProfile,
+  } = useUserProfile();
   const { mutate: updateProfile } = useUpdateProfile();
   const { user } = useUser();
 
@@ -124,6 +130,20 @@ export default function ProfileViewPage() {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <LoaderIcon />
+      </div>
+    );
+  }
+
+  if (isProfileError || !profile) {
+    return (
+      <div className="flex min-h-[50vh] flex-col items-center justify-center gap-3 px-4 text-center">
+        <p className="text-sm text-destructive">
+          {(profileError as Error)?.message ||
+            t('failed_load_profile', 'Failed to load profile.')}
+        </p>
+        <Button type="button" variant="outline" onClick={() => refetchProfile()}>
+          {t('retry', 'Retry')}
+        </Button>
       </div>
     );
   }
