@@ -13,7 +13,10 @@ const ChatListHeader = ({ onSearch }: { onSearch: (val: string) => void }) => {
     <div className="px-3 py-3 border-b border-border">
       <div className="flex items-center justify-between mb-3">
         <h1 className="text-xl font-semibold">Chat</h1>
-        {(user?.role === "admin" || user?.role === "doctor") && (
+        {(user?.role === "admin" ||
+          user?.role === "doctor" ||
+          user?.role === "caregiver" ||
+          user?.role === "patient") && (
           <div className="flex items-center gap-2">
             <NewChatPopover />
           </div>

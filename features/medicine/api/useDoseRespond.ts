@@ -29,7 +29,8 @@ export const useRespondToDoseByAlert = () => {
     }) => {
       const { data } = await axiosInstance.post<DoseEventResponse>(
         `/api/medicine/doses/by-alert/${alertId}/respond`,
-        { status }
+        { status },
+        { headers: { 'Content-Type': 'application/json' } }
       );
       return data;
     },

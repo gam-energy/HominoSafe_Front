@@ -113,8 +113,9 @@
 // };
 
 // export default ChatList;
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useGetRooms } from "@/features/chat/api/use-get-rooms";
+import { useEnsureCareTeamRooms } from "@/features/chat/api/useEnsureCareTeamRooms";
 import { Spinner } from "../ui/spinner";
 import ChatListItem from "./chat-list-item";
 import InviteListItem from "./InviteListItem";
@@ -125,11 +126,29 @@ import { unknown } from "zod/v4";
 
 const ChatList = () => {
   const router = useRouter();
-  const { data, isLoading, error } = useGetRooms();
+  const { data, isLoading, error, refetch } = useGetRooms();
+  const ensureRooms = useEnsureCareTeamRooms();
   const { user } = useAuth();
   const currentUserId = user?.id || null;
 
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Provision patient↔doctor / patient↔caregiver DMs once on mount.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        await ensureRooms.mutateAsync();
+        if (!cancelled) await refetch();
+      } catch {
+        /* token missing or synapse offline — list still loads */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const joinedRooms = data?.joined || [];
   const invitedRooms = data?.invited || [];

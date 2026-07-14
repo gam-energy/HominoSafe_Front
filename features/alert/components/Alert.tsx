@@ -441,45 +441,64 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
 
               {/* Medication reminder: Taken / Didn't take */}
               {isMedReminder && !alert.isAcknowledged && !doseOutcome && (
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <button
-                    type="button"
-                    disabled={doseMutation.isPending}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      doseMutation.mutate(
-                        { alertId: alert.alertId, status: "taken" },
-                        {
-                          onSuccess: (d) => setDoseOutcome(d.status as "taken" | "late"),
-                          onError: () => setDoseOutcome(null),
-                        }
-                      );
-                    }}
-                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
-                  >
-                    <CheckCircle2 className="h-4 w-4" />
-                    {doseMutation.isPending
-                      ? t("saving", "Saving…")
-                      : t("med_taken", "Taken")}
-                  </button>
-                  <button
-                    type="button"
-                    disabled={doseMutation.isPending}
-                    onClick={async (e) => {
-                      e.stopPropagation();
-                      doseMutation.mutate(
-                        { alertId: alert.alertId, status: "missed" },
-                        {
-                          onSuccess: () => setDoseOutcome("missed"),
-                          onError: () => setDoseOutcome(null),
-                        }
-                      );
-                    }}
-                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted/60 disabled:opacity-60"
-                  >
-                    <Clock className="h-4 w-4" />
-                    {t("med_not_taken", "Didn't take")}
-                  </button>
+                <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      disabled={doseMutation.isPending}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        doseMutation.mutate(
+                          { alertId: alert.alertId, status: "taken" },
+                          {
+                            onSuccess: (d) => {
+                              setDoseOutcome(d.status as "taken" | "late");
+                              onAcknowledge?.({
+                                ...alert,
+                                isAcknowledged: true,
+                                status: "Acknowledged",
+                              });
+                            },
+                          }
+                        );
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
+                    >
+                      <CheckCircle2 className="h-4 w-4" />
+                      {doseMutation.isPending
+                        ? t("saving", "Saving…")
+                        : t("med_taken", "Taken")}
+                    </button>
+                    <button
+                      type="button"
+                      disabled={doseMutation.isPending}
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        doseMutation.mutate(
+                          { alertId: alert.alertId, status: "missed" },
+                          {
+                            onSuccess: () => {
+                              setDoseOutcome("missed");
+                              onAcknowledge?.({
+                                ...alert,
+                                isAcknowledged: true,
+                                status: "Acknowledged",
+                              });
+                            },
+                          }
+                        );
+                      }}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted/60 disabled:opacity-60"
+                    >
+                      <Clock className="h-4 w-4" />
+                      {t("med_not_taken", "Didn't take")}
+                    </button>
+                  </div>
+                  {doseMutation.isError ? (
+                    <p className="text-xs text-destructive">
+                      {t("med_respond_failed", "Could not save response. Try again.")}
+                    </p>
+                  ) : null}
                 </div>
               )}
 
