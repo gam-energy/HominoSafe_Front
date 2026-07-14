@@ -13,29 +13,32 @@ export const getOtherUserAndGroup = (
   chat: ChatType,
   currentUserId: string | null
 ) => {
-  const isGroup = chat?.isGroup;
+  const isGroup = Boolean(chat?.isGroup);
 
   if (isGroup) {
     return {
-      name: chat.groupName || "Unnamed Group",
-      subheading: `${chat.participants.length} members`,
-      avatar: "",
-      isGroup,
+      name: chat.groupName || chat.name || "Unnamed Group",
+      subheading: `${chat.member_count || chat.participants?.length || 0} members`,
+      avatar: chat.avatar || "",
+      isGroup: true,
     };
   }
 
-  // const other = chat?.participants.find((p) => p._id !== currentUserId);
-  // const isOnline = isUserOnline(other?._id ?? "");
+  const other = chat?.participants?.find((p) => p._id !== currentUserId);
+  const name =
+    chat.name ||
+    chat.groupName ||
+    other?.name ||
+    other?.username ||
+    "Chat";
+  const isOnline = other?._id ? isUserOnline(other._id) : false;
 
   return {
-    // name: other?.username || "Unknown",
-    name: "Unknown",
-    // subheading: isOnline ? "Online" : "Offline",
-    subheading: "Offline",
-    // avatar: other?.avatar || "",
-    avatar: "",
+    name,
+    subheading: isOnline ? "Online" : "Chat",
+    avatar: chat.avatar || other?.avatar || "",
     isGroup: false,
-    // isOnline,
+    isOnline,
   };
 };
 

@@ -1,5 +1,4 @@
 import { memo } from "react";
-import { useAuth } from "@/hooks/realtime-chat/use-auth";
 import { cn } from "@/lib/utils";
 import type { MessageType } from "@/features/chat/types/chat.type";
 import AvatarWithBadge from "../avatar-with-badge";
@@ -7,6 +6,7 @@ import { formatChatTime } from "@/lib/realtime-chat/helper";
 import { Button } from "../ui/button";
 import { ReplyIcon } from "lucide-react";
 import { useGetCurrentUser } from "@/features/chat/api/use-get-current-info";
+import MatrixImage from "./matrix-image";
 
 interface Props {
   message: MessageType;
@@ -92,14 +92,18 @@ const ChatMessageBody = memo(({ message, onReply }: Props) => {
             )} */}
 
             {message?.image && (
-              <img
-                src={message?.image || ""}
-                alt=""
+              <MatrixImage
+                mxcUrl={message.image}
                 className="rounded-lg max-w-xs"
               />
             )}
 
-            {message.text && <p>{message.text}</p>}
+            {message.text &&
+              !(
+                message.image &&
+                message.text === message.matrixContent?.body &&
+                message.matrixContent?.msgtype === "m.image"
+              ) && <p>{message.text}</p>}
           </div>
 
           {/* {Reply Icon Button} */}

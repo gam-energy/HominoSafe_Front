@@ -78,11 +78,15 @@ axiosInstance.interceptors.request.use(
     // Re-resolve at request time so HTTPS/same-origin vs :3000→:8888 is correct
     // even if this module was first evaluated during SSR.
     config.baseURL = getApiBaseUrl();
+    if (!config.headers) {
+      config.headers = new AxiosHeaders();
+    }
+    // FormData must get a browser-generated multipart boundary.
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      config.headers.delete('Content-Type');
+    }
     const token = Cookies.get('access_token');
     if (token) {
-      if (!config.headers) {
-        config.headers = new AxiosHeaders();
-      }
       config.headers.set('Authorization', `Bearer ${token}`);
     }
     return config;
