@@ -1,9 +1,12 @@
 'use client';
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertType } from "../types/AlertSchema";
 import { sampleAlerts } from "../types/data";
+import { useAlertWebSocket } from "../hooks/useAlertWebSocket";
+import { actOnAlert } from "../api/alertApi";
+import { mapBackendAlert } from "../lib/alertTypeMap";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
@@ -96,9 +99,10 @@ const alertTypeLabels: Record<string, { en: string; fa: string }> = {
   OTHER: { en: "Alert", fa: "هشدار" }
 };
 
-const AlertCard: React.FC<{ alert: AlertType }> = ({ alert }) => {
+const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType) => void }> = ({ alert, onAcknowledge }) => {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
+  const [acking, setAcking] = useState(false);
   const isRtl = (i18n.language || 'en').startsWith('fa');
   
   const config = severityConfig[alert.severity];
@@ -350,6 +354,22 @@ const AlertCard: React.FC<{ alert: AlertType }> = ({ alert }) => {
                 </div>
               )}
 
+              {/* Fall camera frame (camera or watch source) */}
+              {alert.vision?.frameUrl && (
+                <div className="bg-muted/40 dark:bg-zinc-800/20 rounded-xl p-4 border border-muted/30">
+                  <h4 className="font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5 border-b pb-2 border-zinc-100 dark:border-zinc-800 mb-3">
+                    <AlertTriangle className="h-4 w-4 text-rose-500" />
+                    {t('fall_frame', 'Fall Frame')} ({alert.vision.source})
+                  </h4>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={alert.vision.frameUrl}
+                    alt="fall frame"
+                    className="w-full max-h-64 object-contain rounded-lg border"
+                  />
+                </div>
+              )}
+
               {/* Notes */}
               {alert.notes && (
                 <div className="bg-amber-50/50 dark:bg-amber-950/10 rounded-xl p-4 border border-amber-200/50 dark:border-amber-900/30">
@@ -360,6 +380,32 @@ const AlertCard: React.FC<{ alert: AlertType }> = ({ alert }) => {
                   <p className="text-xs text-amber-800 dark:text-amber-300 leading-relaxed italic">
                     "{alert.notes}"
                   </p>
+                </div>
+              )}
+
+              {/* Acknowledge action (live alerts only) */}
+              {onAcknowledge && !alert.isAcknowledged && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    disabled={acking}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      setAcking(true);
+                      try {
+                        const updated = await actOnAlert(alert.alertId, 'acknowledge');
+                        onAcknowledge(mapBackendAlert(updated));
+                      } catch {
+                        /* surfaced via disabled state reset */
+                      } finally {
+                        setAcking(false);
+                      }
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {acking ? t('acknowledging', 'Acknowledging...') : t('acknowledge', 'Acknowledge')}
+                  </button>
                 </div>
               )}
             </div>
@@ -376,14 +422,29 @@ const AlertList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const isRtl = (i18n.language || 'en').startsWith('fa');
 
+  const { alerts: liveAlerts, status, upsertAlert } = useAlertWebSocket();
+  // Fall back to demo data only when the live pipeline has nothing yet.
+  const alerts = liveAlerts.length > 0 ? liveAlerts : sampleAlerts;
+
+  const handleAcknowledge = useCallback((updated: AlertType) => {
+    upsertAlert(updated);
+  }, [upsertAlert]);
+
+  const statusMeta: Record<string, { label: string; dot: string }> = {
+    connected: { label: t('live', 'Live'), dot: 'bg-emerald-500' },
+    connecting: { label: t('connecting', 'Connecting...'), dot: 'bg-amber-500' },
+    disconnected: { label: t('reconnecting', 'Reconnecting...'), dot: 'bg-amber-500' },
+    error: { label: t('offline', 'Offline'), dot: 'bg-rose-500' },
+  };
+
   // Swipeable-styled Filter Cards (Swipe support on mobile!)
   const severities: { id: AlertType["severity"] | "all"; label: string; count: number; color: string; badge: string; shadow: string }[] = useMemo(() => {
     const counts = {
-      all: sampleAlerts.length,
-      critical: sampleAlerts.filter(a => a.severity === "critical").length,
-      high: sampleAlerts.filter(a => a.severity === "high").length,
-      medium: sampleAlerts.filter(a => a.severity === "medium").length,
-      low: sampleAlerts.filter(a => a.severity === "low").length,
+      all: alerts.length,
+      critical: alerts.filter(a => a.severity === "critical").length,
+      high: alerts.filter(a => a.severity === "high").length,
+      medium: alerts.filter(a => a.severity === "medium").length,
+      low: alerts.filter(a => a.severity === "low").length,
     };
 
     return [
@@ -393,7 +454,7 @@ const AlertList: React.FC = () => {
       { id: "medium", label: t('medium', 'Medium'), count: counts.medium, color: "bg-sky-500 text-white", badge: "bg-white/25 text-white", shadow: "shadow-sky-500/15" },
       { id: "low", label: t('low', 'Low'), count: counts.low, color: "bg-emerald-500 text-white", badge: "bg-white/25 text-white", shadow: "shadow-emerald-500/15" },
     ];
-  }, [t]);
+  }, [t, alerts]);
 
   const severityOrder: AlertType["severity"][] = [
     "critical",
@@ -403,7 +464,7 @@ const AlertList: React.FC = () => {
   ];
 
   const filteredAlerts = useMemo(() => {
-    return sampleAlerts
+    return alerts
       .filter((alert) => {
         const matchesFilter = filter === "all" || alert.severity === filter;
         const mappedType = alertTypeLabels[alert.alertType]
@@ -423,18 +484,24 @@ const AlertList: React.FC = () => {
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
         );
       });
-  }, [filter, searchQuery, isRtl]);
+  }, [filter, searchQuery, isRtl, alerts]);
 
   return (
     <PageContainer scrollable>
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
-        <Heading
-          title={t("health_alerts_dashboard", "Health Alerts Panel")}
-          description={t(
-            "alerts_subdescription",
-            "Real-time physiological alerts and predictive clinical indicators powered by SenioSentry AI."
-          )}
-        />
+        <div className="flex items-center justify-between gap-3">
+          <Heading
+            title={t("health_alerts_dashboard", "Health Alerts Panel")}
+            description={t(
+              "alerts_subdescription",
+              "Real-time physiological alerts and predictive clinical indicators powered by SenioSentry AI."
+            )}
+          />
+          <span className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold">
+            <span className={cn("h-2 w-2 rounded-full", statusMeta[status]?.dot, status === 'connected' ? 'animate-pulse' : '')} />
+            {statusMeta[status]?.label}
+          </span>
+        </div>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
           {severities.map((sev) => {
@@ -514,7 +581,11 @@ const AlertList: React.FC = () => {
               </motion.div>
             ) : (
               filteredAlerts.map((alert) => (
-                <AlertCard key={alert.alertId} alert={alert} />
+                <AlertCard
+                  key={alert.alertId}
+                  alert={alert}
+                  onAcknowledge={liveAlerts.length > 0 ? handleAcknowledge : undefined}
+                />
               ))
             )}
           </AnimatePresence>

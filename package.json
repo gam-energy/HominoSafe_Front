@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "next lint",
-    "mobile:build": "node scripts/prepare-mobile-routes.mjs && BUILD_TARGET=mobile next build --webpack && node scripts/restore-web-routes.mjs",
+    "mobile:build": "node scripts/patch-dynamic-params.mjs false && BUILD_TARGET=mobile next build --webpack; node scripts/patch-dynamic-params.mjs true",
     "mobile:sync": "npm run mobile:build && cap sync android",
     "mobile:open": "cap open android",
     "mobile:run": "cap run android",

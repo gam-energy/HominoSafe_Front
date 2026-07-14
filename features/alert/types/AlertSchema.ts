@@ -17,10 +17,29 @@ export interface AIModelOutput {
   shapValues?: Record<string, number>;
 }
 
+export interface VisionInfo {
+  visionDataId?: number;
+  source?: string;
+  confidence?: number;
+  frameUrl?: string;
+  hasInlineFrame?: boolean;
+  metadata?: Record<string, unknown> | null;
+}
+
 export interface AlertType {
   alertId: string;
   userId: string;
-  alertType: 'BP_DROP' | 'HR_SPIKE' | 'FALL_DETECTED' | 'OXYGEN_LOW' | 'TEMP_HIGH' | 'OTHER' | "PREDICTED_ORTHOSTATIC_HYPOTENSION";
+  alertType:
+    | 'BP_DROP'
+    | 'HR_SPIKE'
+    | 'FALL_DETECTED'
+    | 'OXYGEN_LOW'
+    | 'TEMP_HIGH'
+    | 'CARDIAC_RISK'
+    | 'STROKE_RISK'
+    | 'ENVIRONMENT'
+    | 'OTHER'
+    | 'PREDICTED_ORTHOSTATIC_HYPOTENSION';
   severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: string;
   predictedAt?: string;
@@ -30,4 +49,56 @@ export interface AlertType {
   acknowledgedBy?: string;
   acknowledgedAt?: string;
   notes?: string;
+  // Live-pipeline enrichments
+  status?: string;
+  source?: string;
+  patientName?: string;
+  vision?: VisionInfo;
+  message?: string;
+}
+
+/** Raw alert row as returned by the backend REST/WebSocket API. */
+export interface BackendAlert {
+  id: number;
+  user_id: number;
+  alert_type?: string | null;
+  message?: string | null;
+  severity: string;
+  status?: string;
+  source?: string | null;
+  recipient?: string | null;
+  acknowledged_by?: number | null;
+  acknowledged_at?: string | null;
+  notes?: string | null;
+  timestamp?: string | null;
+}
+
+/** Rich payload attached to a SYSTEM_ALERT WebSocket notification. */
+export interface BackendAlertPayload {
+  alert_id: number;
+  patient_id: number;
+  patient_name?: string | null;
+  patient_age?: number | null;
+  patient_gender?: string | null;
+  alert_type?: string | null;
+  severity?: string;
+  status?: string;
+  source?: string | null;
+  message?: string | null;
+  timestamp?: string | null;
+  vitals?: {
+    heart_rate?: number;
+    bp_systolic?: number;
+    bp_diastolic?: number;
+    spo2?: number;
+    temperature?: number;
+  };
+  vision?: {
+    vision_data_id?: number;
+    source?: string;
+    confidence?: number;
+    frame_url?: string;
+    has_inline_frame?: boolean;
+    metadata?: Record<string, unknown> | null;
+  };
 }

@@ -1,6 +1,7 @@
 'use client';
 // import { ClerkProvider } from '@clerk/nextjs';
 // import { dark } from '@clerk/themes';
+import '@/lib/i18n/config';
 import { useTheme } from 'next-themes';
 import React from 'react';
 import { ActiveThemeProvider } from '../active-theme';

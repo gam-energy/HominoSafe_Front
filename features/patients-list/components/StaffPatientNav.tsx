@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { CopyButton } from '@/components/ui/copy-button';
 import { staffPatientRoutes } from '@/features/patient-knowledge/utils/staffRoutes';
 
 export function StaffPatientNav({
@@ -80,6 +81,10 @@ export function StaffPatientNav({
       <div className="ms-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
         <Activity className="h-3.5 w-3.5" />
         {t('patient_id', 'Patient ID')}: {patientId}
+        <CopyButton
+          content={String(patientId)}
+          copyMessage={t('copied', 'Copied to clipboard')}
+        />
       </div>
     </nav>
   );

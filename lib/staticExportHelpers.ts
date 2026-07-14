@@ -1,8 +1,8 @@
 // Route segment config for Capacitor static export (Next.js 16+).
 //
 // Next.js must statically parse `generateStaticParams` and `dynamicParams`
-// in each route's server `page.tsx`. Values must be compile-time literals
-// (no `process.env` expressions).
+// in each route's server `page.tsx`. Values must be compile-time literals —
+// env expressions like `process.env.BUILD_TARGET !== "mobile"` are rejected.
 //
 // Add this block at the top of every dynamic route's server page.tsx:
 //
@@ -12,9 +12,10 @@
 //
 //   export const dynamicParams = true;
 //
-// For Capacitor static export (`npm run mobile:build`), a prebuild script
-// temporarily flips `dynamicParams` to `false`, then restores it after build.
+// Client-only routes: keep the UI in `page-client.tsx` and use a thin
+// server `page.tsx` that exports the config above and renders PageClient.
 //
-// Client-only routes: UI in `page-client.tsx`, thin server `page.tsx` above.
+// Mobile static export: `npm run mobile:build` temporarily patches
+// `dynamicParams` to `false` via scripts/patch-dynamic-params.mjs.
 
 export {};
