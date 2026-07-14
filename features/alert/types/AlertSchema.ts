@@ -71,6 +71,14 @@ export interface BackendAlert {
   acknowledged_at?: string | null;
   notes?: string | null;
   timestamp?: string | null;
+  vitals?: {
+    heart_rate?: number | null;
+    bp_systolic?: number | null;
+    bp_diastolic?: number | null;
+    spo2?: number | null;
+    temperature?: number | null;
+    activity?: string | null;
+  } | null;
 }
 
 /** Rich payload attached to a SYSTEM_ALERT WebSocket notification. */

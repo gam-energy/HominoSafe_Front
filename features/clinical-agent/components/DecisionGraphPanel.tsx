@@ -189,7 +189,7 @@ function FlowCanvas({
 }) {
   return (
     <div
-      className="overflow-hidden rounded-xl border border-border/80 bg-muted/20"
+      className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-border/80 bg-muted/20"
       style={{ height }}
     >
       <ReactFlow

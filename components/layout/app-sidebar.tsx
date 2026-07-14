@@ -136,18 +136,24 @@ export default function AppSidebar() {
                     </CollapsibleTrigger>
                     <CollapsibleContent>
                       <SidebarMenuSub>
-                        {item.items?.map((subItem) => (
+                        {item.items?.map((subItem) => {
+                          const SubIcon = subItem.icon
+                            ? Icons[subItem.icon]
+                            : null;
+                          return (
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton
                               asChild
                               isActive={pathname === subItem.url}
                             >
                               <Link href={subItem.url}>
+                                {SubIcon ? <SubIcon /> : null}
                                 <span>{t(subItem.title.toLowerCase().replace(/\s+/g, '_'), subItem.title)}</span>
                               </Link>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
-                        ))}
+                          );
+                        })}
                       </SidebarMenuSub>
                     </CollapsibleContent>
                   </SidebarMenuItem>

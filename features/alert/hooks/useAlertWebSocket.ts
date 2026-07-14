@@ -38,10 +38,24 @@ export function useAlertWebSocket(): UseAlertWebSocketResult {
   const upsertAlert = useCallback((alert: AlertType) => {
     setAlerts((prev) => {
       const idx = prev.findIndex((a) => a.alertId === alert.alertId);
-      if (idx === -1) return [alert, ...prev];
+      if (idx === -1) {
+        return [alert, ...prev].sort(
+          (a, b) =>
+            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+        );
+      }
       const next = [...prev];
-      next[idx] = { ...next[idx], ...alert };
-      return next;
+      const existing = next[idx];
+      next[idx] = {
+        ...existing,
+        ...alert,
+        // Keep previously known vitals if this update omitted them.
+        sensorData: alert.sensorData ?? existing.sensorData,
+      };
+      return next.sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
     });
   }, []);
 
@@ -49,7 +63,12 @@ export function useAlertWebSocket(): UseAlertWebSocketResult {
     setAlerts((prev) => {
       const byId = new Map(prev.map((a) => [a.alertId, a]));
       for (const a of incoming) {
-        byId.set(a.alertId, { ...byId.get(a.alertId), ...a });
+        const existing = byId.get(a.alertId);
+        byId.set(a.alertId, {
+          ...existing,
+          ...a,
+          sensorData: a.sensorData ?? existing?.sensorData,
+        });
       }
       return Array.from(byId.values()).sort(
         (a, b) =>

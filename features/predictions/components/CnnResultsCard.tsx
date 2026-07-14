@@ -119,15 +119,17 @@ export function CnnResultsCard({
   }, [data?.recent_windows]);
 
   return (
-    <Card className="overflow-hidden border-border/80">
+    <Card className="min-w-0 overflow-hidden border-border/80">
       <CardHeader className="space-y-3 px-4 sm:px-6">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
+        <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
             <CardTitle className="flex items-center gap-2 text-lg">
               <Activity className="h-5 w-5 shrink-0" />
-              {t('cnn_vitals_predictions', 'CNN vitals predictions')}
+              <span className="break-words">
+                {t('cnn_vitals_predictions', 'CNN vitals predictions')}
+              </span>
             </CardTitle>
-            <CardDescription className="mt-1 max-w-2xl">
+            <CardDescription className="mt-1 max-w-full break-words">
               {data?.description ??
                 t(
                   'cnn_results_desc',
@@ -150,7 +152,7 @@ export function CnnResultsCard({
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4 px-4 pb-6 sm:px-6">
+      <CardContent className="min-w-0 space-y-4 px-4 pb-6 sm:px-6">
         {isLoading ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -238,11 +240,11 @@ export function CnnResultsCard({
             ) : null}
 
             {!compact && chartData.length > 0 ? (
-              <div className="h-[280px]">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[240px] w-full min-w-0 max-w-full overflow-hidden sm:h-[280px]">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <LineChart
                     data={chartData}
-                    margin={{ top: 8, right: 12, left: 0, bottom: 0 }}
+                    margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
                   >
                     <CartesianGrid
                       strokeDasharray="3 3"

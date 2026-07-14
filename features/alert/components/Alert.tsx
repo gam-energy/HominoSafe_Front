@@ -188,6 +188,45 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
         </div>
       </button>
 
+      {alert.sensorData ? (
+        <div
+          className={cn(
+            "flex flex-wrap gap-2 border-t border-border/60 px-5 py-2.5 text-xs text-muted-foreground",
+            isRtl ? "pr-7" : "pl-7"
+          )}
+        >
+          {alert.sensorData.heartRate != null ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 font-medium ltr-nums">
+              <Heart className="h-3 w-3 text-rose-500" />
+              {alert.sensorData.heartRate} bpm
+            </span>
+          ) : null}
+          {alert.sensorData.bp?.systolic != null || alert.sensorData.bp?.diastolic != null ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 font-medium ltr-nums">
+              <Activity className="h-3 w-3 text-violet-500" />
+              {alert.sensorData.bp?.systolic ?? '—'}/{alert.sensorData.bp?.diastolic ?? '—'} mmHg
+            </span>
+          ) : null}
+          {alert.sensorData.spo2 != null ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 font-medium ltr-nums">
+              <Droplets className="h-3 w-3 text-blue-500" />
+              SpO₂ {alert.sensorData.spo2}%
+            </span>
+          ) : null}
+          {alert.sensorData.temperature != null ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 font-medium ltr-nums">
+              <Thermometer className="h-3 w-3 text-orange-500" />
+              {alert.sensorData.temperature}°C
+            </span>
+          ) : null}
+          {alert.sensorData.activity ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 font-medium">
+              {alert.sensorData.activity}
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
       <AnimatePresence initial={false}>
         {isOpen && (
           <motion.div
@@ -240,15 +279,15 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
                 </div>
 
                 {/* Patient Vitals at time of event */}
-                {alert.sensorData && (
-                  <div className="bg-muted/40 dark:bg-zinc-800/20 rounded-xl p-4 border border-muted/30">
-                    <h4 className="font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5 border-b pb-2 border-zinc-100 dark:border-zinc-800 mb-3.5">
-                      <Heart className="h-4 w-4 text-rose-500 animate-bounce" />
-                      {t('vitals_recorded', 'Vitals Recorded')}
-                    </h4>
-                    
+                <div className="bg-muted/40 dark:bg-zinc-800/20 rounded-xl p-4 border border-muted/30">
+                  <h4 className="font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5 border-b pb-2 border-zinc-100 dark:border-zinc-800 mb-3.5">
+                    <Heart className="h-4 w-4 text-rose-500" />
+                    {t('vitals_recorded', 'Vitals Recorded')}
+                  </h4>
+
+                  {alert.sensorData ? (
                     <div className="grid grid-cols-2 gap-3.5">
-                      {alert.sensorData.heartRate !== undefined && (
+                      {alert.sensorData.heartRate != null && (
                         <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border">
                           <Heart className="h-4 w-4 text-rose-500" />
                           <div>
@@ -257,16 +296,16 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
                           </div>
                         </div>
                       )}
-                      {alert.sensorData.bp && (
+                      {(alert.sensorData.bp?.systolic != null || alert.sensorData.bp?.diastolic != null) && (
                         <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border">
                           <Activity className="h-4 w-4 text-violet-500" />
                           <div>
                             <p className="text-[10px] text-muted-foreground font-semibold uppercase">{t('blood_pressure', 'BP')}</p>
-                            <p className="font-bold text-sm ltr-nums">{alert.sensorData.bp.systolic}/{alert.sensorData.bp.diastolic} <span className="text-[10px] font-normal text-muted-foreground">mmHg</span></p>
+                            <p className="font-bold text-sm ltr-nums">{alert.sensorData.bp?.systolic ?? '—'}/{alert.sensorData.bp?.diastolic ?? '—'} <span className="text-[10px] font-normal text-muted-foreground">mmHg</span></p>
                           </div>
                         </div>
                       )}
-                      {alert.sensorData.spo2 !== undefined && (
+                      {alert.sensorData.spo2 != null && (
                         <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border">
                           <Droplets className="h-4 w-4 text-blue-500" />
                           <div>
@@ -275,7 +314,7 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
                           </div>
                         </div>
                       )}
-                      {alert.sensorData.temperature !== undefined && alert.sensorData.temperature !== null && (
+                      {alert.sensorData.temperature != null && (
                         <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border">
                           <Thermometer className="h-4 w-4 text-orange-500" />
                           <div>
@@ -284,9 +323,22 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
                           </div>
                         </div>
                       )}
+                      {alert.sensorData.activity ? (
+                        <div className="flex items-center gap-2.5 bg-background dark:bg-zinc-900/60 p-2.5 rounded-lg border col-span-2">
+                          <UserCheck className="h-4 w-4 text-sky-500" />
+                          <div>
+                            <p className="text-[10px] text-muted-foreground font-semibold uppercase">{t('activity', 'Activity')}</p>
+                            <p className="font-bold text-sm">{alert.sensorData.activity}</p>
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      {t('no_vitals_for_alert', 'No wearable vitals available near this alert time.')}
+                    </p>
+                  )}
+                </div>
               </div>
 
               {/* AI Explainability & SHAP Values Visualization */}
@@ -415,9 +467,12 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
   );
 };
 
+type AckFilter = "all" | "pending" | "acknowledged";
+
 const AlertList: React.FC = () => {
   const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState<AlertType["severity"] | "all">("all");
+  const [ackFilter, setAckFilter] = useState<AckFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const isRtl = (i18n.language || 'en').startsWith('fa');
 
@@ -455,35 +510,40 @@ const AlertList: React.FC = () => {
     ];
   }, [t, alerts]);
 
-  const severityOrder: AlertType["severity"][] = [
-    "critical",
-    "high",
-    "medium",
-    "low",
-  ];
+  const ackFilters: { id: AckFilter; label: string; count: number }[] = useMemo(() => {
+    const pending = alerts.filter((a) => !a.isAcknowledged).length;
+    const acknowledged = alerts.filter((a) => a.isAcknowledged).length;
+    return [
+      { id: "all", label: t("all_statuses", "All statuses"), count: alerts.length },
+      { id: "pending", label: t("pending", "Pending"), count: pending },
+      { id: "acknowledged", label: t("acknowledged", "Acknowledged"), count: acknowledged },
+    ];
+  }, [t, alerts]);
 
   const filteredAlerts = useMemo(() => {
     return alerts
       .filter((alert) => {
-        const matchesFilter = filter === "all" || alert.severity === filter;
+        const matchesSeverity = filter === "all" || alert.severity === filter;
+        const matchesAck =
+          ackFilter === "all" ||
+          (ackFilter === "pending" && !alert.isAcknowledged) ||
+          (ackFilter === "acknowledged" && !!alert.isAcknowledged);
         const mappedType = alertTypeLabels[alert.alertType]
           ? (isRtl ? alertTypeLabels[alert.alertType].fa : alertTypeLabels[alert.alertType].en)
           : alert.alertType;
-        const matchesSearch = 
+        const matchesSearch =
           searchQuery.trim() === "" ||
           mappedType.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (alert.notes && alert.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
           (alert.sensorData?.activity && alert.sensorData.activity.toLowerCase().includes(searchQuery.toLowerCase()));
-        
-        return matchesFilter && matchesSearch;
+
+        return matchesSeverity && matchesAck && matchesSearch;
       })
-      .sort((a, b) => {
-        return (
-          severityOrder.indexOf(a.severity) - severityOrder.indexOf(b.severity) ||
+      .sort(
+        (a, b) =>
           new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-      });
-  }, [filter, searchQuery, isRtl, alerts]);
+      );
+  }, [filter, ackFilter, searchQuery, isRtl, alerts]);
 
   return (
     <PageContainer scrollable>
@@ -531,6 +591,35 @@ const AlertList: React.FC = () => {
                   {sev.count}
                 </span>
               </motion.button>
+            );
+          })}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {ackFilters.map((chip) => {
+            const selected = ackFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => setAckFilter(chip.id)}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition",
+                  selected
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border bg-card text-muted-foreground hover:bg-muted/50"
+                )}
+              >
+                {chip.label}
+                <span
+                  className={cn(
+                    "rounded-md px-1.5 py-0.5 text-[10px] font-bold ltr-nums",
+                    selected ? "bg-primary-foreground/20" : "bg-muted"
+                  )}
+                >
+                  {chip.count}
+                </span>
+              </button>
             );
           })}
         </div>

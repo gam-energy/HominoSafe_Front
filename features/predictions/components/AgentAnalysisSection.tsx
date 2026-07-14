@@ -120,13 +120,13 @@ export function AgentAnalysisSection({ patientId }: { patientId: number }) {
   const hasMore = hiddenCount > 0 || !!detail?.graph_snapshot;
 
   return (
-    <div className="space-y-4">
-      <Card className="overflow-hidden border-border/80">
+    <div className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
+      <Card className="min-w-0 overflow-hidden border-border/80">
         <CardHeader className="px-4 sm:px-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
             <CardTitle className="flex min-w-0 items-center gap-2 text-lg">
               <Brain className="h-5 w-5 shrink-0" />
-              <span className="truncate">
+              <span className="break-words">
                 {t('agent_analysis', 'Agent analysis')}
               </span>
             </CardTitle>
@@ -140,7 +140,7 @@ export function AgentAnalysisSection({ patientId }: { patientId: number }) {
               ) : null}
             </div>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="break-words text-sm text-muted-foreground">
             {t(
               'agent_analysis_desc_scheduled',
               'Scheduled clinical-agent review of your knowledge graph and vitals (separate from watch CNN scores). Stored in clinical agent reports — not written on every CNN window.'

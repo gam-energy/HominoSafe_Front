@@ -2,6 +2,7 @@ import {
   AlertType,
   BackendAlert,
   BackendAlertPayload,
+  SensorData,
 } from '../types/AlertSchema';
 
 /** Map a backend severity string ("Critical"/"High"/...) to the UI enum. */
@@ -38,10 +39,28 @@ export function mapAlertType(raw?: string | null): AlertType['alertType'] {
   return 'OTHER';
 }
 
+function mapVitals(vitals?: BackendAlert['vitals'] | BackendAlertPayload['vitals']): SensorData | undefined {
+  if (!vitals) return undefined;
+  const bpSys = vitals.bp_systolic ?? undefined;
+  const bpDia = vitals.bp_diastolic ?? undefined;
+  const activity =
+    'activity' in vitals && vitals.activity != null ? String(vitals.activity) : undefined;
+  return {
+    heartRate: vitals.heart_rate ?? undefined,
+    spo2: vitals.spo2 ?? undefined,
+    temperature: vitals.temperature ?? undefined,
+    activity,
+    bp:
+      bpSys != null || bpDia != null
+        ? { systolic: bpSys, diastolic: bpDia }
+        : undefined,
+  };
+}
+
 /** Convert a REST ``AlertResponse`` row into the UI ``AlertType``. */
 export function mapBackendAlert(a: BackendAlert): AlertType {
   const status = a.status || 'Active';
-  return {
+  const mapped: AlertType = {
     alertId: String(a.id),
     userId: String(a.user_id),
     alertType: mapAlertType(a.alert_type),
@@ -55,27 +74,15 @@ export function mapBackendAlert(a: BackendAlert): AlertType {
     status,
     source: a.source || undefined,
   };
+  const sensorData = mapVitals(a.vitals);
+  if (sensorData) mapped.sensorData = sensorData;
+  return mapped;
 }
 
 /** Convert a SYSTEM_ALERT WebSocket payload into the UI ``AlertType``. */
 export function mapBackendPayload(p: BackendAlertPayload): AlertType {
   const status = p.status || 'Active';
-  const sensorData = p.vitals
-    ? {
-        heartRate: p.vitals.heart_rate,
-        spo2: p.vitals.spo2,
-        temperature: p.vitals.temperature,
-        bp:
-          p.vitals.bp_systolic || p.vitals.bp_diastolic
-            ? {
-                systolic: p.vitals.bp_systolic,
-                diastolic: p.vitals.bp_diastolic,
-              }
-            : undefined,
-      }
-    : undefined;
-
-  return {
+  const mapped: AlertType = {
     alertId: String(p.alert_id),
     userId: String(p.patient_id),
     alertType: mapAlertType(p.alert_type),
@@ -87,7 +94,6 @@ export function mapBackendPayload(p: BackendAlertPayload): AlertType {
     status,
     source: p.source || undefined,
     patientName: p.patient_name || undefined,
-    sensorData,
     vision: p.vision
       ? {
           visionDataId: p.vision.vision_data_id,
@@ -99,4 +105,7 @@ export function mapBackendPayload(p: BackendAlertPayload): AlertType {
         }
       : undefined,
   };
+  const sensorData = mapVitals(p.vitals);
+  if (sensorData) mapped.sensorData = sensorData;
+  return mapped;
 }

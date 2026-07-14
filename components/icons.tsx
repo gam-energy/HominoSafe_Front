@@ -33,7 +33,9 @@ import {
   IconLayoutKanban,
   IconBrandGithub,
   IconMessageCircle,
-  IconTable,
+  IconMessageChatbot,
+  IconPills,
+  IconCapsule,
   IconBrain,
   IconSearch,
   IconLock,
@@ -42,6 +44,7 @@ import {
   IconCamera,
   IconCalendar,
   IconActivityHeartbeat,
+  IconSparkles,
 } from "@tabler/icons-react";
 
 export type Icon = React.ComponentType<IconProps>;
@@ -74,7 +77,10 @@ export const Icons: Record<string, Icon> = {
   arrowRight: IconArrowRight,
   help: IconHelpCircle,
   pizza: IconPizza,
-  pill: IconTable,
+  // Medicine / drugs
+  pill: IconPills,
+  drugs: IconPills,
+  capsule: IconCapsule,
   sun: IconSun,
   moon: IconMoon,
   laptop: IconDeviceLaptop,
@@ -85,6 +91,10 @@ export const Icons: Record<string, Icon> = {
   barChart2: IconChartBar,
   alertTriangle: IconAlertTriangle,
   brain: IconBrain,
+  // Distinct AI entry points
+  predictiveAi: IconChartLine,
+  aiChat: IconMessageChatbot,
+  sparkles: IconSparkles,
   search: IconSearch,
   lock: IconLock,
   sliders: IconSettings,

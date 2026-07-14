@@ -13,25 +13,22 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       isActive: false,
       items: [],
     },
+    // Top-level (not nested) so icons stay clickable in collapsed sidebar.
     {
-      title: 'AI',
-      url: '#',
-      icon: 'brain',
-      isActive: true,
-      items: [
-        {
-          title: 'Predictive AI',
-          url: '/dashboard/predictive-ai',
-          icon: 'brain',
-          shortcut: ['m', 'm'],
-        },
-        {
-          title: 'AI Chat',
-          url: '/dashboard/ai',
-          icon: 'chat',
-          shortcut: ['l', 'l'],
-        },
-      ],
+      title: 'Predictive AI',
+      url: '/dashboard/predictive-ai',
+      icon: 'predictiveAi',
+      shortcut: ['m', 'm'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'AI Chat',
+      url: '/dashboard/ai',
+      icon: 'aiChat',
+      shortcut: ['l', 'l'],
+      isActive: false,
+      items: [],
     },
     {
       title: 'Realtime Chat',
@@ -52,7 +49,7 @@ export const roleNavItems: Record<Role, NavItem[]> = {
     {
       title: 'medicine',
       url: '/dashboard/medicine',
-      icon: 'pill',
+      icon: 'drugs',
       shortcut: ['m', 'e'],
       isActive: false,
       items: [],
@@ -100,7 +97,7 @@ export const roleNavItems: Record<Role, NavItem[]> = {
     {
       title: 'AI Chat',
       url: '/dashboard/ai',
-      icon: 'brain',
+      icon: 'aiChat',
       shortcut: ['a', 'i'],
       isActive: false,
       items: [],
@@ -142,7 +139,7 @@ export const roleNavItems: Record<Role, NavItem[]> = {
     {
       title: 'AI Chat',
       url: '/dashboard/ai',
-      icon: 'brain',
+      icon: 'aiChat',
       shortcut: ['a', 'i'],
       isActive: false,
       items: [],

@@ -13,13 +13,18 @@ export default function PageContainer({
   className?: string;
 }) {
   const content = (
-    <div className={cn('flex flex-1 w-full max-w-[1920px] mx-auto p-4 md:p-6', className)}>
+    <div
+      className={cn(
+        'mx-auto flex w-full min-w-0 max-w-[1920px] flex-1 flex-col p-4 md:p-6',
+        className
+      )}
+    >
       {children}
     </div>
   );
 
   return scrollable ? (
-    <ScrollArea className="h-[calc(100dvh-52px)]">
+    <ScrollArea className="h-[calc(100dvh-52px)] min-w-0 w-full overflow-x-hidden">
       {content}
     </ScrollArea>
   ) : (

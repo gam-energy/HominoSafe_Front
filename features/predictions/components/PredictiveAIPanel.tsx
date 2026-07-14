@@ -22,8 +22,8 @@ export function PredictiveAIPanel({ userId: userIdProp }: { userId?: number } = 
     : t('never', 'Never');
 
   return (
-    <PageContainer scrollable>
-      <div className="flex w-full flex-col gap-6">
+    <PageContainer scrollable className="min-w-0">
+      <div className="flex w-full min-w-0 max-w-full flex-col gap-6 overflow-x-hidden">
         <Heading
           title={t('predictive_ai', 'Predictive AI')}
           description={t(
@@ -32,24 +32,24 @@ export function PredictiveAIPanel({ userId: userIdProp }: { userId?: number } = 
           )}
         />
 
-        <Card className="border-border/80 shadow-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-muted p-2.5">
+        <Card className="min-w-0 overflow-hidden border-border/80 shadow-sm">
+          <CardHeader className="pb-3 px-4 sm:px-6">
+            <div className="flex min-w-0 items-start gap-3">
+              <div className="shrink-0 rounded-xl bg-muted p-2.5">
                 <Brain className="h-5 w-5" />
               </div>
-              <div>
-                <CardTitle className="text-lg">
+              <div className="min-w-0 flex-1">
+                <CardTitle className="text-lg break-words">
                   {data?.model_name ?? 'SenioSentry BiLSTM-CNN'}
                 </CardTitle>
-                <CardDescription className="mt-1 max-w-3xl">
+                <CardDescription className="mt-1 max-w-full break-words">
                   {data?.description ??
                     t(
                       'cnn_model_blurb',
                       'The edge CNN scores short PPG/ECG windows to estimate blood pressure, atrial fibrillation probability, HRV, apnea risk, and overall cardiac risk.'
                     )}
                 </CardDescription>
-                <p className="mt-2 text-xs text-muted-foreground">
+                <p className="mt-2 break-words text-xs text-muted-foreground">
                   {t('model_version', 'Model version')}:{' '}
                   <span className="font-medium text-foreground">
                     {data?.model_version ?? 'cnn-cardiac-v1'}
@@ -67,8 +67,8 @@ export function PredictiveAIPanel({ userId: userIdProp }: { userId?: number } = 
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-3 text-sm text-muted-foreground md:grid-cols-2">
-            <p>
+          <CardContent className="grid min-w-0 gap-3 px-4 text-sm text-muted-foreground sm:px-6 md:grid-cols-2">
+            <p className="break-words">
               <span className="font-semibold text-foreground">
                 {t('input', 'Input')}:{' '}
               </span>
@@ -77,7 +77,7 @@ export function PredictiveAIPanel({ userId: userIdProp }: { userId?: number } = 
                 '10s PPG/ECG windows @ 125 Hz from the watch, plus age/sex/weight demographics.'
               )}
             </p>
-            <p>
+            <p className="break-words">
               <span className="font-semibold text-foreground">
                 {t('output', 'Output')}:{' '}
               </span>

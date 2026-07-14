@@ -27,7 +27,7 @@ export default async function DashboardLayout({
       <LayoutSidebarProvider>
         <NotificationProvider>
       <AppSidebar />
-      <SidebarInset className="pb-24 md:pb-0">
+      <SidebarInset className="min-w-0 overflow-x-hidden pb-24 md:pb-0">
         <AssistantModal />
         <Header />
         {/* page main content */}
