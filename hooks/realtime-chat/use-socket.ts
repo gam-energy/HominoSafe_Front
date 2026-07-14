@@ -18,8 +18,8 @@ export const useSocket = create<SocketState>()((set, get) => ({
     console.log(socket, "socket");
     if (socket?.connected) return;
 
-    // Empty baseURL → same-origin (HTTPS TLS proxy); else http://host:8888
-    const baseUrl = getApiBaseUrl() ||
+    const baseUrl =
+      getApiBaseUrl() ||
       (typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:8888");
 
     const newSocket = io(baseUrl, {

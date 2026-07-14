@@ -46,8 +46,13 @@ export const useLogin = () => {
     mutationFn: loginUser,
     onSuccess: async (data, variables) => {
       // 🌟 ورود به اپلیکیشن خودت
-      const secure = typeof window !== 'undefined' && window.location.protocol === 'https:';
-      const cookieOpts = { expires: 1 as const, secure, sameSite: 'Lax' as const };
+      // Must be readable by Next middleware on :3000 (path=/; not Secure on HTTP).
+      const cookieOpts = {
+        expires: 1 as const,
+        secure: false,
+        sameSite: 'Lax' as const,
+        path: '/',
+      };
       Cookies.set('access_token', data.access_token, cookieOpts);
       Cookies.set('refresh_token', data.refresh_token, { ...cookieOpts, expires: 7 });
       if (data.synapse_access_token) {
@@ -58,7 +63,7 @@ export const useLogin = () => {
       }
       toast.success('Logged in successfully');
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-      window.location.href = '/dashboard';
+      window.location.assign('/dashboard');
     },
     onError: (error) => {
       toast.error(error.message || 'خطا در ورود!');

@@ -4,11 +4,21 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        # Same-origin HTTPS via tls-proxy (docker-compose.https.yml)
-        NEXT_PUBLIC_API_URL: https://93.118.120.215
+        # Baked fallback only; browser uses same-origin (:3000) via Next rewrites
+        NEXT_PUBLIC_API_URL: ""
+        API_PROXY_TARGET: http://homino_app:8888
     ports:
       - "3000:3000"
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: https://93.118.120.215
+      NEXT_PUBLIC_API_URL: ""
+      API_PROXY_TARGET: http://homino_app:8888
+    networks:
+      - default
+      - backend
     restart: unless-stopped
+
+networks:
+  backend:
+    name: homino_safe_homino_network
+    external: true

@@ -1,41 +1,25 @@
-function trimTrailingSlash(url: string): string {
-  return url.replace(/\/$/, '');
-}
-
 /**
- * Resolve API base URL for the browser.
- * - HTTPS (TLS proxy): same-origin (empty) so /token hits nginx → API
- * - HTTP :3000 direct Next: talk to API on :8888 on the same host
- * - SSR / build fallback: NEXT_PUBLIC_API_URL
+ * Browser calls same origin (:3000). Next.js rewrites proxy to FastAPI.
+ * SSR fallback still uses NEXT_PUBLIC_API_URL when set.
  */
 export function getApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    const { protocol, hostname, port } = window.location;
-    if (protocol === 'https:') {
-      return '';
-    }
-    // Direct frontend container / compose port mapping
-    if (port === '3000') {
-      return `http://${hostname}:8888`;
-    }
+    return '';
   }
-
   const configured = process.env.NEXT_PUBLIC_API_URL;
   if (configured) {
-    return trimTrailingSlash(configured);
+    return configured.replace(/\/$/, '');
   }
   return 'http://127.0.0.1:8888';
 }
 
 export function getWsBaseUrl(): string {
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    return `wss://${window.location.host}`;
+  if (typeof window !== 'undefined') {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}`;
   }
-  const apiUrl = getApiBaseUrl() ||
-    (typeof window !== 'undefined'
-      ? `${window.location.protocol}//${window.location.host}`
-      : process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8888');
-  const parsed = new URL(apiUrl, typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1');
+  const apiUrl = getApiBaseUrl();
+  const parsed = new URL(apiUrl);
   const protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${parsed.host}`;
 }

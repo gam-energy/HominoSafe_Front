@@ -1,11 +1,14 @@
+# OPTIONAL — not used in the default deploy.
+# UI stays on http://<host>:3000; API on http://<host>:8888.
+# Only start this if you explicitly want an HTTPS edge on :443:
+#   docker compose -f docker-compose.https.yml up -d
 services:
   tls-proxy:
     image: nginx:1.27-alpine
     container_name: senio_tls_proxy
+    profiles: ["https"]
     restart: unless-stopped
     ports:
-      # Host :80 is already taken on the deploy server; HTTPS-only is enough
-      # for Secure Context / notifications.
       - "443:443"
     volumes:
       - ./deploy/nginx-https.conf:/etc/nginx/conf.d/default.conf:ro

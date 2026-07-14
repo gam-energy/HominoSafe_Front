@@ -1,9 +1,11 @@
 # Stage 1: Build the application
 FROM node:20-alpine AS builder
 WORKDIR /app
-# NEXT_PUBLIC_* vars are baked in at build time, so set before `npm run build`.
-ARG NEXT_PUBLIC_API_URL=http://93.118.120.215:8888
+# NEXT_PUBLIC_* / rewrite target are evaluated at build time for next.config.
+ARG NEXT_PUBLIC_API_URL=
+ARG API_PROXY_TARGET=http://homino_app:8888
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV API_PROXY_TARGET=$API_PROXY_TARGET
 COPY package*.json ./
 RUN npm ci --legacy-peer-deps
 COPY . .
