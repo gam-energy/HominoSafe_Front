@@ -31,13 +31,15 @@ export const roleNavItems: Record<Role, NavItem[]> = {
           icon: 'chat',
           shortcut: ['l', 'l'],
         },
-        {
-          title: 'Realtime Chat',
-          url: '/dashboard/chat',
-          icon: 'chat',
-          shortcut: ['c', 'c'],
-        },
       ],
+    },
+    {
+      title: 'Realtime Chat',
+      url: '/dashboard/chat',
+      icon: 'chat',
+      shortcut: ['c', 'c'],
+      isActive: false,
+      items: [],
     },
     {
       title: 'Alerts',

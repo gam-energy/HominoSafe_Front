@@ -31,6 +31,7 @@ import { FindingsList } from "./FindingsList";
 import { PhysicianFeedbackForm } from "./PhysicianFeedbackForm";
 import { RecommendationsList } from "./RecommendationsList";
 import { ScheduledReportsPanel } from '@/features/clinical-reports/components/ScheduledReportsPanel';
+import { CnnResultsCard } from '@/features/predictions/components/CnnResultsCard';
 
 export function ClinicalAgentReport() {
   const { t } = useTranslation();
@@ -178,6 +179,8 @@ export function ClinicalAgentReport() {
             )}
           </CardHeader>
         </Card>
+
+        <CnnResultsCard userId={patientId} compact />
 
         <ScheduledReportsPanel patientId={patientId} />
 

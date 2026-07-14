@@ -5,10 +5,17 @@ import { useTranslation } from 'react-i18next';
 import { Clock, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { LoaderIcon } from '@/components/chat/icons';
 import { useClinicalReports } from '../api/useClinicalReports';
 import { useClinicalReportDetail } from '../api/useClinicalReportDetail';
+
+function actionLabel(action: { title?: string; description?: string } | string) {
+  if (typeof action === 'string') return action;
+  if (action.title && action.description) {
+    return `${action.title} — ${action.description}`;
+  }
+  return action.title || action.description || '';
+}
 
 export function ScheduledReportsPanel({ patientId }: { patientId: number }) {
   const { t } = useTranslation();
@@ -57,22 +64,22 @@ export function ScheduledReportsPanel({ patientId }: { patientId: number }) {
                     selectedUuid === report.report_uuid ? null : report.report_uuid
                   )
                 }
-                className="flex w-full items-center justify-between rounded-lg border p-3 text-left hover:bg-muted/50 transition-colors"
+                className="flex w-full items-center justify-between rounded-lg border p-3 text-left transition-colors hover:bg-muted/50"
               >
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">
+                  <p className="truncate text-sm font-medium">
                     {new Date(report.created_at).toLocaleString()}
                   </p>
-                  {report.summary && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {report.summary}
+                  {report.overview ? (
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                      {report.overview}
                     </p>
-                  )}
+                  ) : null}
                 </div>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  {report.overall_status && (
-                    <Badge variant="secondary">{report.overall_status}</Badge>
-                  )}
+                <div className="ml-2 flex shrink-0 items-center gap-2">
+                  {report.status ? (
+                    <Badge variant="secondary">{report.status}</Badge>
+                  ) : null}
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </button>
@@ -80,8 +87,8 @@ export function ScheduledReportsPanel({ patientId }: { patientId: number }) {
           </div>
         )}
 
-        {selectedUuid && (
-          <div className="rounded-lg border p-4 space-y-3">
+        {selectedUuid ? (
+          <div className="space-y-3 rounded-lg border p-4">
             {detailLoading ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <LoaderIcon size={20} />
@@ -89,52 +96,48 @@ export function ScheduledReportsPanel({ patientId }: { patientId: number }) {
               </div>
             ) : detail ? (
               <>
-                {detail.overview && (
+                {detail.overview ? (
                   <div>
-                    <h4 className="text-sm font-semibold mb-1">
+                    <h4 className="mb-1 text-sm font-semibold">
                       {t('overview', 'Overview')}
                     </h4>
-                    <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                       {detail.overview}
                     </p>
                   </div>
-                )}
-                {detail.recommended_actions && detail.recommended_actions.length > 0 && (
+                ) : null}
+                {detail.actions && detail.actions.length > 0 ? (
                   <div>
-                    <h4 className="text-sm font-semibold mb-1">
+                    <h4 className="mb-1 text-sm font-semibold">
                       {t('recommended_actions', 'Recommended Actions')}
                     </h4>
                     <ul className="space-y-1">
-                      {detail.recommended_actions.map((action, i) => (
+                      {detail.actions.map((action, i) => (
                         <li key={i} className="text-sm">
-                          <span className="font-medium">{action.title}</span>
-                          {action.description && (
-                            <span className="text-muted-foreground">
-                              {' '}
-                              — {action.description}
-                            </span>
-                          )}
+                          {actionLabel(action)}
                         </li>
                       ))}
                     </ul>
                   </div>
-                )}
-                {detail.watch_items && detail.watch_items.length > 0 && (
+                ) : null}
+                {detail.watch_items && detail.watch_items.length > 0 ? (
                   <div>
-                    <h4 className="text-sm font-semibold mb-1">
+                    <h4 className="mb-1 text-sm font-semibold">
                       {t('watch_items', 'Watch Items')}
                     </h4>
-                    <ul className="list-disc list-inside text-sm text-muted-foreground">
+                    <ul className="list-inside list-disc text-sm text-muted-foreground">
                       {detail.watch_items.map((item, i) => (
-                        <li key={i}>{item}</li>
+                        <li key={i}>
+                          {typeof item === 'string' ? item : JSON.stringify(item)}
+                        </li>
                       ))}
                     </ul>
                   </div>
-                )}
+                ) : null}
               </>
             ) : null}
           </div>
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );
