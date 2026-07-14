@@ -36,6 +36,8 @@ export function mapAlertType(raw?: string | null): AlertType['alertType'] {
   if (t.includes('bp') || t.includes('pressure')) return 'BP_DROP';
   if (t.includes('co2') || t.includes('mq2') || t.includes('environment'))
     return 'ENVIRONMENT';
+  if (t.includes('medication') || t.includes('medicine') || t.includes('dose'))
+    return 'MEDICATION_REMINDER';
   return 'OTHER';
 }
 

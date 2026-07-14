@@ -92,7 +92,7 @@ export const Icons: Record<string, Icon> = {
   alertTriangle: IconAlertTriangle,
   brain: IconBrain,
   // Distinct AI entry points
-  predictiveAi: IconChartLine,
+  predictiveAi: IconSparkles,
   aiChat: IconMessageChatbot,
   sparkles: IconSparkles,
   search: IconSearch,

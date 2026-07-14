@@ -39,6 +39,7 @@ export interface AlertType {
     | 'STROKE_RISK'
     | 'ENVIRONMENT'
     | 'OTHER'
+    | 'MEDICATION_REMINDER'
     | 'PREDICTED_ORTHOSTATIC_HYPOTENSION';
   severity: 'low' | 'medium' | 'high' | 'critical';
   timestamp: string;

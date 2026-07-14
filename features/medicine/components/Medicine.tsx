@@ -1,19 +1,19 @@
-"use client";
+'use client';
 
-import React from "react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useProfile } from "@/features/medical-profile/api/useGetMedicalProfile";
-import MedicationsCards from "./MedicationsCards";
-import { AlertTriangle, Pill } from "lucide-react";
-import { LoaderIcon } from "@/components/chat/icons";
-import { useTranslation } from "react-i18next";
-import PageContainer from "@/components/layout/page-container";
-import { Heading } from "@/components/ui/heading";
+import React from 'react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import MedicationsCards from './MedicationsCards';
+import { AlertTriangle, Pill } from 'lucide-react';
+import { LoaderIcon } from '@/components/chat/icons';
+import { useTranslation } from 'react-i18next';
+import PageContainer from '@/components/layout/page-container';
+import { Heading } from '@/components/ui/heading';
+import { useMedicationReminders } from '../api/useMedicationReminders';
 
 const Medicine = () => {
   const { t } = useTranslation();
-  const { data, isLoading, error } = useProfile();
+  const { data, isLoading, error } = useMedicationReminders();
 
   if (isLoading) {
     return (
@@ -23,7 +23,7 @@ const Medicine = () => {
             <LoaderIcon size={40} />
           </div>
           <p className="text-muted-foreground font-medium text-lg">
-            {t("loading_medicine")}
+            {t('loading_medicine')}
           </p>
         </div>
       </PageContainer>
@@ -34,12 +34,13 @@ const Medicine = () => {
     return (
       <PageContainer>
         <div className="flex justify-center py-20">
-          <Alert variant="destructive" className="max-w-xl shadow-lg rounded-2xl">
+          <Alert
+            variant="destructive"
+            className="max-w-xl shadow-lg rounded-2xl"
+          >
             <AlertTriangle className="h-5 w-5" />
-            <AlertTitle>{t("error")}</AlertTitle>
-            <AlertDescription>
-              {t("error_loading_profile")}
-            </AlertDescription>
+            <AlertTitle>{t('error')}</AlertTitle>
+            <AlertDescription>{t('error_loading_profile')}</AlertDescription>
           </Alert>
         </div>
       </PageContainer>
@@ -52,22 +53,30 @@ const Medicine = () => {
     <PageContainer scrollable>
       <div className="flex w-full flex-col gap-6">
         <Heading
-          title={t("medicine_management")}
-          description={t("manage_medications")}
+          title={t('medicine_management')}
+          description={t(
+            'manage_medications_reminders',
+            'Set the times you take each medication. You will get a reminder alert at those times.'
+          )}
         />
 
         <Card className="rounded-2xl border border-border bg-card shadow-sm">
           <CardHeader className="flex flex-row items-center gap-2.5 pb-3">
             <Pill className="h-5 w-5 text-blue-600 dark:text-blue-400" />
             <CardTitle className="text-lg font-bold text-foreground">
-              {t("medicine")}
+              {t('medicine')}
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             {medications.length === 0 ? (
-              <p className="text-muted-foreground text-sm">{t("no_medications")}</p>
+              <p className="text-muted-foreground text-sm">
+                {t('no_medications')}
+              </p>
             ) : (
-              <MedicationsCards medications={medications} />
+              <MedicationsCards
+                medications={medications}
+                timezone={data?.timezone}
+              />
             )}
           </CardContent>
         </Card>

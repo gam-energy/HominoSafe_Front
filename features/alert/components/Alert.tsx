@@ -6,6 +6,7 @@ import { AlertType } from "../types/AlertSchema";
 import { useAlertWebSocket } from "../hooks/useAlertWebSocket";
 import { actOnAlert } from "../api/alertApi";
 import { mapBackendAlert } from "../lib/alertTypeMap";
+import { useRespondToDoseByAlert } from "@/features/medicine/api/useDoseRespond";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
@@ -95,6 +96,7 @@ const alertTypeLabels: Record<string, { en: string; fa: string }> = {
   OXYGEN_LOW: { en: "Low Oxygen Saturation", fa: "کاهش اکسیژن خون" },
   TEMP_HIGH: { en: "High Body Temperature", fa: "دمای بالای بدن" },
   BP_DROP: { en: "Blood Pressure Drop", fa: "افت فشار خون" },
+  MEDICATION_REMINDER: { en: "Medication Reminder", fa: "یادآور دارو" },
   OTHER: { en: "Alert", fa: "هشدار" }
 };
 
@@ -102,7 +104,10 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [acking, setAcking] = useState(false);
+  const [doseOutcome, setDoseOutcome] = useState<"taken" | "late" | "missed" | null>(null);
+  const doseMutation = useRespondToDoseByAlert();
   const isRtl = (i18n.language || 'en').startsWith('fa');
+  const isMedReminder = alert.alertType === "MEDICATION_REMINDER";
   
   const config = severityConfig[alert.severity];
   const typeLabel = alertTypeLabels[alert.alertType] 
@@ -434,8 +439,74 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
                 </div>
               )}
 
+              {/* Medication reminder: Taken / Didn't take */}
+              {isMedReminder && !alert.isAcknowledged && !doseOutcome && (
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    disabled={doseMutation.isPending}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      doseMutation.mutate(
+                        { alertId: alert.alertId, status: "taken" },
+                        {
+                          onSuccess: (d) => setDoseOutcome(d.status as "taken" | "late"),
+                          onError: () => setDoseOutcome(null),
+                        }
+                      );
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
+                  >
+                    <CheckCircle2 className="h-4 w-4" />
+                    {doseMutation.isPending
+                      ? t("saving", "Saving…")
+                      : t("med_taken", "Taken")}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={doseMutation.isPending}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      doseMutation.mutate(
+                        { alertId: alert.alertId, status: "missed" },
+                        {
+                          onSuccess: () => setDoseOutcome("missed"),
+                          onError: () => setDoseOutcome(null),
+                        }
+                      );
+                    }}
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm font-semibold text-foreground shadow-sm transition hover:bg-muted/60 disabled:opacity-60"
+                  >
+                    <Clock className="h-4 w-4" />
+                    {t("med_not_taken", "Didn't take")}
+                  </button>
+                </div>
+              )}
+
+              {isMedReminder && doseOutcome && (
+                <div className="flex justify-end">
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold",
+                      doseOutcome === "taken"
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
+                        : doseOutcome === "late"
+                        ? "bg-amber-50 text-amber-700 dark:bg-amber-950/30 dark:text-amber-300"
+                        : "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
+                    )}
+                  >
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    {doseOutcome === "taken"
+                      ? t("med_recorded_taken", "Recorded as taken")
+                      : doseOutcome === "late"
+                      ? t("med_recorded_late", "Recorded as late")
+                      : t("med_recorded_missed", "Recorded as missed")}
+                  </span>
+                </div>
+              )}
+
               {/* Acknowledge action (live alerts only) */}
-              {onAcknowledge && !alert.isAcknowledged && (
+              {onAcknowledge && !alert.isAcknowledged && !(isMedReminder && doseOutcome) && (
                 <div className="flex justify-end">
                   <button
                     type="button"

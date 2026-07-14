@@ -6,6 +6,8 @@ export type Medication = {
   start_date: string;
   end_date: string | null;
   notes?: string;
+  reminder_times?: string[] | null;
+  timezone?: string | null;
 };
 
 export type Symptom = {

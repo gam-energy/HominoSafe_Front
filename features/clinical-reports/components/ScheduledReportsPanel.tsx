@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Clock, ChevronRight } from 'lucide-react';
+import { Clock, ChevronRight, Pill } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LoaderIcon } from '@/components/chat/icons';
 import { useClinicalReports } from '../api/useClinicalReports';
 import { useClinicalReportDetail } from '../api/useClinicalReportDetail';
+import { AdherenceSummaryBlock } from './AdherenceSummaryBlock';
 
 function actionLabel(action: { title?: string; description?: string } | string) {
   if (typeof action === 'string') return action;
@@ -132,6 +133,15 @@ export function ScheduledReportsPanel({ patientId }: { patientId: number }) {
                         </li>
                       ))}
                     </ul>
+                  </div>
+                ) : null}
+                {detail.adherence_summary ? (
+                  <div>
+                    <h4 className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
+                      <Pill className="h-4 w-4 text-primary" />
+                      {t('med_adherence_today', 'Medication adherence (today)')}
+                    </h4>
+                    <AdherenceSummaryBlock summary={detail.adherence_summary.today} />
                   </div>
                 ) : null}
               </>
