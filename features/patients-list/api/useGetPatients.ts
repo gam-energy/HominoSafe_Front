@@ -16,10 +16,11 @@ const fetchPatients = async (my_patients: boolean): Promise<User[]> => {
   return response.data;
 };
 
-export const usePatients = (my_patients: boolean) => {
+export const usePatients = (my_patients: boolean, enabled = true) => {
   return useQuery<User[], AxiosError>({
-    queryKey: ['patients', my_patients], // اضافه کردن my_patients به کلید کش
+    queryKey: ['patients', my_patients],
     queryFn: () => fetchPatients(my_patients),
+    enabled,
     staleTime: 1000 * 60 * 10,
   });
 };

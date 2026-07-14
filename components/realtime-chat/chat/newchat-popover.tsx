@@ -1,10 +1,7 @@
-/* eslint-disable react-hooks/rules-of-hooks */
-import { memo, useEffect, useId, useState } from "react";
-import { useChat } from "@/hooks/realtime-chat/use-chat";
+import { memo, useMemo, useState } from "react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Button } from "../ui/button";
 import { ArrowLeft, PenBoxIcon, Search, UsersIcon } from "lucide-react";
-import Cookies from "js-cookie";
 import {
   InputGroup,
   InputGroupAddon,
@@ -17,20 +14,16 @@ import AvatarWithBadge from "../avatar-with-badge";
 import { Checkbox } from "../ui/checkbox";
 import { useGetAdminUsers } from "@/features/users-list/api/use-get-users";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
-import { useCreateGroup } from "@/features/chat/api/use-create-group"; 
+import { useCreateGroup } from "@/features/chat/api/use-create-group";
 import { usePatients } from "@/features/patients-list/api/useGetPatients";
+import { useChatContacts } from "@/features/chat/api/use-get-contacts";
 import { useUser } from "@/context/UserContext";
 
-
 export const NewChatPopover = memo(() => {
-
-
   const createRoomMutation = useCreateRoom();
   const router = useRouter();
   const [search, setSearch] = useState("");
   const createGroupMutation = useCreateGroup();
-
-
 
   const [isOpen, setIsOpen] = useState(false);
   const [isGroupMode, setIsGroupMode] = useState(false);
@@ -38,12 +31,28 @@ export const NewChatPopover = memo(() => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
 
   const [loadingUserId, setLoadingUserId] = useState<string | null>(null);
-  const { user } = useUser()
+  const { user } = useUser();
+  const role = user?.role || "";
 
-const { data:SharedUsers ,isLoading} = user.role === "admin"
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  ? useGetAdminUsers()
-  : usePatients(true);
+  const adminUsers = useGetAdminUsers(role === "admin");
+  const patients = usePatients(
+    true,
+    role === "doctor" || role === "caregiver"
+  );
+  const contacts = useChatContacts(role === "patient");
+
+  const SharedUsers = useMemo(() => {
+    if (role === "admin") return adminUsers.data;
+    if (role === "patient") return contacts.data;
+    return patients.data;
+  }, [role, adminUsers.data, contacts.data, patients.data]);
+
+  const isLoading =
+    role === "admin"
+      ? adminUsers.isLoading
+      : role === "patient"
+        ? contacts.isLoading
+        : patients.isLoading;
 
 
   const toggleUserSelection = (id: string) => {

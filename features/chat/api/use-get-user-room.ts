@@ -1,11 +1,22 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import Cookies from "js-cookie";
+import axiosInstance from "@/api/axiosInstance";
 
-const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
+type UnifiedRoom = {
+  room_id: string;
+  name?: string | null;
+};
+
+type UnifiedRoomsResponse = {
+  joined: UnifiedRoom[];
+  invited?: UnifiedRoom[];
+  total?: number;
+};
 
 export const useMatrixRooms = () => {
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<
+    { roomId: string; name?: string | null; lastEvent?: unknown }[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,30 +28,42 @@ export const useMatrixRooms = () => {
       return;
     }
 
+    let cancelled = false;
+
     const fetchRooms = async () => {
       try {
-        const syncResp = await axios.get(`${MATRIX_HOMESERVER_URL}/_matrix/client/r0/sync`, {
-          headers: { Authorization: `Bearer ${accessToken}` },
-        });
+        const { data } = await axiosInstance.get<UnifiedRoomsResponse>(
+          "/synapse/rooms/unified",
+          {
+            headers: {
+              "Synapse-Authorization": `Bearer ${accessToken}`,
+            },
+          }
+        );
 
-        const joinedRooms = syncResp.data.rooms?.join || {};
-        const roomList = Object.keys(joinedRooms).map((roomId) => ({
-          roomId,
-          name: joinedRooms[roomId].state?.events?.find(
-            (e: any) => e.type === "m.room.name"
-          )?.content?.name,
-          lastEvent: joinedRooms[roomId].timeline?.events?.slice(-1)[0],
-        }));
-
-        setRooms(roomList);
+        if (!cancelled) {
+          setRooms(
+            (data.joined || []).map((r) => ({
+              roomId: r.room_id,
+              name: r.name,
+            }))
+          );
+        }
       } catch (err: any) {
-        setError(err.message || "Matrix API error");
+        if (!cancelled) {
+          setError(err.message || "Matrix API error");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchRooms();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return { rooms, loading, error };

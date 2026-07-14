@@ -7,9 +7,10 @@ const fetchAdminUsers = async () => {
   return data;
 };
 
-export function useGetAdminUsers() {
+export function useGetAdminUsers(enabled = true) {
   return useQuery({
     queryKey: ["admin-users"],
     queryFn: fetchAdminUsers,
+    enabled,
   });
 }

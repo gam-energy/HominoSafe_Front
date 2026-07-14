@@ -1,14 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
+import axiosInstance from "@/api/axiosInstance";
 
 import { MatrixMessageType } from "../types/chat.type";
 
-const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
-
-// ----------------------------
-// Matrix Sync Response Type
-// ----------------------------
 export interface MatrixSyncTimeline {
   events: MatrixMessageType[];
 }
@@ -26,9 +22,6 @@ export interface MatrixSyncResponse {
   rooms?: MatrixSyncRooms;
 }
 
-// ----------------------------
-// Hook
-// ----------------------------
 export const useRealtimeChatMessages = (roomId: string | null) => {
   const [messages, setMessages] = useState<MatrixMessageType[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -61,31 +54,32 @@ export const useRealtimeChatMessages = (roomId: string | null) => {
             },
           });
 
-          const resp = await axios.get<MatrixSyncResponse>(
-            `${MATRIX_HOMESERVER_URL}/_matrix/client/r0/sync`,
+          const { data } = await axiosInstance.get<MatrixSyncResponse>(
+            "/synapse/sync",
             {
-              headers: { Authorization: `Bearer ${accessToken}` },
+              headers: {
+                "Synapse-Authorization": `Bearer ${accessToken}`,
+              },
               params: {
                 timeout: 30000,
                 since: nextBatchRef.current || undefined,
                 filter,
               },
+              // Allow Synapse long-poll past the default 30s axios timeout.
+              timeout: 45_000,
               signal: abortControllerRef.current.signal,
             }
           );
 
-          // next_batch
-          nextBatchRef.current = resp.data.next_batch;
+          nextBatchRef.current = data.next_batch;
 
-          // extract events
           const events: MatrixMessageType[] =
-            resp.data.rooms?.join?.[roomId]?.timeline?.events || [];
+            data.rooms?.join?.[roomId]?.timeline?.events || [];
 
-          // merge without duplicates
-          setMessages(prev => {
+          setMessages((prev) => {
             const combined = [...prev];
             for (const msg of events) {
-              if (!combined.find(m => m.event_id === msg.event_id)) {
+              if (!combined.find((m) => m.event_id === msg.event_id)) {
                 combined.push(msg);
               }
             }
@@ -94,15 +88,15 @@ export const useRealtimeChatMessages = (roomId: string | null) => {
           });
 
           setLoading(false);
+          setError(null);
         } catch (err: any) {
-          if (axios.isCancel(err)) return;
+          if (axios.isCancel(err) || err?.code === "ERR_CANCELED") return;
 
           console.error("Matrix sync error:", err);
           setError(err.message || "Matrix sync failed");
           setLoading(false);
 
-          // retry delay
-          await new Promise(r => setTimeout(r, 3000));
+          await new Promise((r) => setTimeout(r, 3000));
         }
       }
     };

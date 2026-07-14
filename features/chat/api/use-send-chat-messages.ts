@@ -1,8 +1,10 @@
-// hooks/matrix/use-matrix-send-message.ts
-import axios from "axios";
 import Cookies from "js-cookie";
+import axiosInstance from "@/api/axiosInstance";
 
-const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
+const synapseHeaders = (accessToken: string) => ({
+  "Synapse-Authorization": `Bearer ${accessToken}`,
+  "Content-Type": "application/json",
+});
 
 export const useMatrixSendMessage = () => {
   const sendMessage = async (roomId: string, text: string) => {
@@ -11,22 +13,20 @@ export const useMatrixSendMessage = () => {
       throw new Error("Matrix access token missing!");
     }
 
-    const txnId = Date.now(); // unique transaction ID
+    const txnId = String(Date.now());
+    const encodedRoomId = encodeURIComponent(roomId);
 
-    const url = `${MATRIX_HOMESERVER_URL}/_matrix/client/v3/rooms/${roomId}/send/m.room.message/${txnId}`;
-
-    const payload = {
-      msgtype: "m.text",
-      body: text,
-    };
-
-    const response = await axios.put(url, payload, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const { data } = await axiosInstance.put(
+      `/synapse/rooms/${encodedRoomId}/messages/send`,
+      {
+        msgtype: "m.text",
+        body: text,
+        txn_id: txnId,
       },
-    });
+      { headers: synapseHeaders(accessToken) }
+    );
 
-    return response.data;
+    return data;
   };
 
   return { sendMessage };

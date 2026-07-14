@@ -1,15 +1,9 @@
 import { useState, useEffect } from "react";
-import axios from "axios";
 import Cookies from "js-cookie";
+import axiosInstance from "@/api/axiosInstance";
 
-// --------------------------------------------
-//  IMPORT مدل استاندارد پیام ماتریکس
-// --------------------------------------------
 import { MatrixMessageType } from "../types/chat.type";
 
-const MATRIX_HOMESERVER_URL = "http://0.0.0.0:8008";
-
-// پاسخ API ماتریکس برای /messages
 export interface MatrixRoomMessagesResponse {
   start?: string;
   end?: string;
@@ -31,31 +25,51 @@ export const useChatMessages = (roomId: string | null) => {
       return;
     }
 
+    let cancelled = false;
+
     const fetchMessages = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        const resp = await axios.get<MatrixRoomMessagesResponse>(
-          `${MATRIX_HOMESERVER_URL}/_matrix/client/r0/rooms/${roomId}/messages`,
+        const { data } = await axiosInstance.get<MatrixRoomMessagesResponse>(
+          `/synapse/rooms/${encodeURIComponent(roomId)}/messages`,
           {
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers: {
+              "Synapse-Authorization": `Bearer ${accessToken}`,
+            },
             params: {
-              dir: "b", // backward
-              limit: 50
-            }
+              dir: "b",
+              limit: 50,
+            },
           }
         );
 
-        setMessages(resp.data.chunk || []);
+        if (!cancelled) {
+          // History is fetched backward; keep only message events, chronological.
+          const chunk = [...(data.chunk || [])]
+            .filter(
+              (e: MatrixMessageType & { type?: string }) =>
+                e.type === "m.room.message" || Boolean(e.content?.msgtype)
+            )
+            .reverse();
+          setMessages(chunk);
+        }
       } catch (err: any) {
-        setError(err.message || "Failed to fetch Matrix messages");
+        if (!cancelled) {
+          setError(err.message || "Failed to fetch Matrix messages");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
 
     fetchMessages();
+    return () => {
+      cancelled = true;
+    };
   }, [roomId]);
 
   return { messages, loading, error };
