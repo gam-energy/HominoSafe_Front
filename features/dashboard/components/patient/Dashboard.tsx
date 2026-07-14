@@ -1,66 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import ProfileCard from "./ProfileCard";
 import Ovreview from "./Ovreview";
 import { OverviewSection } from "./OverviewSection";
 import { useUser } from "@/context/UserContext";
 import { useHistory } from "../../api/patient/useGetHistory";
+import { useGetOVerview } from "../../api/patient/useGetOverview";
 import { HistoryChart, Metric, TimePeriod } from "./HistoryChart";
 import { Card } from "@/components/ui/card";
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
 import { Activity } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
-type OverviewData = {
-  wearable: {
-    timestamp: string;
-    heart_rate: number;
-    bp_systolic: number;
-    bp_diastolic: number;
-    spo2: number;
-    activity: string;
-    temperature: number;
-  };
-  environmental: {
-    timestamp: string;
-    temperature: number;
-    humidity: number;
-    MQ25: number;
-    CO2: number;
-  };
-};
-
-const heartRateList: number[] = [72, 74, 76, 78, 80, 82, 79, 77, 75, 73, 71, 70, 69, 68, 70, 72, 74, 76, 78, 80];
-const bpSystolicList: number[] = [120, 122, 121, 119, 118, 117, 116, 115, 117, 119, 121, 123, 124, 122, 120, 118, 117, 119, 121, 120];
-const bpDiastolicList: number[] = [80, 81, 79, 78, 77, 76, 75, 74, 76, 78, 80, 82, 83, 81, 80, 78, 77, 79, 80, 81];
-const spo2List: number[] = [98, 97, 99, 98, 97, 96, 98, 99, 97, 98, 99, 98, 97, 96, 98, 99, 98, 97, 99, 98];
-const temperatureList: number[] = [36.5, 36.6, 36.7, 36.8, 36.6, 36.5, 36.4, 36.3, 36.5, 36.6, 36.7, 36.8, 36.6, 36.5, 36.4, 36.3, 36.5, 36.6, 36.7, 36.8];
-const envTemperatureList: number[] = [25, 26, 24, 23, 22, 21, 22, 23, 24, 25, 26, 27, 28, 27, 26, 25, 24, 23, 22, 21];
-const humidityList: number[] = [50, 52, 54, 53, 51, 50, 49, 48, 50, 52, 54, 53, 51, 50, 49, 48, 50, 52, 54, 53];
-const mq25List: number[] = [15, 16, 14, 13, 12, 13, 14, 15, 16, 15, 14, 13, 12, 13, 14, 15, 16, 15, 14, 13];
-const co2List: number[] = [450, 455, 460, 458, 455, 452, 450, 448, 445, 450, 455, 460, 458, 455, 452, 450, 448, 445, 450, 455];
-
-function generateMockOverviewData(index: number): OverviewData {
-  const now = new Date().toISOString();
-  return {
-    wearable: {
-      timestamp: now,
-      heart_rate: heartRateList[index],
-      bp_systolic: bpSystolicList[index],
-      bp_diastolic: bpDiastolicList[index],
-      spo2: spo2List[index],
-      activity: "Sitting",
-      temperature: temperatureList[index],
-    },
-    environmental: {
-      timestamp: now,
-      temperature: envTemperatureList[index],
-      humidity: humidityList[index],
-      MQ25: mq25List[index],
-      CO2: co2List[index],
-    },
-  };
-}
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -70,24 +20,8 @@ const Dashboard = () => {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("day");
   const metrics: Metric[] = [metric];
 
-  const [metricIndex, setMetricIndex] = useState(0);
-  const [mockOverviewData, setMockOverviewData] = useState<OverviewData>(generateMockOverviewData(0));
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const tehranDate = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Tehran" }));
-      if (tehranDate.getHours() === 17 && tehranDate.getMinutes() === 30) {
-        setMetricIndex(0);
-      } else {
-        setMetricIndex((prev) => (prev + 1) % heartRateList.length);
-      }
-    }, 10 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    setMockOverviewData(generateMockOverviewData(metricIndex));
-  }, [metricIndex]);
+  // Real latest vitals (wearable + environmental) from the backend.
+  const { data: overviewData, isLoading: isOverviewLoading } = useGetOVerview(userId);
 
   const { data: historyData, isLoading: isHistoryLoading } = useHistory(userId, metrics);
 
@@ -118,7 +52,7 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           <div className="xl:col-span-5">
-            <OverviewSection data={mockOverviewData} />
+            <OverviewSection data={overviewData} isLoading={isOverviewLoading} />
           </div>
 
           <Card className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md xl:col-span-7">

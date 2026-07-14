@@ -1,11 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, useMemo, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import {
   AlertData,
   BehaviorAlertType,
   SmartSensorType,
 } from '@/features/dashboard/types/patient/alert';
+import { fetchActiveAlerts } from '@/features/alert/api/alertApi';
+import { mapBackendAlert } from '@/features/alert/lib/alertTypeMap';
 
 interface NotificationContextType {
   notifications: AlertData[];
@@ -16,47 +18,6 @@ interface NotificationContextType {
   clearNotifications: () => void;
 }
 
-const sampleAlerts: AlertData[] = [
-  {
-    id: 'alert-ortho-001',
-    timestamp: '2026-01-20T07:12:30Z',
-    alert_type: 'predicted_orthostatic_hypotension' as BehaviorAlertType,
-    severity: 'MEDIUM',
-    message: 'Predicted blood pressure instability following morning postural change',
-    location: 'Bedroom',
-    related_sensors: ['bp', 'heart_rate', 'activity'] as SmartSensorType[],
-    details: {
-      duration: 45 * 60,
-      confidence: 0.91,
-    },
-    read: false,
-    sensor: undefined,
-    sensor_icon: undefined,
-  },
-  {
-    id: 'alert-hr-002',
-    timestamp: '2026-01-20T06:45:00Z',
-    alert_type: 'possible_fall' as BehaviorAlertType,
-    severity: 'HIGH',
-    message: 'Heart rate spike detected — 104 bpm during hallway activity',
-    location: 'Hallway',
-    read: false,
-    sensor: 'heart_rate',
-    sensor_icon: undefined,
-  },
-  {
-    id: 'alert-spo2-003',
-    timestamp: '2026-01-19T22:10:00Z',
-    alert_type: 'sensor_event' as BehaviorAlertType,
-    severity: 'LOW',
-    message: 'SpO₂ briefly dropped to 94% — recovered within 5 minutes',
-    location: 'Bedroom',
-    read: true,
-    sensor: 'spo2',
-    sensor_icon: undefined,
-  },
-];
-
 const NotificationContext = createContext<NotificationContextType | undefined>(
   undefined
 );
@@ -64,7 +25,40 @@ const NotificationContext = createContext<NotificationContextType | undefined>(
 export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [notifications, setNotifications] = useState<AlertData[]>(sampleAlerts);
+  const [notifications, setNotifications] = useState<AlertData[]>([]);
+
+  // Seed from the real /alert/active endpoint on mount, then poll every 30s.
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const alerts = await fetchActiveAlerts();
+        if (!active) return;
+        const mapped: AlertData[] = alerts.map((b) => {
+          const ui = mapBackendAlert(b);
+          return {
+            id: String(ui.alertId),
+            timestamp: ui.timestamp,
+            alert_type: (ui.alertType as BehaviorAlertType) || 'sensor_event',
+            severity: (ui.severity?.toUpperCase() || 'MEDIUM') as AlertData['severity'],
+            message: ui.message || `${ui.alertType.replace(/_/g, ' ')}`,
+            location: ui.vision?.source ? `${ui.vision.source}` : undefined,
+            related_sensors: ui.sensorData ? (Object.keys(ui.sensorData).filter(Boolean) as SmartSensorType[]) : [],
+            details: ui.aiModelOutput ? { confidence: ui.aiModelOutput.confidence } : undefined,
+            read: false,
+            sensor: undefined,
+            sensor_icon: undefined,
+          };
+        });
+        setNotifications(mapped);
+      } catch {
+        // leave empty — header bell will show 0
+      }
+    };
+    load();
+    const interval = setInterval(load, 30_000);
+    return () => { active = false; clearInterval(interval); };
+  }, []);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,

@@ -2,7 +2,8 @@
 
 import React, { useState } from "react";
 import { AlertType } from "../types/AlertSchema";
-import { sampleAlerts } from "../types/data";
+import { useAlertWebSocket } from "../hooks/useAlertWebSocket";
+import { useTranslation } from "react-i18next";
 
 type DoctorAction = "none" | "urgent" | "passed";
 
@@ -161,9 +162,13 @@ const severityOrder: AlertType["severity"][] = [
 ];
 
 const DoctorAlertList: React.FC = () => {
+  const { t } = useTranslation();
   const [filter, setFilter] = useState<AlertType["severity"] | "all">("all");
 
-  const alerts = sampleAlerts
+  // Live alerts via WebSocket + REST snapshot (same source as the patient alert page).
+  const { alerts: liveAlerts, status } = useAlertWebSocket();
+
+  const alerts = (liveAlerts ?? [])
     .filter((a) => filter === "all" || a.severity === filter)
     .sort(
       (a, b) =>
@@ -171,11 +176,23 @@ const DoctorAlertList: React.FC = () => {
         new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
     );
 
+  const statusLabel =
+    status === "connected" ? t("live", "Live")
+    : status === "connecting" ? t("connecting", "Connecting...")
+    : status === "error" ? t("offline", "Offline")
+    : t("reconnecting", "Reconnecting...");
+
   return (
     <div className="min-h-screen bg-blue-50 dark:bg-zinc-900 px-4 py-10">
-      <h1 className="text-center text-2xl font-bold text-blue-800 dark:text-blue-400 mb-8">
+      <h1 className="text-center text-2xl font-bold text-blue-800 dark:text-blue-400 mb-2">
         Doctor Alert Review Panel
       </h1>
+      <p className="text-center text-sm text-muted-foreground mb-6">
+        <span className={`inline-flex items-center gap-1.5 ${status === "connected" ? "text-emerald-600" : "text-amber-600"}`}>
+          <span className={`h-1.5 w-1.5 rounded-full ${status === "connected" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+          {statusLabel}
+        </span>
+      </p>
 
       {/* Filters */}
       <div className="flex justify-center gap-2 mb-6 flex-wrap">
@@ -204,7 +221,7 @@ const DoctorAlertList: React.FC = () => {
       </div>
 
       {alerts.length === 0 ? (
-        <p className="text-center text-gray-500">No alerts available</p>
+        <p className="text-center text-gray-500">{t("no_alerts", "No active alerts. Live data will appear here when sensors trigger an alert.")}</p>
       ) : (
         alerts.map((alert) => (
           <AlertCardDoctor key={alert.alertId} alert={alert} />

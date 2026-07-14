@@ -3,11 +3,69 @@ import { KpiCard } from "./KpiCard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Thermometer, HeartPulse, Activity, Droplets, Wind, Gauge, Cloud, Radiation } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
 
-export function OverviewSection({ data }: { data: any }) {
+type WearableView = {
+  heart_rate?: number | null;
+  bp_systolic?: number | null;
+  bp_diastolic?: number | null;
+  spo2?: number | null;
+  temperature?: number | null;
+  activity?: string | null;
+};
+
+type EnvironmentalView = {
+  temperature?: number | null;
+  humidity?: number | null;
+  MQ25?: number | null;
+  mq2?: number | null;
+  CO2?: number | null;
+};
+
+type OverviewView = {
+  wearable?: WearableView | null;
+  environmental?: EnvironmentalView | null;
+};
+
+function displayValue(value: number | string | null | undefined, fallback = "—") {
+  if (value === null || value === undefined || value === "") return fallback;
+  return value;
+}
+
+function displayBp(systolic?: number | null, diastolic?: number | null) {
+  if (systolic == null || diastolic == null) return "—";
+  return `${Math.round(systolic)}/${Math.round(diastolic)}`;
+}
+
+export function OverviewSection({
+  data,
+  isLoading = false,
+}: {
+  data?: OverviewView | null;
+  isLoading?: boolean;
+}) {
   const { t } = useTranslation();
-  const { wearable, environmental } = data;
+  const wearable = data?.wearable ?? {};
+  const environmental = data?.environmental ?? {};
+  const gas = environmental.MQ25 ?? environmental.mq2;
+
+  if (isLoading && !data) {
+    return (
+      <div className="flex h-full min-h-[280px] items-center justify-center rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
+        <span className="text-sm text-muted-foreground">{t("loading", "Loading...")}</span>
+      </div>
+    );
+  }
+
+  if (!data?.wearable && !data?.environmental) {
+    return (
+      <div className="flex h-full min-h-[280px] flex-col items-center justify-center gap-2 rounded-3xl border border-zinc-200/80 bg-white/70 p-6 text-center shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
+        <Activity className="h-8 w-8 opacity-20" />
+        <p className="text-sm text-muted-foreground">
+          {t("no_sensor_data", "No recent sensor data yet.")}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full flex-col rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
@@ -17,13 +75,13 @@ export function OverviewSection({ data }: { data: any }) {
             value="vitals"
             className="flex-1 rounded-full py-2.5 text-xs font-bold text-muted-foreground transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md cursor-pointer focus-visible:outline-none"
           >
-            {t('vitals')}
+            {t("vitals")}
           </TabsTrigger>
           <TabsTrigger
             value="environment"
             className="flex-1 rounded-full py-2.5 text-xs font-bold text-muted-foreground transition-all duration-300 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md cursor-pointer focus-visible:outline-none"
           >
-            {t('environment')}
+            {t("environment")}
           </TabsTrigger>
         </TabsList>
 
@@ -32,18 +90,16 @@ export function OverviewSection({ data }: { data: any }) {
           className="grid grid-cols-2 gap-4 pt-6 lg:grid-cols-3 outline-none"
         >
           <KpiCard
-            title={t('heart_rate')}
-            value={wearable.heart_rate}
+            title={t("heart_rate")}
+            value={displayValue(wearable.heart_rate)}
             unit="bpm"
             icon={HeartPulse}
             color="text-rose-500"
             glowColor="bg-rose-500/10"
           />
           <KpiCard
-            title={t('blood_pressure')}
-            value={`${Math.round(wearable.bp_systolic)}/${Math.round(
-              wearable.bp_diastolic
-            )}`}
+            title={t("blood_pressure")}
+            value={displayBp(wearable.bp_systolic, wearable.bp_diastolic)}
             unit="mmHg"
             icon={Gauge}
             color="text-violet-500"
@@ -51,23 +107,23 @@ export function OverviewSection({ data }: { data: any }) {
           />
           <KpiCard
             title="SpO2"
-            value={wearable.spo2}
+            value={displayValue(wearable.spo2)}
             unit="%"
             icon={Droplets}
             color="text-blue-500"
             glowColor="bg-blue-500/10"
           />
           <KpiCard
-            title={t('temperature')}
-            value={wearable.temperature}
+            title={t("temperature")}
+            value={displayValue(wearable.temperature)}
             unit="°C"
             icon={Thermometer}
             color="text-orange-500"
             glowColor="bg-orange-500/10"
           />
           <KpiCard
-            title={t('activity')}
-            value={wearable.activity}
+            title={t("activity")}
+            value={displayValue(wearable.activity)}
             icon={Activity}
             color="text-emerald-500"
             glowColor="bg-emerald-500/10"
@@ -79,24 +135,24 @@ export function OverviewSection({ data }: { data: any }) {
           className="grid grid-cols-2 gap-4 pt-6 lg:grid-cols-2 outline-none"
         >
           <KpiCard
-            title={t('temperature')}
-            value={environmental.temperature}
+            title={t("temperature")}
+            value={displayValue(environmental.temperature)}
             unit="°C"
             icon={Thermometer}
             color="text-orange-500"
             glowColor="bg-orange-500/10"
           />
           <KpiCard
-            title={t('humidity', 'Humidity')}
-            value={environmental.humidity}
+            title={t("humidity", "Humidity")}
+            value={displayValue(environmental.humidity)}
             unit="%"
             icon={Wind}
             color="text-blue-400"
             glowColor="bg-blue-400/10"
           />
           <KpiCard
-            title="MQ25"
-            value={environmental.MQ25}
+            title="MQ2"
+            value={displayValue(gas)}
             unit="ppm"
             icon={Radiation}
             color="text-yellow-500"
@@ -104,7 +160,7 @@ export function OverviewSection({ data }: { data: any }) {
           />
           <KpiCard
             title="CO2"
-            value={environmental.CO2}
+            value={displayValue(environmental.CO2)}
             unit="ppm"
             icon={Cloud}
             color="text-zinc-500"
@@ -114,4 +170,4 @@ export function OverviewSection({ data }: { data: any }) {
       </Tabs>
     </div>
   );
-};
+}

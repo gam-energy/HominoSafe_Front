@@ -1,12 +1,7 @@
 'use client';
 
-import React, { memo, useEffect, useMemo, useState } from 'react';
-import {DataGrid, textEditor } from 'react-data-grid';
+import React, { memo } from 'react';
 import { parse, unparse } from 'papaparse';
-import { useTheme } from 'next-themes';
-import { cn } from '@/lib/utils';
-
-import 'react-data-grid/lib/styles.css';
 
 type SheetEditorProps = {
   content: string;
@@ -16,114 +11,28 @@ type SheetEditorProps = {
   currentVersionIndex: number;
 };
 
-const MIN_ROWS = 50;
-const MIN_COLS = 26;
-
-const PureSpreadsheetEditor = ({
-  content,
-  saveContent,
-}: SheetEditorProps) => {
-  const { resolvedTheme } = useTheme();
-
-  const parseData = useMemo(() => {
-    if (!content) return Array(MIN_ROWS).fill(Array(MIN_COLS).fill(''));
+// Lightweight CSV editor stub. The original used react-data-grid, but
+// v7.0.0-beta.60 ships a broken bundled import that breaks the Next.js
+// build. This stub keeps the chat artifact functional with a simple
+// editable <textarea> until the dep is upgraded.
+const PureSpreadsheetEditor = ({ content, saveContent }: SheetEditorProps) => {
+  const rows = React.useMemo(() => {
+    if (!content) return '';
     const result = parse<string[]>(content, { skipEmptyLines: true });
-
-    const paddedData = result.data.map((row) => {
-      const paddedRow = [...row];
-      while (paddedRow.length < MIN_COLS) {
-        paddedRow.push('');
-      }
-      return paddedRow;
-    });
-
-    while (paddedData.length < MIN_ROWS) {
-      paddedData.push(Array(MIN_COLS).fill(''));
-    }
-
-    return paddedData;
+    return unparse(result.data);
   }, [content]);
 
-  const columns = useMemo(() => {
-    const rowNumberColumn = {
-      key: 'rowNumber',
-      name: '',
-      frozen: true,
-      width: 50,
-      renderCell: ({ rowIdx }: { rowIdx: number }) => rowIdx + 1,
-      cellClass: 'border-t border-r dark:bg-zinc-950 dark:text-zinc-50',
-      headerCellClass: 'border-t border-r dark:bg-zinc-900 dark:text-zinc-50',
-    };
-
-    const dataColumns = Array.from({ length: MIN_COLS }, (_, i) => ({
-      key: i.toString(),
-      name: String.fromCharCode(65 + i),
-      renderEditCell: textEditor,
-      width: 120,
-      cellClass: cn(`border-t dark:bg-zinc-950 dark:text-zinc-50`, {
-        'border-l': i !== 0,
-      }),
-      headerCellClass: cn(`border-t dark:bg-zinc-900 dark:text-zinc-50`, {
-        'border-l': i !== 0,
-      }),
-    }));
-
-    return [rowNumberColumn, ...dataColumns];
-  }, []);
-
-  const initialRows = useMemo(() => {
-    return parseData.map((row, rowIndex) => {
-      const rowData: any = {
-        id: rowIndex,
-        rowNumber: rowIndex + 1,
-      };
-
-      columns.slice(1).forEach((col, colIndex) => {
-        rowData[col.key] = row[colIndex] || '';
-      });
-
-      return rowData;
-    });
-  }, [parseData, columns]);
-
-  const [localRows, setLocalRows] = useState(initialRows);
-
-  useEffect(() => {
-    setLocalRows(initialRows);
-  }, [initialRows]);
-
-  const generateCsv = (data: any[][]) => {
-    return unparse(data);
-  };
-
-  const handleRowsChange = (newRows: any[]) => {
-    setLocalRows(newRows);
-
-    const updatedData = newRows.map((row) => {
-      return columns.slice(1).map((col) => row[col.key] || '');
-    });
-
-    const newCsvContent = generateCsv(updatedData);
-    saveContent(newCsvContent, true);
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    saveContent(e.target.value, true);
   };
 
   return (
-    <DataGrid
-      className={resolvedTheme === 'dark' ? 'rdg-dark' : 'rdg-light'}
-      columns={columns}
-      rows={localRows}
-      enableVirtualization
-      onRowsChange={handleRowsChange}
-      onCellClick={(args) => {
-        if (args.column.key !== 'rowNumber') {
-          args.selectCell(true);
-        }
-      }}
-      style={{ height: '100%' }}
-      defaultColumnOptions={{
-        resizable: true,
-        sortable: true,
-      }}
+    <textarea
+      value={rows}
+      onChange={handleChange}
+      className="h-full w-full resize-none border-0 bg-transparent p-4 font-mono text-sm focus:outline-none"
+      spellCheck={false}
+      placeholder="A,B,C\n1,2,3"
     />
   );
 };

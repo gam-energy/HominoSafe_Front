@@ -1,13 +1,13 @@
-version: "3.9"
-
 services:
   web:
-    image: Homino
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://93.118.120.215:8888
     ports:
       - "3000:3000"
     environment:
       NODE_ENV: production
+      NEXT_PUBLIC_API_URL: http://93.118.120.215:8888
     restart: unless-stopped

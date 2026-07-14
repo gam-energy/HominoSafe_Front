@@ -3,7 +3,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { AlertType } from "../types/AlertSchema";
-import { sampleAlerts } from "../types/data";
 import { useAlertWebSocket } from "../hooks/useAlertWebSocket";
 import { actOnAlert } from "../api/alertApi";
 import { mapBackendAlert } from "../lib/alertTypeMap";
@@ -423,8 +422,8 @@ const AlertList: React.FC = () => {
   const isRtl = (i18n.language || 'en').startsWith('fa');
 
   const { alerts: liveAlerts, status, upsertAlert } = useAlertWebSocket();
-  // Fall back to demo data only when the live pipeline has nothing yet.
-  const alerts = liveAlerts.length > 0 ? liveAlerts : sampleAlerts;
+  // Use real alerts only — show an empty state when the live pipeline has nothing yet.
+  const alerts = liveAlerts;
 
   const handleAcknowledge = useCallback((updated: AlertType) => {
     upsertAlert(updated);

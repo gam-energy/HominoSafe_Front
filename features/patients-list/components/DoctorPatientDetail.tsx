@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Activity, ArrowLeft, Brain, FileHeart, FileUp, Gauge, MessageCircle } from "lucide-react";
@@ -24,24 +24,10 @@ import { useUserProfiles } from "@/features/patients-list/api/useUserProfiles";
 import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patient-profile";
 import { useGetOVerview } from "@/features/dashboard/api/patient/useGetOverview";
 import { useHistory } from "@/features/dashboard/api/patient/useGetHistory";
-import {
-  generateMockHistorySeries,
-  getMockHistoryUnit,
-} from "@/features/dashboard/utils/mockHealthHistory";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 import { StaffPatientNav } from "@/features/patients-list/components/StaffPatientNav";
 import { useUser } from "@/context/UserContext";
-
-const heartRateList: number[] = [72, 74, 76, 78, 80, 82, 79, 77, 75, 73, 71, 70, 69, 68, 70, 72, 74, 76, 78, 80];
-const bpSystolicList: number[] = [120, 122, 121, 119, 118, 117, 116, 115, 117, 119, 121, 123, 124, 122, 120, 118, 117, 119, 121, 120];
-const bpDiastolicList: number[] = [80, 81, 79, 78, 77, 76, 75, 74, 76, 78, 80, 82, 83, 81, 80, 78, 77, 79, 80, 81];
-const spo2List: number[] = [98, 97, 99, 98, 97, 96, 98, 99, 97, 98, 99, 98, 97, 96, 98, 99, 98, 97, 99, 98];
-const temperatureList: number[] = [36.5, 36.6, 36.7, 36.8, 36.6, 36.5, 36.4, 36.3, 36.5, 36.6, 36.7, 36.8, 36.6, 36.5, 36.4, 36.3, 36.5, 36.6, 36.7, 36.8];
-const envTemperatureList: number[] = [25, 26, 24, 23, 22, 21, 22, 23, 24, 25, 26, 27, 28, 27, 26, 25, 24, 23, 22, 21];
-const humidityList: number[] = [50, 52, 54, 53, 51, 50, 49, 48, 50, 52, 54, 53, 51, 50, 49, 48, 50, 52, 54, 53];
-const mq25List: number[] = [15, 16, 14, 13, 12, 13, 14, 15, 16, 15, 14, 13, 12, 13, 14, 15, 16, 15, 14, 13];
-const co2List: number[] = [450, 455, 460, 458, 455, 452, 450, 448, 445, 450, 455, 460, 458, 455, 452, 450, 448, 445, 450, 455];
 
 type OverviewData = {
   wearable: {
@@ -61,28 +47,6 @@ type OverviewData = {
     CO2: number;
   };
 };
-
-function generateMockOverviewData(index: number): OverviewData {
-  const now = new Date().toISOString();
-  return {
-    wearable: {
-      timestamp: now,
-      heart_rate: heartRateList[index],
-      bp_systolic: bpSystolicList[index],
-      bp_diastolic: bpDiastolicList[index],
-      spo2: spo2List[index],
-      activity: "Sitting",
-      temperature: temperatureList[index],
-    },
-    environmental: {
-      timestamp: now,
-      temperature: envTemperatureList[index],
-      humidity: humidityList[index],
-      MQ25: mq25List[index],
-      CO2: co2List[index],
-    },
-  };
-}
 
 const SectionCard = ({
   title,
@@ -145,7 +109,7 @@ export default function DoctorPatientDetail() {
   }, [profilesData]);
 
   // Live vitals + history
-  const { data: overViewData } = useGetOVerview(userId);
+  const { data: overViewData, isLoading: isOverviewLoading } = useGetOVerview(userId);
   const [metric, setMetric] = useState<Metric>("heart_rate");
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("day");
   const metrics: Metric[] = [metric];
@@ -155,43 +119,29 @@ export default function DoctorPatientDetail() {
     timePeriod
   );
 
-  const [metricIndex, setMetricIndex] = useState(0);
-  const [mockOverviewData, setMockOverviewData] = useState<OverviewData>(
-    generateMockOverviewData(0)
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setMetricIndex((prev) => (prev + 1) % heartRateList.length);
-    }, 10 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    setMockOverviewData(generateMockOverviewData(metricIndex));
-  }, [metricIndex]);
-
-  const overviewData: OverviewData = useMemo(() => {
-    if (!overViewData) return mockOverviewData;
+  const overviewData: OverviewData | undefined = useMemo(() => {
+    if (!overViewData) return undefined;
     return {
       wearable: {
-        timestamp: overViewData.wearable?.timestamp ?? mockOverviewData.wearable.timestamp,
-        heart_rate: overViewData.wearable?.heart_rate ?? mockOverviewData.wearable.heart_rate,
-        bp_systolic: overViewData.wearable?.bp_systolic ?? mockOverviewData.wearable.bp_systolic,
-        bp_diastolic: overViewData.wearable?.bp_diastolic ?? mockOverviewData.wearable.bp_diastolic,
-        spo2: overViewData.wearable?.spo2 ?? mockOverviewData.wearable.spo2,
-        activity: overViewData.wearable?.activity ?? mockOverviewData.wearable.activity,
-        temperature: overViewData.wearable?.temperature ?? mockOverviewData.wearable.temperature,
+        timestamp: overViewData.wearable?.timestamp ?? "",
+        heart_rate: overViewData.wearable?.heart_rate ?? 0,
+        bp_systolic: overViewData.wearable?.bp_systolic ?? 0,
+        bp_diastolic: overViewData.wearable?.bp_diastolic ?? 0,
+        spo2: overViewData.wearable?.spo2 ?? 0,
+        activity: overViewData.wearable?.activity ?? "",
+        temperature: overViewData.wearable?.temperature ?? 0,
       },
       environmental: {
-        timestamp: overViewData.environmental?.timestamp ?? mockOverviewData.environmental.timestamp,
-        temperature: overViewData.environmental?.temperature ?? mockOverviewData.environmental.temperature,
-        humidity: overViewData.environmental?.humidity ?? mockOverviewData.environmental.humidity,
-        MQ25: overViewData.environmental?.MQ25 ?? mockOverviewData.environmental.MQ25,
-        CO2: overViewData.environmental?.CO2 ?? mockOverviewData.environmental.CO2,
+        timestamp: overViewData.environmental?.timestamp ?? "",
+        temperature: overViewData.environmental?.temperature ?? 0,
+        humidity: overViewData.environmental?.humidity ?? 0,
+        MQ25: overViewData.environmental?.MQ25
+          ?? (overViewData.environmental as { mq2?: number } | undefined)?.mq2
+          ?? 0,
+        CO2: overViewData.environmental?.CO2 ?? 0,
       },
     };
-  }, [overViewData, mockOverviewData]);
+  }, [overViewData]);
 
   const hasHistoryData =
     !!historyData &&
@@ -200,8 +150,6 @@ export default function DoctorPatientDetail() {
     !Array.isArray(historyData.data) &&
     Array.isArray((historyData.data as Record<string, unknown[]>)[metric]) &&
     (historyData.data as Record<string, unknown[]>)[metric].length > 0;
-
-  const useMockHistory = (isCaregiver || isDoctor) && !hasHistoryData;
 
   const chartHistoryData = useMemo(() => {
     if (hasHistoryData && historyData?.data) {
@@ -212,15 +160,12 @@ export default function DoctorPatientDetail() {
         >
       )[metric];
     }
-    if (useMockHistory) {
-      return generateMockHistorySeries(metric, timePeriod);
-    }
     return [];
-  }, [hasHistoryData, historyData, metric, timePeriod, useMockHistory]);
+  }, [hasHistoryData, historyData, metric, timePeriod]);
 
   const chartHistoryUnit = hasHistoryData
     ? historyData?.units?.[metric as keyof typeof historyData.units]
-    : getMockHistoryUnit(metric);
+    : undefined;
 
   const showHistoryChart = chartHistoryData.length > 0;
 
@@ -350,7 +295,7 @@ export default function DoctorPatientDetail() {
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           <div className="xl:col-span-5">
-            <OverviewSection data={overviewData} />
+            <OverviewSection data={overviewData} isLoading={isOverviewLoading} />
           </div>
 
           <Card className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md xl:col-span-7">
