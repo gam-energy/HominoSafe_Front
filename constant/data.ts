@@ -21,7 +21,7 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [
         {
           title: 'Predictive AI',
-          url: '/',
+          url: '/dashboard/predictive-ai',
           icon: 'brain',
           shortcut: ['m', 'm'],
         },

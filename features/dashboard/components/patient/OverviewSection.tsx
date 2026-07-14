@@ -26,8 +26,15 @@ type OverviewView = {
   environmental?: EnvironmentalView | null;
 };
 
-function displayValue(value: number | string | null | undefined, fallback = "—") {
+function displayValue(
+  value: number | string | null | undefined,
+  fallback = "—",
+  decimals?: number
+) {
   if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value === "number" && decimals != null) {
+    return Number.isFinite(value) ? value.toFixed(decimals) : fallback;
+  }
   return value;
 }
 
@@ -136,7 +143,7 @@ export function OverviewSection({
         >
           <KpiCard
             title={t("temperature")}
-            value={displayValue(environmental.temperature)}
+            value={displayValue(environmental.temperature, "—", 2)}
             unit="°C"
             icon={Thermometer}
             color="text-orange-500"
@@ -144,7 +151,7 @@ export function OverviewSection({
           />
           <KpiCard
             title={t("humidity", "Humidity")}
-            value={displayValue(environmental.humidity)}
+            value={displayValue(environmental.humidity, "—", 2)}
             unit="%"
             icon={Wind}
             color="text-blue-400"
@@ -152,7 +159,7 @@ export function OverviewSection({
           />
           <KpiCard
             title="MQ2"
-            value={displayValue(gas)}
+            value={displayValue(gas, "—", 2)}
             unit="ppm"
             icon={Radiation}
             color="text-yellow-500"
@@ -160,7 +167,7 @@ export function OverviewSection({
           />
           <KpiCard
             title="CO2"
-            value={displayValue(environmental.CO2)}
+            value={displayValue(environmental.CO2, "—", 2)}
             unit="ppm"
             icon={Cloud}
             color="text-zinc-500"
