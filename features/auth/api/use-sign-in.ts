@@ -46,25 +46,19 @@ export const useLogin = () => {
     mutationFn: loginUser,
     onSuccess: async (data, variables) => {
       // 🌟 ورود به اپلیکیشن خودت
-      Cookies.set('access_token', data.access_token, { expires: 1, secure: false, sameSite: 'Lax' });
-      Cookies.set('refresh_token', data.refresh_token, { expires: 7, secure: false, sameSite: 'Lax' });
-      Cookies.set('synapse_access_token', data.synapse_access_token, { expires: 7, secure: false, sameSite: 'Lax' });
+      const secure = typeof window !== 'undefined' && window.location.protocol === 'https:';
+      const cookieOpts = { expires: 1 as const, secure, sameSite: 'Lax' as const };
+      Cookies.set('access_token', data.access_token, cookieOpts);
+      Cookies.set('refresh_token', data.refresh_token, { ...cookieOpts, expires: 7 });
+      if (data.synapse_access_token) {
+        Cookies.set('synapse_access_token', data.synapse_access_token, {
+          ...cookieOpts,
+          expires: 7,
+        });
+      }
       toast.success('Logged in successfully');
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-
-      // 🌟 ورود همزمان به Synapse
-      // try {
-      //   const matrixData = await loginToMatrix(variables.username, variables.password);
-      //   Cookies.set('matrix_access_token', matrixData.access_token, { expires: 1, secure: false, sameSite: 'Lax' });
-      //   console.log('Matrix login successful:', matrixData.user_id);
-      // } catch (err) {
-      //   console.error('Matrix login error:', err);
-      //   toast.error('Matrix login to Synapse failed!');
-      // }
-
-      // 🔹 در صورت نیاز می‌توانید این خط را فعال کنید
-      // router.push("/")
-      window.location.href = "/"
+      window.location.href = '/dashboard';
     },
     onError: (error) => {
       toast.error(error.message || 'خطا در ورود!');

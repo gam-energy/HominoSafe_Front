@@ -1,10 +1,41 @@
+function trimTrailingSlash(url: string): string {
+  return url.replace(/\/$/, '');
+}
+
+/**
+ * Resolve API base URL for the browser.
+ * - HTTPS (TLS proxy): same-origin (empty) so /token hits nginx → API
+ * - HTTP :3000 direct Next: talk to API on :8888 on the same host
+ * - SSR / build fallback: NEXT_PUBLIC_API_URL
+ */
 export function getApiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8888';
+  if (typeof window !== 'undefined') {
+    const { protocol, hostname, port } = window.location;
+    if (protocol === 'https:') {
+      return '';
+    }
+    // Direct frontend container / compose port mapping
+    if (port === '3000') {
+      return `http://${hostname}:8888`;
+    }
+  }
+
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (configured) {
+    return trimTrailingSlash(configured);
+  }
+  return 'http://127.0.0.1:8888';
 }
 
 export function getWsBaseUrl(): string {
-  const apiUrl = getApiBaseUrl();
-  const parsed = new URL(apiUrl);
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    return `wss://${window.location.host}`;
+  }
+  const apiUrl = getApiBaseUrl() ||
+    (typeof window !== 'undefined'
+      ? `${window.location.protocol}//${window.location.host}`
+      : process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8888');
+  const parsed = new URL(apiUrl, typeof window !== 'undefined' ? window.location.origin : 'http://127.0.0.1');
   const protocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${parsed.host}`;
 }

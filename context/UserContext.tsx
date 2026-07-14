@@ -27,26 +27,30 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User>(null);
 
   useEffect(() => {
+    let cancelled = false;
+
     const fetchUser = async () => {
       const accessToken = Cookies.get("access_token");
       const refreshToken = Cookies.get("refresh_token");
 
       if (!accessToken || !refreshToken) {
-        console.warn("⏳ توکن‌ها هنوز ست نشده‌اند، درخواست به /user ارسال نمی‌شود");
         return;
       }
 
       try {
         const response = await axiosInstance.get("/user/");
-        setUser(response.data);
+        if (!cancelled) setUser(response.data);
       } catch (err) {
         const error = err as AxiosError;
         console.error("❌ خطا در دریافت اطلاعات کاربر:", error.message);
-        setUser(null);
+        if (!cancelled) setUser(null);
       }
     };
 
     fetchUser();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (

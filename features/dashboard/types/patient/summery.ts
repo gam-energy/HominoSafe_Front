@@ -13,6 +13,7 @@ type RiskAssessment = {
   risk_level: string;
   predicted_condition: string;
   recommendation: string;
+  risk_score?: number | null;
 };
 
 export type RecentAlert = {
@@ -28,13 +29,14 @@ export type SummaryData = {
   last_updated: string;
   kpis: Record<string, KPI>;
   recent_alerts: RecentAlert[];
-  risk_assessments: RiskAssessment[];  // <-- اصلاح اینجا
-  daily_overview: {
+  risk_assessments: RiskAssessment[];
+  daily_overview?: {
     date: string;
     avg_heart_rate: number | null;
     avg_spo2: number | null;
     max_bp_systolic: number | null;
     min_bp_diastolic: number | null;
   };
+  latest_activity?: string | null;
 };
 

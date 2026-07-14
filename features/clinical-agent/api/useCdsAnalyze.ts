@@ -52,9 +52,15 @@ export const useCdsAnalyze = () => {
   >({
     mutationFn: ({ patientId, body }) => analyzePatient(patientId, body),
     onSuccess: (_data, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: ["cds-report", variables.patientId],
-      });
+      const id = variables.patientId;
+      void queryClient.invalidateQueries({ queryKey: ["cds-report", id] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard-summary", id] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard-overview", id] });
+      void queryClient.invalidateQueries({ queryKey: ["history", id] });
+      void queryClient.invalidateQueries({ queryKey: ["patient-state", id] });
+      void queryClient.invalidateQueries({ queryKey: ["cnn-predictions", id] });
+      void queryClient.invalidateQueries({ queryKey: ["active-alerts-kpi"] });
+      void queryClient.invalidateQueries({ queryKey: ["clinical-reports", id] });
     },
   });
 };

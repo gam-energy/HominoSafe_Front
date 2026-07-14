@@ -1,7 +1,6 @@
 import { io, Socket } from "socket.io-client";
 import { create } from "zustand";
-
-const BASE_URL ='http://127.0.0.1:8888';
+import { getApiBaseUrl } from "@/lib/api-utils";
 
 interface SocketState {
   socket: Socket | null;
@@ -19,7 +18,11 @@ export const useSocket = create<SocketState>()((set, get) => ({
     console.log(socket, "socket");
     if (socket?.connected) return;
 
-    const newSocket = io(BASE_URL, {
+    // Empty baseURL → same-origin (HTTPS TLS proxy); else http://host:8888
+    const baseUrl = getApiBaseUrl() ||
+      (typeof window !== "undefined" ? window.location.origin : "http://127.0.0.1:8888");
+
+    const newSocket = io(baseUrl, {
       withCredentials: true,
       autoConnect: true,
     });

@@ -25,7 +25,7 @@ const fetchDashboardOverview = async (
 // Hook با interval
 export const useGetOVerview = (userId: number) => {
   return useQuery<DashboardData, AxiosError>({
-    queryKey: ["dashboard-overview", userId],
+    queryKey: ["dashboard-overview", userId], // invalidated after CDS analyze
     queryFn: () => fetchDashboardOverview(userId),
     enabled: !!userId, // فقط وقتی userId موجوده اجرا بشه
     staleTime: 1000 * 60 * 1, // داده‌ها تا 1 دقیقه کش بشن

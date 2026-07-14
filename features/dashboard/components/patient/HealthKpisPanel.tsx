@@ -14,6 +14,8 @@ import type { HealthKpisReportData } from "@/features/dashboard/utils/exportHeal
 import { useSummary } from "@/features/dashboard/api/patient/useGetSummary";
 import { useHistory } from "@/features/dashboard/api/patient/useGetHistory";
 import { useLatestPatientState } from "@/features/predictions/api/useLatestPatientState";
+import { useCnnPredictions } from "@/features/predictions/api/useCnnPredictions";
+import { useGetOVerview } from "@/features/dashboard/api/patient/useGetOverview";
 import { fetchActiveAlerts } from "@/features/alert/api/alertApi";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -49,7 +51,10 @@ import {
 
 /* ===================== helpers ===================== */
 
-type MetricKey = "heart_rate" | "spo2" | "bp_systolic" | "temperature";
+type MetricKey = "heart_rate" | "spo2" | "bp_systolic" | "body_temperature";
+
+const CHART_BORDER = "var(--border)";
+const CHART_TICK = "var(--muted-foreground)";
 
 function chartStats(values: number[]) {
   if (!values.length) return { avg: 0, min: 0, max: 0, latest: 0, trend: 0 };
@@ -159,12 +164,29 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
 
   // Real data hooks
   const { data: summary } = useSummary(userId);
-  const { data: historyData } = useHistory(userId, ["heart_rate", "spo2", "bp_systolic", "bp_diastolic", "temperature"], "day");
+  const { data: historyData } = useHistory(
+    userId,
+    [
+      "heart_rate",
+      "spo2",
+      "bp_systolic",
+      "bp_diastolic",
+      "body_temperature",
+      "humidity",
+      "CO2",
+      "mq2",
+      "temperature",
+    ],
+    "day"
+  );
   const { data: patientState } = useLatestPatientState(userId);
+  const { data: cnn } = useCnnPredictions(userId);
+  const { data: overview } = useGetOVerview(userId);
   const { data: activeAlerts } = useQuery({
-    queryKey: ["active-alerts-kpi"],
+    queryKey: ["active-alerts-kpi", userId],
     queryFn: fetchActiveAlerts,
     staleTime: 30_000,
+    enabled: !!userId,
   });
 
   // Build chart data from real history
@@ -175,12 +197,41 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
     const spo2 = raw.spo2 ?? [];
     const bpSys = raw.bp_systolic ?? [];
     const bpDia = raw.bp_diastolic ?? [];
-    const temp = raw.temperature ?? [];
-    const len = Math.max(hr.length, spo2.length, bpSys.length, temp.length);
-    const out: { time: string; heartRate: number; spo2: number; bpSystolic: number; bpDiastolic: number; temperature: number }[] = [];
+    const temp = raw.body_temperature ?? [];
+    const humidity = raw.humidity ?? [];
+    const co2 = raw.CO2 ?? [];
+    const mq2 = raw.mq2 ?? [];
+    const ambient = raw.temperature ?? [];
+    const len = Math.max(
+      hr.length,
+      spo2.length,
+      bpSys.length,
+      temp.length,
+      humidity.length,
+      co2.length
+    );
+    const out: {
+      time: string;
+      heartRate: number;
+      spo2: number;
+      bpSystolic: number;
+      bpDiastolic: number;
+      temperature: number;
+      humidity: number;
+      co2: number;
+      mq2: number;
+      ambient: number;
+    }[] = [];
     for (let i = 0; i < len; i++) {
-      const ts = hr[i]?.timestamp ?? spo2[i]?.timestamp ?? bpSys[i]?.timestamp ?? temp[i]?.timestamp ?? "";
-      const time = ts ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "";
+      const ts =
+        hr[i]?.timestamp ??
+        spo2[i]?.timestamp ??
+        bpSys[i]?.timestamp ??
+        temp[i]?.timestamp ??
+        "";
+      const time = ts
+        ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+        : "";
       out.push({
         time,
         heartRate: hr[i]?.value ?? 0,
@@ -188,6 +239,10 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
         bpSystolic: bpSys[i]?.value ?? 0,
         bpDiastolic: bpDia[i]?.value ?? 0,
         temperature: temp[i]?.value ?? 0,
+        humidity: humidity[i]?.value ?? 0,
+        co2: co2[i]?.value ?? 0,
+        mq2: mq2[i]?.value ?? 0,
+        ambient: ambient[i]?.value ?? 0,
       });
     }
     return out;
@@ -270,28 +325,72 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
   const riskBreakdown = useMemo(() => {
     const assessments = summary?.risk_assessments ?? [];
     if (assessments.length === 0) return [];
-    const latest = assessments.slice(0, 4);
-    return latest.map((a) => ({
-      key: a.predicted_condition || a.risk_level,
-      level: (a.risk_level || "low").toLowerCase(),
-      score: a.risk_level?.toLowerCase().includes("high") ? 75 : a.risk_level?.toLowerCase().includes("moderate") || a.risk_level?.toLowerCase().includes("medium") ? 45 : 15,
-    }));
+    const latest = assessments.slice(0, 6);
+    return latest.map((a) => {
+      const level = (a.risk_level || "low").toLowerCase();
+      const parsed =
+        typeof a.risk_score === "number"
+          ? a.risk_score
+          : Number(
+              /Score:\s*([0-9]+(?:\.[0-9]+)?)/i.exec(
+                a.predicted_condition || ""
+              )?.[1]
+            );
+      const score = Number.isFinite(parsed)
+        ? Number(parsed)
+        : level.includes("critical")
+          ? 90
+          : level.includes("high")
+            ? 75
+            : level.includes("moderate") || level.includes("medium")
+              ? 50
+              : 20;
+      return {
+        key: a.predicted_condition || a.risk_level,
+        level,
+        score: Math.max(0, Math.min(100, score)),
+      };
+    });
   }, [summary]);
 
-  // System scores from KPIs (derive from vital averages)
+  // System scores from KPIs (derive from vital averages + activity)
   const systemScores = useMemo(() => {
     const kpis = summary?.kpis ?? {};
-    const cardio = kpis.heart_rate ? Math.max(0, 100 - Math.abs(kpis.heart_rate.value - 75) * 2) : 0;
+    const activity = (
+      summary?.latest_activity ||
+      overview?.wearable?.activity ||
+      ""
+    ).toLowerCase();
+    const cardio = kpis.heart_rate
+      ? Math.max(0, 100 - Math.abs(kpis.heart_rate.value - 75) * 2)
+      : 0;
     const resp = kpis.spo2 ? Math.max(0, kpis.spo2.value) : 0;
-    const metab = kpis.bp_systolic ? Math.max(0, 100 - Math.abs(kpis.bp_systolic.value - 120) * 1.5) : 0;
-    const mobil = kpis.temperature ? Math.max(0, 100 - Math.abs(kpis.temperature.value - 36.5) * 20) : 0;
+    const metab = kpis.bp_systolic
+      ? Math.max(0, 100 - Math.abs(kpis.bp_systolic.value - 120) * 1.5)
+      : 0;
+    const mobil = activity.includes("run")
+      ? 92
+      : activity.includes("walk")
+        ? 80
+        : activity.includes("stand")
+          ? 65
+          : activity.includes("sit")
+            ? 45
+            : activity.includes("sleep")
+              ? 25
+              : kpis.body_temperature
+                ? Math.max(
+                    0,
+                    100 - Math.abs(kpis.body_temperature.value - 36.5) * 20
+                  )
+                : 0;
     return [
       { key: "cardiovascular", value: Math.round(cardio), icon: HeartPulse, color: "#3b82f6" },
       { key: "respiratory", value: Math.round(resp), icon: Wind, color: "#10b981" },
       { key: "metabolic", value: Math.round(metab), icon: Droplets, color: "#f59e0b" },
       { key: "mobility", value: Math.round(mobil), icon: Footprints, color: "#8b5cf6" },
     ].filter((s) => s.value > 0);
-  }, [summary]);
+  }, [summary, overview]);
 
   const reportData = useMemo((): HealthKpisReportData => {
     const hrStats = chartStats(data.map((d) => d.heartRate));
@@ -318,8 +417,16 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
     { key: "heart_rate", label: t("heart_rate", "Heart Rate"), icon: HeartPulse, color: "#ef4444", unit: t("bpm", "bpm") },
     { key: "spo2", label: t("spo2", "SpO2"), icon: Droplets, color: "#3b82f6", unit: "%" },
     { key: "bp_systolic", label: t("blood_pressure", "Blood Pressure"), icon: Gauge, color: "#8b5cf6", unit: "mmHg" },
-    { key: "temperature", label: t("temperature", "Temperature"), icon: Thermometer, color: "#f97316", unit: "°C" },
+    { key: "body_temperature", label: t("body_temperature", "Body temp"), icon: Thermometer, color: "#f97316", unit: "°C" },
   ];
+
+  const activityLabel =
+    summary?.latest_activity ||
+    overview?.wearable?.activity ||
+    t("unknown", "Unknown");
+  const bodyPosition =
+    (overview?.wearable as { body_position?: string } | undefined)?.body_position ||
+    activityLabel;
 
   const noData = data.length === 0;
 
@@ -459,9 +566,9 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                         <defs><linearGradient id="colorHeart" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.35} /><stop offset="95%" stopColor="#ef4444" stopOpacity={0} /></linearGradient></defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis dataKey="time" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                        <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
+                        <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                        <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
                         <Tooltip content={<ChartTooltipContent />} />
                         <Area type="monotone" dataKey="heartRate" name={t("heart_rate", "Heart Rate")} stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorHeart)" />
                       </AreaChart>
@@ -478,9 +585,9 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
                   <div className="h-[280px] w-full" data-export-chart="vital-spo2" data-export-chart-title={t("spo2", "SpO2")}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis dataKey="time" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                        <YAxis domain={[90, 100]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
+                        <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                        <YAxis domain={[90, 100]} tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
                         <Tooltip content={<ChartTooltipContent />} />
                         <Line type="monotone" dataKey="spo2" name={t("spo2", "SpO2")} stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: "#3b82f6" }} activeDot={{ r: 6 }} />
                       </LineChart>
@@ -497,9 +604,9 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
                   <div className="h-[280px] w-full" data-export-chart="vital-bloodPressure" data-export-chart-title={t("blood_pressure", "Blood Pressure")}>
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis dataKey="time" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                        <YAxis domain={["dataMin - 10", "dataMax + 10"]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
+                        <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                        <YAxis domain={["dataMin - 10", "dataMax + 10"]} tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
                         <Tooltip content={<ChartTooltipContent />} />
                         <Legend />
                         <Line type="monotone" dataKey="bpSystolic" name={t("systolic", "Systolic")} stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 3 }} />
@@ -509,26 +616,169 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
                   </div>
                 </TabsContent>
 
-                <TabsContent value="temperature" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
+                <TabsContent value="body_temperature" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{t("temperature", "Temperature")} <span className="text-sm font-normal text-muted-foreground">(°C)</span></CardTitle>
+                    <CardTitle className="text-lg">{t("body_temperature", "Body temperature")} <span className="text-sm font-normal text-muted-foreground">(°C)</span></CardTitle>
                     <TrendBadge trend={chartStats(data.map((d) => d.temperature)).trend} />
                   </div>
                   <StatGrid values={data.map((d) => d.temperature)} unit="°C" />
-                  <div className="h-[280px] w-full" data-export-chart="vital-temperature" data-export-chart-title={t("temperature", "Temperature")}>
+                  <div className="h-[280px] w-full" data-export-chart="vital-temperature" data-export-chart-title={t("body_temperature", "Body temperature")}>
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
                         <defs><linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f97316" stopOpacity={0.35} /><stop offset="95%" stopColor="#f97316" stopOpacity={0} /></linearGradient></defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
-                        <XAxis dataKey="time" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
-                        <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
+                        <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                        <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Area type="monotone" dataKey="temperature" name={t("temperature", "Temperature")} stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#colorTemp)" />
+                        <Area type="monotone" dataKey="temperature" name={t("body_temperature", "Body temperature")} stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#colorTemp)" />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </TabsContent>
               </Tabs>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <Card className="rounded-2xl border border-border bg-card shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <Footprints className="h-5 w-5 text-primary" />
+                {t("activity_posture", "Activity & body position")}
+              </CardTitle>
+              <CardDescription>
+                {t(
+                  "activity_posture_desc",
+                  "Latest watch activity and inferred body position"
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-border/80 p-4">
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t("activity", "Activity")}
+                </p>
+                <p className="mt-1 text-xl font-semibold">{activityLabel}</p>
+              </div>
+              <div className="rounded-xl border border-border/80 p-4">
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t("body_position", "Body position")}
+                </p>
+                <p className="mt-1 text-xl font-semibold capitalize">
+                  {bodyPosition}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/80 p-4">
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t("latest_hr", "Latest HR")}
+                </p>
+                <p className="mt-1 ltr-nums text-xl font-semibold">
+                  {overview?.wearable?.heart_rate != null
+                    ? `${Number(overview.wearable.heart_rate).toFixed(1)} bpm`
+                    : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/80 p-4">
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t("latest_spo2", "Latest SpO2")}
+                </p>
+                <p className="mt-1 ltr-nums text-xl font-semibold">
+                  {overview?.wearable?.spo2 != null
+                    ? `${Number(overview.wearable.spo2).toFixed(1)}%`
+                    : "—"}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border border-border bg-card shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ShieldAlert className="h-5 w-5 text-primary" />
+                {t("cnn_snapshot", "CNN snapshot")}
+              </CardTitle>
+              <CardDescription>
+                {t(
+                  "cnn_snapshot_desc",
+                  "Latest BiLSTM-CNN predicted vitals from the watch stream"
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-border/80 p-4">
+                <p className="text-xs uppercase text-muted-foreground">BP</p>
+                <p className="mt-1 ltr-nums text-xl font-semibold">
+                  {cnn?.latest_window?.sbp_mmhg != null &&
+                  cnn?.latest_window?.dbp_mmhg != null
+                    ? `${Math.round(cnn.latest_window.sbp_mmhg)}/${Math.round(cnn.latest_window.dbp_mmhg)}`
+                    : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/80 p-4">
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t("cardiac_risk", "Cardiac risk")}
+                </p>
+                <p className="mt-1 ltr-nums text-xl font-semibold">
+                  {cnn?.latest_window?.cardiac_risk_score != null
+                    ? cnn.latest_window.cardiac_risk_score.toFixed(1)
+                    : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/80 p-4">
+                <p className="text-xs uppercase text-muted-foreground">AF %</p>
+                <p className="mt-1 ltr-nums text-xl font-semibold">
+                  {cnn?.latest_window?.af_probability != null
+                    ? `${(cnn.latest_window.af_probability * 100).toFixed(1)}%`
+                    : "—"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-border/80 p-4">
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t("watch", "Watch")}
+                </p>
+                <p className="mt-1 text-xl font-semibold">
+                  {cnn?.watch_connected
+                    ? t("connected", "Connected")
+                    : t("offline", "Offline")}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card className="rounded-2xl border border-border shadow-md">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Wind className="h-5 w-5 text-primary" />
+              {t("environment_trends", "Environment trends")}
+            </CardTitle>
+            <CardDescription>
+              {t(
+                "environment_trends_desc",
+                "Room temperature, humidity, CO₂ and gas sensor (24h)"
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="h-[280px]">
+            {data.some((d) => d.humidity || d.co2 || d.ambient) ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
+                  <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Legend />
+                  <Line type="monotone" dataKey="ambient" name={t("room_temp", "Room °C")} stroke="#f97316" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="humidity" name={t("humidity", "Humidity %")} stroke="#3b82f6" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="co2" name="CO2" stroke="#64748b" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="mq2" name="MQ2" stroke="#eab308" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                {t("no_env_data", "No environment history yet.")}
+              </div>
             )}
           </CardContent>
         </Card>

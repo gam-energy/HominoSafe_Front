@@ -7,11 +7,13 @@ import axios, {
 import Cookies from 'js-cookie';
 import { getApiBaseUrl } from '@/lib/api-utils';
 
+/** Prefer calling getApiBaseUrl() — host-aware in the browser. */
 export const API_BASE_URL = getApiBaseUrl();
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: new AxiosHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+  timeout: 30_000,
 });
 
 const getRefreshToken = (): string | undefined => Cookies.get('refresh_token');
@@ -34,8 +36,9 @@ export async function refreshAccessToken(): Promise<string> {
     throw new Error('No refresh token');
   }
 
+  const base = getApiBaseUrl();
   const { data } = await axios.post<RefreshTokenResponse>(
-    `${API_BASE_URL}/refresh`,
+    `${base}/refresh-token`,
     { refresh_token: refreshToken },
     { headers: { 'Content-Type': 'application/json' } }
   );
@@ -72,6 +75,9 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Re-resolve at request time so HTTPS/same-origin vs :3000→:8888 is correct
+    // even if this module was first evaluated during SSR.
+    config.baseURL = getApiBaseUrl();
     const token = Cookies.get('access_token');
     if (token) {
       if (!config.headers) {
