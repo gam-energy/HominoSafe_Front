@@ -1,7 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import axios, { AxiosError } from "axios";
 import axiosInstance from "@/api/axiosInstance";
-import type { CdsFinding, CdsRecommendation, CdsReport } from "../types/cds";
+import type {
+  CausalGraphPayload,
+  CdsFinding,
+  CdsRecommendation,
+  CdsReport,
+  DecisionGraphPayload,
+} from "../types/cds";
 
 type CdsApiEnvelope = {
   report?: Record<string, unknown>;
@@ -114,7 +120,8 @@ function normalizeCdsReport(payload: CdsApiEnvelope, patientId: number): CdsRepo
     recommendations = nested.map(asRecommendation);
   }
 
-  const specialistRaw = raw.specialist_outputs;
+  const meta = (payload.metadata ?? {}) as Record<string, unknown>;
+  const specialistRaw = raw.specialist_outputs ?? meta.specialist_outputs;
   const specialist_outputs = Array.isArray(specialistRaw)
     ? specialistRaw
         .filter((item): item is Record<string, unknown> => !!item && typeof item === "object")
@@ -127,14 +134,16 @@ function normalizeCdsReport(payload: CdsApiEnvelope, patientId: number): CdsRepo
         }))
     : undefined;
 
-  const generatedAt = payload.metadata?.generated_at;
+  const generatedAt = meta.generated_at;
+  const decision_graph = meta.decision_graph as DecisionGraphPayload | undefined;
+  const causal_graph = meta.causal_graph as CausalGraphPayload | undefined;
 
   return {
     patient_id:
       typeof raw.patient_id === "number"
         ? raw.patient_id
-        : typeof payload.metadata?.patient_id === "number"
-          ? (payload.metadata.patient_id as number)
+        : typeof meta.patient_id === "number"
+          ? (meta.patient_id as number)
           : patientId,
     overall_status: String(
       raw.overall_status ?? raw.status_summary ?? "unknown"
@@ -152,6 +161,8 @@ function normalizeCdsReport(payload: CdsApiEnvelope, patientId: number): CdsRepo
       (typeof raw.reasoning_trace === "string" && raw.reasoning_trace) ||
       (typeof raw.reasoning === "string" && raw.reasoning) ||
       undefined,
+    decision_graph,
+    causal_graph,
   };
 }
 

@@ -30,6 +30,7 @@ import { AnalyzeLoadingOverlay } from "./AnalyzeLoadingOverlay";
 import { FindingsList } from "./FindingsList";
 import { PhysicianFeedbackForm } from "./PhysicianFeedbackForm";
 import { RecommendationsList } from "./RecommendationsList";
+import { DecisionGraphPanel } from "./DecisionGraphPanel.lazy";
 import { ScheduledReportsPanel } from '@/features/clinical-reports/components/ScheduledReportsPanel';
 import { CnnResultsCard } from '@/features/predictions/components/CnnResultsCard';
 
@@ -248,6 +249,12 @@ export function ClinicalAgentReport() {
                 </Accordion>
               </section>
             ) : null}
+
+            <DecisionGraphPanel
+              decisionGraph={report.decision_graph}
+              causalGraph={report.causal_graph}
+              showDecisionFallback
+            />
 
             {report.reasoning_trace && (
               <Card className="overflow-hidden">

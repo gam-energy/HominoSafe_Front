@@ -31,6 +31,47 @@ export interface SpecialistOutput {
   evidence?: string[];
 }
 
+export interface DecisionGraphNode {
+  id: string;
+  label: string;
+  description?: string;
+  status?: string;
+  order: number;
+}
+
+export interface DecisionGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+}
+
+export interface DecisionGraphPayload {
+  nodes: DecisionGraphNode[];
+  edges: DecisionGraphEdge[];
+}
+
+export interface CausalGraphNode {
+  id: string;
+  label: string;
+  kind: string;
+}
+
+export interface CausalGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  relationship_type: string;
+  confidence: number;
+  evidence_level?: string;
+  condition?: string;
+}
+
+export interface CausalGraphPayload {
+  nodes: CausalGraphNode[];
+  edges: CausalGraphEdge[];
+}
+
 export interface CdsReport {
   patient_id: number;
   overall_status: CdsOverallStatus;
@@ -39,6 +80,8 @@ export interface CdsReport {
   recommendations: CdsRecommendation[];
   specialist_outputs?: SpecialistOutput[];
   reasoning_trace?: string;
+  decision_graph?: DecisionGraphPayload;
+  causal_graph?: CausalGraphPayload;
 }
 
 export interface CdsAnalyzeRequest {

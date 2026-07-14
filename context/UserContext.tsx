@@ -33,7 +33,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       const accessToken = Cookies.get("access_token");
       const refreshToken = Cookies.get("refresh_token");
 
-      if (!accessToken || !refreshToken) {
+      // refresh may be HttpOnly (not visible to js-cookie); access_token is enough
+      if (!accessToken) {
         return;
       }
 
