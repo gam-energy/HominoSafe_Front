@@ -45,6 +45,10 @@ import {
   IconCalendar,
   IconActivityHeartbeat,
   IconSparkles,
+  IconBuildingHospital,
+  IconBuilding,
+  IconUsersGroup,
+  IconLink,
 } from "@tabler/icons-react";
 
 export type Icon = React.ComponentType<IconProps>;
@@ -70,6 +74,11 @@ export const Icons: Record<string, Icon> = {
   chat: IconMessageCircle,
   settings: IconSettings,
   billing: IconCreditCard,
+  clinic: IconBuildingHospital,
+  clinics: IconBuildingHospital,
+  building: IconBuilding,
+  relations: IconLink,
+  usersGroup: IconUsersGroup,
   ellipsis: IconDotsVertical,
   add: IconPlus,
   warning: IconAlertTriangle,
