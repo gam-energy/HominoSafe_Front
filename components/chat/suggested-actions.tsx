@@ -3,9 +3,7 @@
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { memo } from "react";
-import type { UseChatHelpers } from "@ai-sdk/react";
 import type { VisibilityType } from "./visibility-selector";
-import type { ChatMessage } from "@/lib/types";
 
 interface SuggestedActionsProps {
   chatId: string;
@@ -16,38 +14,33 @@ interface SuggestedActionsProps {
   selectedVisibilityType: VisibilityType;
 }
 
+const suggestedActions = [
+  {
+    title: "Could any of my meds",
+    label: "interact with each other?",
+    action: "Could any of my current medications interact with each other?",
+  },
+  {
+    title: "What symptoms",
+    label: "should make me seek help?",
+    action: "What symptoms should make me seek help for my condition?",
+  },
+  {
+    title: "Do my medication doses",
+    label: "still look right?",
+    action: "Do my current medication doses still look right for me?",
+  },
+  {
+    title: "Is my weight and BMI",
+    label: "in a healthy range?",
+    action: "Is my current weight and BMI in a healthy range?",
+  },
+];
+
 function PureSuggestedActions({
   chatId,
   sendMessage,
-  selectedVisibilityType,
 }: SuggestedActionsProps) {
-  const suggestedActions = [
-    {
-      title: "Are there any interactions",
-      label: "between my current medications?",
-      action:
-        "Considering the medications listed in my medical record, are there any dangerous interactions between them that I should be aware of?",
-    },
-    {
-      title: "What warning signs",
-      label: "should I watch out for?",
-      action:
-        "Given my current heart condition and blood pressure status, what specific warning signs should I watch out for that are relevant to my condition?",
-    },
-    {
-      title: "Are my medication dosages",
-      label: "still appropriate?",
-      action:
-        "Are my current medication dosages still appropriate given my recent weight or blood pressure changes, or do they need review?",
-    },
-    {
-      title: "Is my weight and BMI",
-      label: "within a healthy range?",
-      action:
-        "Is my current weight and Body Mass Index (BMI) within a healthy range considering my underlying medical conditions?",
-    },
-  ];
-
   return (
     <div
       data-testid="suggested-actions"

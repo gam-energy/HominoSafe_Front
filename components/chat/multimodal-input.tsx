@@ -235,6 +235,7 @@ function PureMultimodalInput({
       </AnimatePresence>
 
       {messages.length === 0 &&
+        status === 'ready' &&
         attachments.length === 0 &&
         uploadQueue.length === 0 && (
           <SuggestedActions
@@ -322,6 +323,7 @@ export const MultimodalInput = memo(
   (prevProps, nextProps) => {
     if (prevProps.input !== nextProps.input) return false;
     if (prevProps.status !== nextProps.status) return false;
+    if (prevProps.messages.length !== nextProps.messages.length) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
       return false;
