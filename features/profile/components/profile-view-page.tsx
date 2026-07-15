@@ -1,7 +1,7 @@
 "use client";
 
 import { useForm, Controller } from "react-hook-form";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
@@ -22,15 +22,19 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { Pencil, Save, Lock, X } from "lucide-react";
+import { Camera, Pencil, Save, Lock, X } from "lucide-react";
 import ChangePasswordDialog from "./ChangePasswordDialog";
 import { LoaderIcon } from "@/components/chat/icons";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useUserProfile } from "../hook/useGetUser";
 import { useUpdateProfile, UpdateProfileInput } from "../hook/useUpdateProfile";
 import { useUser } from "@/context/UserContext";
 import { useTranslation } from "react-i18next";
+import { useGetCurrentUser } from "@/features/chat/api/use-get-current-info";
+import { useMatrixMediaSrc } from "@/features/chat/hooks/use-matrix-media-src";
+import { uploadAndSetMatrixAvatar } from "@/features/chat/lib/matrix-media";
 
 const profileSchema = z.object({
   username: z.string().min(1, "Username is required"),
@@ -56,8 +60,12 @@ type FieldItem = {
 
 export default function ProfileViewPage() {
   const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
 
   const {
     data: profile,
@@ -66,8 +74,55 @@ export default function ProfileViewPage() {
     error: profileError,
     refetch: refetchProfile,
   } = useUserProfile();
+  const { data: matrixUser } = useGetCurrentUser();
+  const avatarSrc = useMatrixMediaSrc(localPreview || matrixUser?.avatar);
   const { mutate: updateProfile } = useUpdateProfile();
   const { user } = useUser();
+
+  const handleAvatarPick = () => {
+    fileInputRef.current?.click();
+  };
+
+  useEffect(() => {
+    if (matrixUser?.avatar && localPreview) {
+      URL.revokeObjectURL(localPreview);
+      setLocalPreview(null);
+    }
+  }, [matrixUser?.avatar, localPreview]);
+
+  const handleAvatarChange = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error(t("avatar_must_be_image", "Please choose an image file."));
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error(t("avatar_too_large", "Image must be under 8MB."));
+      return;
+    }
+
+    if (localPreview) URL.revokeObjectURL(localPreview);
+    const preview = URL.createObjectURL(file);
+    setLocalPreview(preview);
+    setIsUploadingAvatar(true);
+    try {
+      await uploadAndSetMatrixAvatar(file);
+      await queryClient.invalidateQueries({ queryKey: ["whoami"] });
+      await queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      await queryClient.invalidateQueries({ queryKey: ["synapse-contacts"] });
+      toast.success(t("avatar_updated", "Profile photo updated."));
+    } catch {
+      toast.error(t("avatar_update_failed", "Failed to update profile photo."));
+      URL.revokeObjectURL(preview);
+      setLocalPreview(null);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const form = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -164,14 +219,38 @@ export default function ProfileViewPage() {
       <div className="w-full py-8 px-4 min-h-screen">
         <Card className="max-w-3xl mx-auto rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md relative">
           <div className="absolute -top-16 left-1/2 -translate-x-1/2">
-            <div className="rounded-full p-1 bg-white dark:bg-zinc-900 shadow-xl ring-4 ring-zinc-100 dark:ring-zinc-800">
+            <div className="relative rounded-full p-1 bg-white dark:bg-zinc-900 shadow-xl ring-4 ring-zinc-100 dark:ring-zinc-800">
               <Avatar className="w-28 h-28 rounded-full">
-                <AvatarImage src="/avatar.jpg" alt="Avatar" />
+                {avatarSrc ? (
+                  <AvatarImage src={avatarSrc} alt="Avatar" />
+                ) : null}
                 <AvatarFallback className="text-xl font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200">
                   {profile?.username?.slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
+              <Button
+                type="button"
+                size="icon"
+                disabled={isUploadingAvatar}
+                onClick={handleAvatarPick}
+                className="absolute bottom-1 right-1 h-9 w-9 rounded-full bg-zinc-900 text-white shadow-md hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900"
+                title={t("change_photo", "Change photo")}
+              >
+                <Camera className="h-4 w-4" />
+              </Button>
             </div>
+            {isUploadingAvatar ? (
+              <p className="mt-2 text-center text-xs font-medium text-muted-foreground">
+                {t("uploading_photo", "Uploading…")}
+              </p>
+            ) : null}
           </div>
 
           <CardHeader className="pt-16 text-center">

@@ -15,6 +15,9 @@ import { useSocket } from "@/hooks/realtime-chat/use-socket";
 import { useChatMessages } from "@/features/chat/api/use-get-chat-messages";
 import { useRealtimeChatMessages } from "@/features/chat/api/use-realtime-chat";
 import { useMatrixRooms } from "@/features/chat/api/use-get-user-room";
+import { useGetRooms } from "@/features/chat/api/use-get-rooms";
+import { useChatContacts } from "@/features/chat/api/use-get-contacts";
+import { useGetCurrentUser } from "@/features/chat/api/use-get-current-info";
 
 import type {
   MatrixMessageType,
@@ -22,8 +25,20 @@ import type {
   ChatType,
 } from "@/features/chat/types/chat.type";
 
-const mapMatrixToMessage = (m: MatrixMessageType): MessageType => {
+const localpartOf = (mxid?: string | null) =>
+  mxid?.split(":")[0]?.replace(/^@/, "") || mxid || "";
+
+const mapMatrixToMessage = (
+  m: MatrixMessageType,
+  avatarByMxid: Map<string, string>
+): MessageType => {
   const msgtype = m.content?.msgtype;
+  const senderId = m.sender || "";
+  const avatar =
+    avatarByMxid.get(senderId) ||
+    avatarByMxid.get(localpartOf(senderId)) ||
+    null;
+
   return {
     _id: m.event_id,
     event_id: m.event_id,
@@ -31,9 +46,9 @@ const mapMatrixToMessage = (m: MatrixMessageType): MessageType => {
 
     sender: {
       _id: m.sender,
-      name: m.sender?.split(":")[0]?.replace(/^@/, "") || m.sender,
-      avatar: null,
-      username: m.sender?.split(":")[0]?.replace(/^@/, "") || "",
+      name: localpartOf(m.sender) || m.sender,
+      avatar,
+      username: localpartOf(m.sender) || "",
       createdAt: "",
       updatedAt: "",
     },
@@ -62,8 +77,10 @@ export default function SingleChatPageClient() {
   const decodedChatId = decodeURIComponent(chatId);
 
   const { user } = useAuth();
+  const { data: matrixUser } = useGetCurrentUser();
+  const { data: contacts } = useChatContacts(true);
   const { socket } = useSocket();
-  const currentUserId = user?.id || null;
+  const currentUserId = user?.id || matrixUser?._id || null;
 
   const [replyTo, setReplyTo] = useState<MatrixMessageType | null>(null);
 
@@ -90,6 +107,23 @@ export default function SingleChatPageClient() {
     useRealtimeChatMessages(decodedChatId);
 
   const { rooms, loading: roomsLoading } = useMatrixRooms();
+  const { data: unifiedRooms } = useGetRooms();
+
+  const avatarByMxid = useMemo(() => {
+    const map = new Map<string, string>();
+    if (matrixUser?.matrixId && matrixUser.avatar) {
+      map.set(matrixUser.matrixId, matrixUser.avatar);
+      map.set(localpartOf(matrixUser.matrixId), matrixUser.avatar);
+    }
+    for (const c of contacts || []) {
+      if (!c.avatar) continue;
+      // Contacts use localpart as _id; also index raw if present.
+      map.set(c._id, c.avatar);
+      map.set(c.username || c._id, c.avatar);
+      if (c.id) map.set(String(c.id), c.avatar);
+    }
+    return map;
+  }, [contacts, matrixUser]);
 
   const allMessages: MatrixMessageType[] = useMemo(() => {
     const combined = [...matrixInitialMessages, ...realtimeMatrixMessages];
@@ -105,7 +139,12 @@ export default function SingleChatPageClient() {
   }, [matrixInitialMessages, realtimeMatrixMessages]);
 
   const chatRoom = rooms.find((r) => r.roomId === decodedChatId);
-  const roomTitle = chatRoom?.name || "Chat";
+  const unifiedRoom = (unifiedRooms?.joined || []).find(
+    (r: { room_id: string }) => r.room_id === decodedChatId
+  );
+  const roomTitle = chatRoom?.name || unifiedRoom?.name || "Chat";
+  const roomAvatar =
+    (unifiedRoom as { avatar_url?: string } | undefined)?.avatar_url || "";
 
   const chatInfo = {
     room_id: decodedChatId,
@@ -114,7 +153,7 @@ export default function SingleChatPageClient() {
     isGroup: false,
     member_count: 2,
     canonical_alias: "",
-    avatar: "",
+    avatar: roomAvatar,
     createdAt: "",
     lastMessage: null,
     participants: [],
@@ -133,9 +172,9 @@ export default function SingleChatPageClient() {
 
   const uiMessages: MessageType[] = useMemo(() => {
     return allMessages
-      .map(mapMatrixToMessage)
+      .map((m) => mapMatrixToMessage(m, avatarByMxid))
       .filter((m) => !!m.text || !!m.image || !!m.file);
-  }, [allMessages]);
+  }, [allMessages, avatarByMxid]);
 
   if (matrixLoading || roomsLoading) {
     return (

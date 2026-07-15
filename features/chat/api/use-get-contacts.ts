@@ -20,7 +20,7 @@ function toChatUsers(contacts: ContactItem[]): UserType[] {
     const localpart = c.user_id.split(":")[0]?.replace(/^@/, "") || c.user_id;
     const name = c.displayname || localpart;
     return {
-      _id: localpart,
+      _id: c.user_id,
       id: localpart,
       username: localpart,
       name,

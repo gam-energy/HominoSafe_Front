@@ -39,6 +39,26 @@ export async function uploadMatrixMedia(file: File): Promise<string> {
   return data.content_uri;
 }
 
+/** Upload an image and set it as the caller's Matrix profile avatar. */
+export async function uploadAndSetMatrixAvatar(file: File): Promise<string> {
+  const contentUri = await uploadMatrixMedia(file);
+  const accessToken = Cookies.get("synapse_access_token");
+  if (!accessToken) {
+    throw new Error("Matrix access token missing");
+  }
+  const { data } = await axiosInstance.put<{ avatar_url: string }>(
+    "/synapse/profile/avatar",
+    { avatar_url: contentUri },
+    {
+      headers: {
+        "Content-Type": "application/json",
+        "Synapse-Authorization": `Bearer ${accessToken}`,
+      },
+    }
+  );
+  return data.avatar_url || contentUri;
+}
+
 /** Fetch authenticated Matrix media as a blob object URL. */
 export async function fetchMatrixMediaObjectUrl(mxc: string): Promise<string> {
   const parts = parseMxcUrl(mxc);

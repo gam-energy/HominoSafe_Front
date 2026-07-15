@@ -122,7 +122,6 @@ import InviteListItem from "./InviteListItem";
 import { useAuth } from "@/hooks/realtime-chat/use-auth";
 import ChatListHeader from "./chat-list-header";
 import { useRouter } from "next/navigation";
-import { unknown } from "zod/v4";
 
 const ChatList = () => {
   const router = useRouter();
@@ -189,11 +188,11 @@ const ChatList = () => {
                       participants: [],
                       lastMessage: null,
                       isGroup: false,
-                      avatar: "",
+                      avatar: room.avatar_url || "",
                       createdAt: "",
-                      _id: unknown,
-                      name: "",
-                      member_count: 0
+                      _id: room.room_id,
+                      name: room.name || "",
+                      member_count: room.member_count || 0,
                     }}
                     currentUserId={currentUserId}
                     onClick={() => onRoute(room.room_id)}

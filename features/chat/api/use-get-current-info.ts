@@ -13,6 +13,8 @@ type MatrixWhoAmIResponse = {
   user_id: string; // @user:server
   device_id?: string;
   is_guest?: boolean;
+  displayname?: string | null;
+  avatar_url?: string | null;
 };
 
 /* =======================================================
@@ -35,16 +37,18 @@ const fetchCurrentUser = async (): Promise<ChatUserType> => {
     }
   );
 
-
   const now = new Date().toISOString();
+  const localpart =
+    data.user_id?.split(":")[0]?.replace(/^@/, "") || data.user_id;
+  const displayName = data.displayname || localpart;
 
   return {
     _id: data.user_id,
-    username: data.user_id,
-    name: data.user_id,
+    username: localpart,
+    name: displayName,
     matrixId: data.user_id,
 
-    avatar: undefined,
+    avatar: data.avatar_url || undefined,
     email: undefined,
 
     isOnline: true,
