@@ -1,318 +1,348 @@
-"use client";
+'use client';
 
-import React, { useCallback, useMemo, useState } from "react";
-import { AlertType } from "../types/AlertSchema";
-import { useAlertWebSocket } from "../hooks/useAlertWebSocket";
-import { actOnAlert } from "../api/alertApi";
-import { mapBackendAlert } from "../lib/alertTypeMap";
-import { useTranslation } from "react-i18next";
-import { cn } from "@/lib/utils";
+import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { motion, AnimatePresence } from 'framer-motion';
+import { CheckCircle2, Search, Users } from 'lucide-react';
 
-type AckFilter = "all" | "pending" | "acknowledged";
+import PageContainer from '@/components/layout/page-container';
+import { Heading } from '@/components/ui/heading';
+import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { usePatients } from '@/features/patients-list/api/useGetPatients';
 
-const severityMeta = {
-  critical: {
-    label: "Critical",
-    color: "bg-rose-500 text-white",
-    border: "border-rose-500",
-  },
-  high: {
-    label: "High",
-    color: "bg-amber-500 text-white",
-    border: "border-amber-500",
-  },
-  medium: {
-    label: "Medium",
-    color: "bg-sky-500 text-white",
-    border: "border-sky-500",
-  },
-  low: {
-    label: "Low",
-    color: "bg-emerald-500 text-white",
-    border: "border-emerald-500",
-  },
-};
+import { AlertType } from '../types/AlertSchema';
+import { useAlertWebSocket } from '../hooks/useAlertWebSocket';
+import { AlertCard } from './Alert';
 
-const AlertCardDoctor: React.FC<{
-  alert: AlertType;
-  onAcknowledge?: (alert: AlertType) => void;
-}> = ({ alert, onAcknowledge }) => {
-  const { t } = useTranslation();
-  const [open, setOpen] = useState(false);
-  const [acking, setAcking] = useState(false);
-
-  return (
-    <div
-      className={`max-w-4xl mx-auto mb-4 rounded-xl border-l-4 ${
-        severityMeta[alert.severity].border
-      } bg-white dark:bg-zinc-900 shadow-md transition hover:shadow-lg`}
-    >
-      <button
-        type="button"
-        onClick={() => setOpen(!open)}
-        className="w-full flex flex-wrap items-center justify-between gap-3 p-4 text-start"
-      >
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-blue-800 dark:text-blue-300">
-              {alert.alertType.replace(/_/g, " ")}
-            </span>
-            {alert.patientName ? (
-              <span className="truncate text-xs text-muted-foreground">
-                {alert.patientName}
-              </span>
-            ) : null}
-          </div>
-          <span className="text-xs text-muted-foreground ltr-nums">
-            {new Date(alert.timestamp).toLocaleString()}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span
-            className={`px-3 py-1 text-xs rounded-full ${severityMeta[alert.severity].color}`}
-          >
-            {severityMeta[alert.severity].label}
-          </span>
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-semibold",
-              alert.isAcknowledged
-                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300"
-                : "bg-rose-50 text-rose-700 dark:bg-rose-950/30 dark:text-rose-300"
-            )}
-          >
-            {alert.isAcknowledged
-              ? t("acknowledged", "Acknowledged")
-              : t("pending", "Pending")}
-          </span>
-        </div>
-      </button>
-
-      {alert.sensorData ? (
-        <div className="flex flex-wrap gap-2 border-t px-4 py-2 text-xs text-muted-foreground dark:border-zinc-700">
-          {alert.sensorData.heartRate != null ? (
-            <span className="rounded-md bg-muted/60 px-2 py-1 ltr-nums">
-              HR {alert.sensorData.heartRate} bpm
-            </span>
-          ) : null}
-          {alert.sensorData.bp?.systolic != null ||
-          alert.sensorData.bp?.diastolic != null ? (
-            <span className="rounded-md bg-muted/60 px-2 py-1 ltr-nums">
-              BP {alert.sensorData.bp?.systolic ?? "—"}/
-              {alert.sensorData.bp?.diastolic ?? "—"}
-            </span>
-          ) : null}
-          {alert.sensorData.spo2 != null ? (
-            <span className="rounded-md bg-muted/60 px-2 py-1 ltr-nums">
-              SpO₂ {alert.sensorData.spo2}%
-            </span>
-          ) : null}
-          {alert.sensorData.temperature != null ? (
-            <span className="rounded-md bg-muted/60 px-2 py-1 ltr-nums">
-              Temp {alert.sensorData.temperature}°C
-            </span>
-          ) : null}
-        </div>
-      ) : null}
-
-      {open && (
-        <div className="space-y-4 border-t p-4 pt-3 text-sm dark:border-zinc-700">
-          {alert.message || alert.notes ? (
-            <p className="text-muted-foreground">{alert.message || alert.notes}</p>
-          ) : null}
-
-          <div>
-            <strong>{t("vitals_recorded", "Vitals Recorded")}</strong>
-            {alert.sensorData ? (
-              <ul className="mt-1 list-disc space-y-1 pl-5">
-                {alert.sensorData.heartRate != null ? (
-                  <li>Heart Rate: {alert.sensorData.heartRate} bpm</li>
-                ) : null}
-                {alert.sensorData.bp?.systolic != null ||
-                alert.sensorData.bp?.diastolic != null ? (
-                  <li>
-                    Blood Pressure: {alert.sensorData.bp?.systolic ?? "—"}/
-                    {alert.sensorData.bp?.diastolic ?? "—"} mmHg
-                  </li>
-                ) : null}
-                {alert.sensorData.spo2 != null ? (
-                  <li>SpO₂: {alert.sensorData.spo2}%</li>
-                ) : null}
-                {alert.sensorData.temperature != null ? (
-                  <li>Temp: {alert.sensorData.temperature} °C</li>
-                ) : null}
-                {alert.sensorData.activity ? (
-                  <li>Activity: {alert.sensorData.activity}</li>
-                ) : null}
-              </ul>
-            ) : (
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t(
-                  "no_vitals_for_alert",
-                  "No wearable vitals available near this alert time."
-                )}
-              </p>
-            )}
-          </div>
-
-          {!alert.isAcknowledged && onAcknowledge ? (
-            <button
-              type="button"
-              disabled={acking}
-              onClick={async () => {
-                try {
-                  setAcking(true);
-                  const updated = await actOnAlert(alert.alertId, "acknowledge");
-                  onAcknowledge(mapBackendAlert(updated));
-                } finally {
-                  setAcking(false);
-                }
-              }}
-              className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-            >
-              {acking
-                ? t("acknowledging", "Acknowledging...")
-                : t("acknowledge", "Acknowledge")}
-            </button>
-          ) : null}
-        </div>
-      )}
-    </div>
-  );
-};
+type AckFilter = 'all' | 'pending' | 'acknowledged';
+const ALL_PATIENTS = 'all';
 
 const DoctorAlertList: React.FC = () => {
-  const { t } = useTranslation();
-  const [severityFilter, setSeverityFilter] = useState<
-    AlertType["severity"] | "all"
-  >("all");
-  const [ackFilter, setAckFilter] = useState<AckFilter>("all");
+  const { t, i18n } = useTranslation();
+  const isRtl = (i18n.language || 'en').startsWith('fa');
+
+  const [filter, setFilter] = useState<AlertType['severity'] | 'all'>('all');
+  const [ackFilter, setAckFilter] = useState<AckFilter>('all');
+  const [patientFilter, setPatientFilter] = useState<string>(ALL_PATIENTS);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { alerts: liveAlerts, status, upsertAlert } = useAlertWebSocket();
+  const { data: patients = [], isLoading: patientsLoading } = usePatients(true);
+
+  const patientNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const p of patients) {
+      const full = [p.first_name, p.last_name].filter(Boolean).join(' ').trim();
+      map.set(String(p.id), full || p.username);
+    }
+    return map;
+  }, [patients]);
+
+  /** Enrich alerts with patient display names from the care-team roster. */
+  const alerts = useMemo(() => {
+    return (liveAlerts ?? []).map((a) => ({
+      ...a,
+      patientName: a.patientName || patientNameById.get(a.userId) || undefined,
+    }));
+  }, [liveAlerts, patientNameById]);
 
   const handleAcknowledge = useCallback(
     (updated: AlertType) => {
       upsertAlert(updated);
     },
-    [upsertAlert]
+    [upsertAlert],
   );
 
-  const ackCounts = useMemo(() => {
-    const pending = liveAlerts.filter((a) => !a.isAcknowledged).length;
-    const acknowledged = liveAlerts.filter((a) => a.isAcknowledged).length;
-    return { all: liveAlerts.length, pending, acknowledged };
-  }, [liveAlerts]);
+  const statusMeta: Record<string, { label: string; dot: string }> = {
+    connected: { label: t('live', 'Live'), dot: 'bg-emerald-500' },
+    connecting: { label: t('connecting', 'Connecting...'), dot: 'bg-amber-500' },
+    disconnected: { label: t('reconnecting', 'Reconnecting...'), dot: 'bg-amber-500' },
+    error: { label: t('offline', 'Offline'), dot: 'bg-rose-500' },
+  };
 
-  const alerts = useMemo(() => {
-    return (liveAlerts ?? [])
-      .filter((a) => severityFilter === "all" || a.severity === severityFilter)
-      .filter(
-        (a) =>
-          ackFilter === "all" ||
-          (ackFilter === "pending" && !a.isAcknowledged) ||
-          (ackFilter === "acknowledged" && !!a.isAcknowledged)
-      )
+  const patientScoped = useMemo(() => {
+    if (patientFilter === ALL_PATIENTS) return alerts;
+    return alerts.filter((a) => a.userId === patientFilter);
+  }, [alerts, patientFilter]);
+
+  const severities = useMemo(() => {
+    const counts = {
+      all: patientScoped.length,
+      critical: patientScoped.filter((a) => a.severity === 'critical').length,
+      high: patientScoped.filter((a) => a.severity === 'high').length,
+      medium: patientScoped.filter((a) => a.severity === 'medium').length,
+      low: patientScoped.filter((a) => a.severity === 'low').length,
+    };
+    return [
+      {
+        id: 'all' as const,
+        label: t('all', 'All'),
+        count: counts.all,
+        color: 'bg-primary text-primary-foreground',
+        badge: 'bg-primary-foreground/20 text-primary-foreground',
+        shadow: 'shadow-primary/15',
+      },
+      {
+        id: 'critical' as const,
+        label: t('critical', 'Critical'),
+        count: counts.critical,
+        color: 'bg-rose-500 text-white',
+        badge: 'bg-white/25 text-white',
+        shadow: 'shadow-rose-500/15',
+      },
+      {
+        id: 'high' as const,
+        label: t('high', 'High'),
+        count: counts.high,
+        color: 'bg-amber-500 text-white',
+        badge: 'bg-white/25 text-white',
+        shadow: 'shadow-amber-500/15',
+      },
+      {
+        id: 'medium' as const,
+        label: t('medium', 'Medium'),
+        count: counts.medium,
+        color: 'bg-sky-500 text-white',
+        badge: 'bg-white/25 text-white',
+        shadow: 'shadow-sky-500/15',
+      },
+      {
+        id: 'low' as const,
+        label: t('low', 'Low'),
+        count: counts.low,
+        color: 'bg-emerald-500 text-white',
+        badge: 'bg-white/25 text-white',
+        shadow: 'shadow-emerald-500/15',
+      },
+    ];
+  }, [t, patientScoped]);
+
+  const ackFilters = useMemo(() => {
+    const pending = patientScoped.filter((a) => !a.isAcknowledged).length;
+    const acknowledged = patientScoped.filter((a) => a.isAcknowledged).length;
+    return [
+      { id: 'all' as const, label: t('all_statuses', 'All statuses'), count: patientScoped.length },
+      { id: 'pending' as const, label: t('pending', 'Pending'), count: pending },
+      { id: 'acknowledged' as const, label: t('acknowledged', 'Acknowledged'), count: acknowledged },
+    ];
+  }, [t, patientScoped]);
+
+  const filteredAlerts = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return patientScoped
+      .filter((alert) => {
+        const matchesSeverity = filter === 'all' || alert.severity === filter;
+        const matchesAck =
+          ackFilter === 'all' ||
+          (ackFilter === 'pending' && !alert.isAcknowledged) ||
+          (ackFilter === 'acknowledged' && !!alert.isAcknowledged);
+        const matchesSearch =
+          !q ||
+          alert.alertType.toLowerCase().includes(q) ||
+          (alert.patientName || '').toLowerCase().includes(q) ||
+          (alert.notes || '').toLowerCase().includes(q) ||
+          (alert.message || '').toLowerCase().includes(q) ||
+          (alert.sensorData?.activity || '').toLowerCase().includes(q);
+        return matchesSeverity && matchesAck && matchesSearch;
+      })
       .sort(
         (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
       );
-  }, [liveAlerts, severityFilter, ackFilter]);
+  }, [patientScoped, filter, ackFilter, searchQuery]);
 
-  const statusLabel =
-    status === "connected"
-      ? t("live", "Live")
-      : status === "connecting"
-        ? t("connecting", "Connecting...")
-        : status === "error"
-          ? t("offline", "Offline")
-          : t("reconnecting", "Reconnecting...");
+  const selectedPatientLabel =
+    patientFilter === ALL_PATIENTS
+      ? t('all_patients', 'All patients')
+      : patientNameById.get(patientFilter) || t('patient', 'Patient');
 
   return (
-    <div className="min-h-screen bg-blue-50 px-4 py-10 dark:bg-zinc-900">
-      <h1 className="mb-2 text-center text-2xl font-bold text-blue-800 dark:text-blue-400">
-        Doctor Alert Review Panel
-      </h1>
-      <p className="mb-6 text-center text-sm text-muted-foreground">
-        <span
-          className={`inline-flex items-center gap-1.5 ${status === "connected" ? "text-emerald-600" : "text-amber-600"}`}
-        >
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${status === "connected" ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`}
+    <PageContainer scrollable>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <Heading
+            title={t('patient_alerts', 'Patient Alerts')}
+            description={t(
+              'doctor_alerts_subdescription',
+              'Review live clinical alerts across your patients. Filter by patient, severity, and status.',
+            )}
           />
-          {statusLabel}
-        </span>
-      </p>
+          <span className="flex shrink-0 items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold">
+            <span
+              className={cn(
+                'h-2 w-2 rounded-full',
+                statusMeta[status]?.dot,
+                status === 'connected' ? 'animate-pulse' : '',
+              )}
+            />
+            {statusMeta[status]?.label}
+          </span>
+        </div>
 
-      <div className="mb-3 flex flex-wrap justify-center gap-2">
-        <button
-          type="button"
-          onClick={() => setSeverityFilter("all")}
-          className={`rounded-full px-4 py-1.5 text-sm font-semibold ${
-            severityFilter === "all"
-              ? "bg-blue-600 text-white"
-              : "bg-white dark:bg-zinc-800"
-          }`}
-        >
-          {t("all", "All")}
-        </button>
-        {(Object.keys(severityMeta) as AlertType["severity"][]).map((sev) => (
-          <button
-            key={sev}
-            type="button"
-            onClick={() => setSeverityFilter(sev)}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold ${severityMeta[sev].color}`}
+        {/* Patient filter */}
+        <div className="flex flex-col gap-2 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <Users className="h-4 w-4 text-muted-foreground" />
+            {t('filter_by_patient', 'Filter by patient')}
+          </div>
+          <Select
+            value={patientFilter}
+            onValueChange={setPatientFilter}
+            disabled={patientsLoading}
           >
-            {severityMeta[sev].label}
-          </button>
-        ))}
-      </div>
+            <SelectTrigger className="w-full sm:w-72">
+              <SelectValue placeholder={selectedPatientLabel} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_PATIENTS}>
+                {t('all_patients', 'All patients')} ({alerts.length})
+              </SelectItem>
+              {patients.map((p) => {
+                const name =
+                  [p.first_name, p.last_name].filter(Boolean).join(' ').trim() ||
+                  p.username;
+                const count = alerts.filter((a) => a.userId === String(p.id)).length;
+                return (
+                  <SelectItem key={p.id} value={String(p.id)}>
+                    {name} ({count})
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
 
-      <div className="mb-6 flex flex-wrap justify-center gap-2">
-        {(
-          [
-            ["all", t("all_statuses", "All statuses"), ackCounts.all],
-            ["pending", t("pending", "Pending"), ackCounts.pending],
-            [
-              "acknowledged",
-              t("acknowledged", "Acknowledged"),
-              ackCounts.acknowledged,
-            ],
-          ] as const
-        ).map(([id, label, count]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setAckFilter(id)}
+        {/* Severity chips — same design as patient panel */}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {severities.map((sev) => {
+            const isSelected = filter === sev.id;
+            return (
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                key={sev.id}
+                type="button"
+                onClick={() => setFilter(sev.id)}
+                className={cn(
+                  'flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-semibold shadow-sm transition-all duration-200',
+                  isSelected
+                    ? `${sev.color} ${sev.shadow} border-transparent`
+                    : 'border-border bg-card text-foreground hover:bg-muted/50',
+                )}
+              >
+                <span className="truncate">{sev.label}</span>
+                <span
+                  className={cn(
+                    'flex h-5 min-w-5 shrink-0 items-center justify-center rounded-md px-1.5 text-xs font-bold ltr-nums',
+                    isSelected ? sev.badge : 'bg-muted text-muted-foreground',
+                  )}
+                >
+                  {sev.count}
+                </span>
+              </motion.button>
+            );
+          })}
+        </div>
+
+        {/* Ack status chips */}
+        <div className="flex flex-wrap gap-2">
+          {ackFilters.map((chip) => {
+            const selected = ackFilter === chip.id;
+            return (
+              <button
+                key={chip.id}
+                type="button"
+                onClick={() => setAckFilter(chip.id)}
+                className={cn(
+                  'inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition',
+                  selected
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-card text-muted-foreground hover:bg-muted/50',
+                )}
+              >
+                {chip.label}
+                <span
+                  className={cn(
+                    'rounded-md px-1.5 py-0.5 text-[10px] font-bold ltr-nums',
+                    selected ? 'bg-primary-foreground/20' : 'bg-muted',
+                  )}
+                >
+                  {chip.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Search */}
+        <div className="relative w-full">
+          <div
             className={cn(
-              "rounded-full border px-3 py-1.5 text-xs font-semibold",
-              ackFilter === id
-                ? "border-blue-600 bg-blue-600 text-white"
-                : "border-border bg-card text-muted-foreground"
+              'pointer-events-none absolute top-1/2 -translate-y-1/2 text-muted-foreground',
+              isRtl ? 'right-3.5' : 'left-3.5',
             )}
           >
-            {label} ({count})
-          </button>
-        ))}
-      </div>
-
-      {alerts.length === 0 ? (
-        <p className="text-center text-gray-500">
-          {t(
-            "no_alerts",
-            "No alerts found. Live data will appear here when sensors trigger an alert."
-          )}
-        </p>
-      ) : (
-        alerts.map((alert) => (
-          <AlertCardDoctor
-            key={alert.alertId}
-            alert={alert}
-            onAcknowledge={handleAcknowledge}
+            <Search className="h-4 w-4" />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t(
+              'search_doctor_alerts_placeholder',
+              'Search by patient, alert type, notes…',
+            )}
+            className={cn(
+              'w-full rounded-xl border border-border bg-background py-3 text-sm outline-none transition-all focus:ring-2 focus:ring-primary/20',
+              isRtl ? 'pr-10 pl-4 text-right' : 'pl-10 pr-4 text-left',
+            )}
           />
-        ))
-      )}
-    </div>
+        </div>
+
+        {/* Alert cards — shared patient-panel design */}
+        <div className="w-full space-y-3">
+          <AnimatePresence mode="popLayout">
+            {filteredAlerts.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border py-16 text-center"
+              >
+                <div className="rounded-full bg-muted p-4">
+                  <CheckCircle2 className="h-10 w-10 text-muted-foreground/40" />
+                </div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  {patientFilter !== ALL_PATIENTS
+                    ? t(
+                        'no_alerts_for_patient',
+                        'No alerts for this patient with the current filters.',
+                      )
+                    : t(
+                        'no_alerts_found',
+                        'No physiological alerts found matching filters.',
+                      )}
+                </p>
+              </motion.div>
+            ) : (
+              filteredAlerts.map((alert) => (
+                <AlertCard
+                  key={alert.alertId}
+                  alert={alert}
+                  onAcknowledge={handleAcknowledge}
+                />
+              ))
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </PageContainer>
   );
 };
 

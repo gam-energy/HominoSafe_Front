@@ -69,6 +69,7 @@ export interface BackendAlert {
   source?: string | null;
   recipient?: string | null;
   acknowledged_by?: number | null;
+  acknowledged_by_name?: string | null;
   acknowledged_at?: string | null;
   notes?: string | null;
   timestamp?: string | null;

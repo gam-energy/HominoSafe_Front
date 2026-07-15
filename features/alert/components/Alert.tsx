@@ -100,7 +100,7 @@ const alertTypeLabels: Record<string, { en: string; fa: string }> = {
   OTHER: { en: "Alert", fa: "هشدار" }
 };
 
-const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType) => void }> = ({ alert, onAcknowledge }) => {
+export const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType) => void }> = ({ alert, onAcknowledge }) => {
   const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const [acking, setAcking] = useState(false);
@@ -155,8 +155,14 @@ const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: AlertType)
             <span className="text-xs font-semibold text-muted-foreground tracking-wider uppercase ltr-nums">
               {new Date(alert.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
-            <h3 className="text-base font-bold text-gray-900 dark:text-zinc-100 flex items-center gap-2">
+            <h3 className="text-base font-bold text-gray-900 dark:text-zinc-100 flex flex-wrap items-center gap-2">
               {typeLabel}
+              {alert.patientName ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold normal-case tracking-normal text-muted-foreground">
+                  <UserCheck className="h-3 w-3" />
+                  {alert.patientName}
+                </span>
+              ) : null}
             </h3>
           </div>
         </div>

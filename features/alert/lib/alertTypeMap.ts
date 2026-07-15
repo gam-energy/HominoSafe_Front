@@ -62,14 +62,21 @@ function mapVitals(vitals?: BackendAlert['vitals'] | BackendAlertPayload['vitals
 /** Convert a REST ``AlertResponse`` row into the UI ``AlertType``. */
 export function mapBackendAlert(a: BackendAlert): AlertType {
   const status = a.status || 'Active';
+  const alertType = mapAlertType(a.alert_type);
+  let severity = mapSeverity(a.severity);
+  // Falls are always high-priority on the alerts panel.
+  if (alertType === 'FALL_DETECTED' && (severity === 'low' || severity === 'medium')) {
+    severity = 'high';
+  }
   const mapped: AlertType = {
     alertId: String(a.id),
     userId: String(a.user_id),
-    alertType: mapAlertType(a.alert_type),
-    severity: mapSeverity(a.severity),
+    alertType,
+    severity,
     timestamp: a.timestamp || new Date().toISOString(),
     isAcknowledged: status !== 'Active',
-    acknowledgedBy: a.acknowledged_by ? String(a.acknowledged_by) : undefined,
+    acknowledgedBy: a.acknowledged_by_name
+      || (a.acknowledged_by != null ? String(a.acknowledged_by) : undefined),
     acknowledgedAt: a.acknowledged_at || undefined,
     notes: a.notes || a.message || undefined,
     message: a.message || undefined,
@@ -84,11 +91,16 @@ export function mapBackendAlert(a: BackendAlert): AlertType {
 /** Convert a SYSTEM_ALERT WebSocket payload into the UI ``AlertType``. */
 export function mapBackendPayload(p: BackendAlertPayload): AlertType {
   const status = p.status || 'Active';
+  const alertType = mapAlertType(p.alert_type);
+  let severity = mapSeverity(p.severity);
+  if (alertType === 'FALL_DETECTED' && (severity === 'low' || severity === 'medium')) {
+    severity = 'high';
+  }
   const mapped: AlertType = {
     alertId: String(p.alert_id),
     userId: String(p.patient_id),
-    alertType: mapAlertType(p.alert_type),
-    severity: mapSeverity(p.severity),
+    alertType,
+    severity,
     timestamp: p.timestamp || new Date().toISOString(),
     isAcknowledged: status !== 'Active',
     notes: p.message || undefined,
