@@ -16,19 +16,21 @@ export default function StaffPatientHealthKpisPage() {
   const routes = staffPatientRoutes(user?.role, userId);
 
   const { data: patientInfoData } = useGetPatientProfile(userId);
-  const patientName = useMemo(() => {
+  const patientInfo = useMemo(() => {
     if (!patientInfoData) return undefined;
-    const info = Array.isArray(patientInfoData)
-      ? patientInfoData[0]
-      : patientInfoData;
-    return info
-      ? `${info.first_name ?? ''} ${info.last_name ?? ''}`.trim()
-      : undefined;
+    return Array.isArray(patientInfoData) ? patientInfoData[0] : patientInfoData;
   }, [patientInfoData]);
+  const patientName = patientInfo
+    ? `${patientInfo.first_name ?? ''} ${patientInfo.last_name ?? ''}`.trim()
+    : undefined;
 
   return (
     <div className="flex flex-col gap-4">
-      <StaffPatientNav role={user?.role} patientId={userId} />
+      <StaffPatientNav
+        role={user?.role}
+        patientId={userId}
+        patientUuid={patientInfo?.uuid}
+      />
       <HealthKpisPanel
         patientName={patientName}
         userId={userId}

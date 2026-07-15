@@ -18,7 +18,8 @@ import { Heading } from "@/components/ui/heading";
 import ProfileCard from "@/features/dashboard/components/patient/ProfileCard";
 import Ovreview from "@/features/dashboard/components/patient/Ovreview";
 import { OverviewSection } from "@/features/dashboard/components/patient/OverviewSection";
-import { HistoryChart, Metric, TimePeriod } from "@/features/dashboard/components/patient/HistoryChart";
+import { HistoryChart, HistoryPeriodSelect, ALL_HISTORY_METRICS, Metric, TimePeriod } from "@/features/dashboard/components/patient/HistoryChart";
+import { useDashboardPrefs } from "@/features/settings/hooks/useDashboardPrefs";
 import { EditThresholdsModal } from "@/features/patients-list/components/user/EditThresholdsModal";
 import { useUserProfiles } from "@/features/patients-list/api/useUserProfiles";
 import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patient-profile";
@@ -27,6 +28,7 @@ import { useHistory } from "@/features/dashboard/api/patient/useGetHistory";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 import { StaffPatientNav } from "@/features/patients-list/components/StaffPatientNav";
+import { PatientOnboardingBanner } from "@/features/patients-list/components/PatientOnboardingBanner";
 import { useUser } from "@/context/UserContext";
 
 type OverviewData = {
@@ -110,9 +112,13 @@ export default function DoctorPatientDetail() {
 
   // Live vitals + history
   const { data: overViewData, isLoading: isOverviewLoading } = useGetOVerview(userId);
+  const { prefs } = useDashboardPrefs();
   const [metric, setMetric] = useState<Metric>("heart_rate");
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("day");
-  const metrics: Metric[] = [metric];
+  const metrics = useMemo<Metric[]>(
+    () => (prefs.showAllHistoryCharts ? ALL_HISTORY_METRICS : [metric]),
+    [prefs.showAllHistoryCharts, metric]
+  );
   const { data: historyData, isLoading: isHistoryLoading } = useHistory(
     userId,
     metrics,
@@ -143,30 +149,18 @@ export default function DoctorPatientDetail() {
     };
   }, [overViewData]);
 
-  const hasHistoryData =
-    !!historyData &&
-    !!historyData.data &&
-    typeof historyData.data === "object" &&
-    !Array.isArray(historyData.data) &&
-    Array.isArray((historyData.data as Record<string, unknown[]>)[metric]) &&
-    (historyData.data as Record<string, unknown[]>)[metric].length > 0;
+  const historyByMetric = (historyData?.data ?? {}) as Record<
+    string,
+    { timestamp: string; value: number }[]
+  >;
 
-  const chartHistoryData = useMemo(() => {
-    if (hasHistoryData && historyData?.data) {
-      return (
-        (historyData.data as unknown) as Record<
-          string,
-          { timestamp: string; value: number }[]
-        >
-      )[metric];
-    }
-    return [];
-  }, [hasHistoryData, historyData, metric, timePeriod]);
+  const hasAnyHistory = metrics.some(
+    (m) => Array.isArray(historyByMetric[m]) && historyByMetric[m].length > 0
+  );
 
-  const chartHistoryUnit = hasHistoryData
-    ? historyData?.units?.[metric as keyof typeof historyData.units]
-    : undefined;
-
+  const chartHistoryData = historyByMetric[metric] ?? [];
+  const chartHistoryUnit =
+    historyData?.units?.[metric as keyof typeof historyData.units];
   const showHistoryChart = chartHistoryData.length > 0;
 
   const handleMessagePatient = async () => {
@@ -208,6 +202,7 @@ export default function DoctorPatientDetail() {
   return (
     <PageContainer scrollable>
       <div className="flex w-full flex-col gap-6">
+        <PatientOnboardingBanner patientId={userId} />
         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <Button
             variant="ghost"
@@ -275,7 +270,11 @@ export default function DoctorPatientDetail() {
           }
         />
 
-        <StaffPatientNav role={currentUser?.role} patientId={userId} />
+        <StaffPatientNav
+          role={currentUser?.role}
+          patientId={userId}
+          patientUuid={patientInfo?.uuid}
+        />
 
         <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-12">
           <div className="xl:col-span-4">
@@ -293,29 +292,73 @@ export default function DoctorPatientDetail() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-          <div className="xl:col-span-5">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-12">
+          <div className="min-w-0 xl:col-span-5">
             <OverviewSection data={overviewData} isLoading={isOverviewLoading} />
           </div>
 
-          <Card className="flex flex-col rounded-2xl border border-border bg-card p-6 shadow-sm transition-all duration-300 hover:shadow-md xl:col-span-7">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-bold tracking-tight">
+          <Card className="flex min-w-0 flex-col rounded-2xl border border-border bg-card p-4 shadow-sm transition-all duration-300 hover:shadow-md sm:p-6 xl:col-span-7">
+            <div className="mb-3 flex flex-col gap-2 sm:mb-4 sm:flex-row sm:items-center sm:justify-between">
+              <h3 className="text-base font-bold tracking-tight sm:text-lg">
                 {t("health_history", "Health History")}
               </h3>
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-xs font-bold uppercase tracking-wider text-success">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
-                {t("live_data", "Live Data")}
+              <div className="flex flex-wrap items-center gap-2">
+                {prefs.showAllHistoryCharts && (
+                  <HistoryPeriodSelect
+                    timePeriod={timePeriod}
+                    setTimePeriod={setTimePeriod}
+                  />
+                )}
+                <div className="inline-flex items-center gap-1.5 rounded-full bg-success/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-success sm:text-xs">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
+                  {t("live_data", "Live Data")}
+                </div>
               </div>
             </div>
-            <div className="min-h-[340px] flex-1">
+            <div className="min-w-0 flex-1">
               {isHistoryLoading ? (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                <div className="flex min-h-[180px] w-full flex-col items-center justify-center gap-2 text-muted-foreground">
                   <div className="flex animate-pulse flex-col items-center gap-2">
                     <div className="h-8 w-8 animate-bounce rounded-full bg-primary/30" />
                     <span>{t("loading", "Loading...")}</span>
                   </div>
                 </div>
+              ) : prefs.showAllHistoryCharts ? (
+                hasAnyHistory ? (
+                  <div className="flex flex-col gap-4">
+                    {metrics.map((m) => {
+                      const series = historyByMetric[m] ?? [];
+                      if (!series.length) return null;
+                      return (
+                        <div
+                          key={m}
+                          className="rounded-xl border border-border/60 bg-muted/20 p-3"
+                        >
+                          <HistoryChart
+                            data={series}
+                            metric={m}
+                            timePeriod={timePeriod}
+                            unit={
+                              historyData?.units?.[
+                                m as keyof typeof historyData.units
+                              ]
+                            }
+                            className="h-full w-full"
+                            setTimePeriod={setTimePeriod}
+                            hideMetricSelect
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex min-h-[180px] w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                    <div className="rounded-full bg-muted p-4">
+                      <Activity className="h-8 w-8 opacity-20" />
+                    </div>
+                    <p>{t("no_data", "No history data to display.")}</p>
+                  </div>
+                )
               ) : showHistoryChart ? (
                 <HistoryChart
                   data={chartHistoryData}
@@ -327,7 +370,7 @@ export default function DoctorPatientDetail() {
                   setTimePeriod={setTimePeriod}
                 />
               ) : (
-                <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+                <div className="flex min-h-[180px] w-full flex-col items-center justify-center gap-2 text-muted-foreground">
                   <div className="rounded-full bg-muted p-4">
                     <Activity className="h-8 w-8 opacity-20" />
                   </div>

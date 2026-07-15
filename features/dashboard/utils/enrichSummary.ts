@@ -127,13 +127,17 @@ export function enrichSummary(
 }
 
 export function hasOverviewContent(data: SummaryData, live?: DashboardData): boolean {
-  const hasKpis = Object.values(data.kpis).some(
-    (k) => k?.value != null && k.value !== 0
+  const hasKpis = Object.values(data.kpis ?? {}).some(
+    (k) => k?.value != null && !Number.isNaN(k.value)
   );
-  const hasDaily = Object.values(data.daily_overview).some(
-    (v) => typeof v === 'number' && v != null
+  const hasDaily = Object.values(data.daily_overview ?? {}).some(
+    (v) => typeof v === 'number' && v != null && !Number.isNaN(v)
   );
   const hasAlerts = (data.recent_alerts?.length ?? 0) > 0;
-  const hasLive = !!live?.wearable?.heart_rate;
-  return hasKpis || hasDaily || hasAlerts || hasLive;
+  const hasRisk = (data.risk_assessments?.length ?? 0) > 0;
+  const hasLive =
+    live?.wearable?.heart_rate != null ||
+    live?.wearable?.spo2 != null ||
+    live?.wearable?.bp_systolic != null;
+  return hasKpis || hasDaily || hasAlerts || hasRisk || hasLive;
 }

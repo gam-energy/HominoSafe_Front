@@ -266,7 +266,7 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
         onValueChange={(val) => handleTabChange(val as TabType)}
         className="flex h-full w-full flex-col gap-5"
       >
-        <TabsList className="grid w-full grid-cols-3 items-stretch rounded-full bg-muted/80 p-1 transition-all duration-300 h-11">
+        <TabsList className="grid h-auto min-h-10 w-full grid-cols-3 items-stretch rounded-full bg-muted/80 p-1 transition-all duration-300 sm:h-11">
           {(["overview", "recommendation", "risk"] as TabType[]).map((tab) => {
             const label =
               tab === "overview"
@@ -278,7 +278,7 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
               <TabsTrigger
                 key={tab}
                 value={tab}
-                className="rounded-full px-3 text-xs font-bold text-muted-foreground transition-all duration-300 sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm cursor-pointer whitespace-nowrap h-full flex items-center justify-center"
+                className="flex h-full cursor-pointer items-center justify-center rounded-full px-1 py-2 text-[10px] font-bold leading-tight text-muted-foreground transition-all duration-300 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm sm:px-3 sm:text-sm sm:leading-normal"
               >
                 {label}
               </TabsTrigger>
@@ -286,7 +286,7 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
           })}
         </TabsList>
 
-        <ScrollArea className="h-[420px] pr-4 mt-2">
+        <ScrollArea className="mt-2 h-[280px] pr-2 sm:h-[420px] sm:pr-4">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

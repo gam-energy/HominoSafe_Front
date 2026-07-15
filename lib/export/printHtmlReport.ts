@@ -6,14 +6,16 @@ export function printHtmlReport(html: string): void {
 
   const iframe = document.createElement('iframe');
   iframe.setAttribute('title', 'Report print');
+  // Non-zero size + offscreen: zero-size iframes often cannot print.
   iframe.style.position = 'fixed';
-  iframe.style.top = '0';
-  iframe.style.left = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '800px';
+  iframe.style.height = '1100px';
   iframe.style.border = '0';
   iframe.style.opacity = '0';
   iframe.style.pointerEvents = 'none';
+  iframe.style.zIndex = '-1';
 
   document.body.appendChild(iframe);
 
@@ -39,11 +41,27 @@ export function printHtmlReport(html: string): void {
     try {
       win.focus();
       win.print();
+    } catch (err) {
+      cleanup();
+      throw err instanceof Error ? err : new Error('Print failed');
     } finally {
-      window.setTimeout(cleanup, 1500);
+      window.setTimeout(cleanup, 2000);
     }
   };
 
-  // onload is unreliable after document.write; short delay lets layout settle.
-  window.setTimeout(triggerPrint, 400);
+  // Wait for styles/layout; onload is unreliable after document.write.
+  window.setTimeout(triggerPrint, 500);
+}
+
+/** Download HTML as a PDF-friendly file when print is unavailable. */
+export function downloadHtmlFile(html: string, filename: string): void {
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }

@@ -27,8 +27,8 @@ const KPI_LABELS: Record<string, string> = {
   CO2: 'CO₂',
 };
 
-function escapeHtml(value: string): string {
-  return value
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -36,26 +36,26 @@ function escapeHtml(value: string): string {
 }
 
 function fmt(value: number | null | undefined, suffix = ''): string {
-  if (value == null || Number.isNaN(value)) return '—';
-  return `${Math.round(value * 10) / 10}${suffix}`;
+  if (value == null || Number.isNaN(Number(value))) return '—';
+  return `${Math.round(Number(value) * 10) / 10}${suffix}`;
 }
 
-function fmtDate(iso: string | undefined): string {
+function fmtDate(iso: string | undefined | null): string {
   if (!iso) return '—';
   try {
     return new Date(iso).toLocaleString();
   } catch {
-    return iso;
+    return String(iso);
   }
 }
 
 function kpiRows(summary: SummaryData): string {
-  const kpis = summary.kpis ?? {};
+  const kpis = summary?.kpis ?? {};
   const rows: string[] = [];
 
   const addRow = (label: string, kpiKey: string) => {
     const k = kpis[kpiKey];
-    if (!k?.value && k?.value !== 0) return;
+    if (k?.value == null && k?.value !== 0) return;
     rows.push(`
       <tr>
         <td>${escapeHtml(label)}</td>
@@ -105,7 +105,7 @@ function kpiRows(summary: SummaryData): string {
 }
 
 function dailySection(summary: SummaryData): string {
-  const d = summary.daily_overview;
+  const d = summary?.daily_overview;
   return `
     <div class="grid">
       <div class="stat"><span>Avg Heart Rate</span><strong>${fmt(d?.avg_heart_rate)} bpm</strong></div>
@@ -118,7 +118,7 @@ function dailySection(summary: SummaryData): string {
 }
 
 function alertsSection(summary: SummaryData): string {
-  const alerts = summary.recent_alerts ?? [];
+  const alerts = summary?.recent_alerts ?? [];
   if (!alerts.length) {
     return '<p class="empty">No recent alerts.</p>';
   }
@@ -131,29 +131,30 @@ function alertsSection(summary: SummaryData): string {
         ${a.severity ? `<span class="badge">${escapeHtml(a.severity)}</span>` : ''}
         ${a.time ? `<span class="muted">${escapeHtml(fmtDate(a.time))}</span>` : ''}
       </div>
-      <p>${escapeHtml(a.message)}</p>
+      <p>${escapeHtml(a.message ?? '')}</p>
     </li>`
     )
     .join('')}</ul>`;
 }
 
 function riskSection(summary: SummaryData): string {
-  const risks = summary.risk_assessments ?? [];
+  const risks = summary?.risk_assessments ?? [];
   if (!risks.length) {
     return '<p class="empty">No risk assessments.</p>';
   }
   return risks
-    .map(
-      (r) => `
+    .map((r) => {
+      const level = String(r?.risk_level ?? 'unknown').toUpperCase();
+      return `
     <div class="card risk">
       <div class="card-head">
-        <span class="badge">${escapeHtml(r.risk_level.toUpperCase())}</span>
-        <span class="muted">${escapeHtml(fmtDate(r.time))}</span>
+        <span class="badge">${escapeHtml(level)}</span>
+        <span class="muted">${escapeHtml(fmtDate(r?.time))}</span>
       </div>
-      <p><strong>Predicted:</strong> ${escapeHtml(r.predicted_condition)}</p>
-      <p><strong>Recommendation:</strong> ${escapeHtml(r.recommendation)}</p>
-    </div>`
-    )
+      <p><strong>Predicted:</strong> ${escapeHtml(r?.predicted_condition ?? '—')}</p>
+      <p><strong>Recommendation:</strong> ${escapeHtml(r?.recommendation ?? '—')}</p>
+    </div>`;
+    })
     .join('');
 }
 
@@ -161,24 +162,32 @@ function recommendationsSection(rec?: RecommendData | null): string {
   if (!rec) return '<p class="empty">No recommendations available.</p>';
 
   const general = rec.general_recommendations ?? [];
-  const metrics = Object.entries(rec.health_metrics ?? {});
+  const metrics = Object.entries(rec.health_metrics ?? {}).filter(
+    ([, m]) => m && typeof m === 'object'
+  );
 
   return `
-    <p class="muted">Alert level: ${escapeHtml(rec.alert_level_value)} · ${escapeHtml(fmtDate(rec.timestamp))}</p>
+    <p class="muted">Alert level: ${escapeHtml(rec.alert_level_value ?? '—')} · ${escapeHtml(fmtDate(rec.timestamp))}</p>
     ${
       metrics.length
         ? `<table>
         <thead><tr><th>Metric</th><th>Value</th><th>Status</th><th>Recommendation</th></tr></thead>
         <tbody>${metrics
-          .map(
-            ([name, m]) => `
+          .map(([name, m]) => {
+            const metric = m as {
+              value?: number | null;
+              reference_range?: string | null;
+              status?: string | null;
+              recommendation?: string | null;
+            };
+            return `
           <tr>
             <td>${escapeHtml(name.replace(/_/g, ' '))}</td>
-            <td>${fmt(m.value)} (${escapeHtml(m.reference_range)})</td>
-            <td>${escapeHtml(m.status)}</td>
-            <td>${escapeHtml(m.recommendation)}</td>
-          </tr>`
-          )
+            <td>${fmt(metric.value)} (${escapeHtml(metric.reference_range ?? '—')})</td>
+            <td>${escapeHtml(metric.status ?? '—')}</td>
+            <td>${escapeHtml(metric.recommendation ?? '—')}</td>
+          </tr>`;
+          })
           .join('')}</tbody></table>`
         : ''
     }
@@ -191,6 +200,15 @@ function recommendationsSection(rec?: RecommendData | null): string {
 }
 
 export function buildKpiReportHtml({ summary, recommendations, meta }: KpiReportPayload): string {
+  const safeSummary: SummaryData = {
+    user_id: summary?.user_id ?? meta.patientId,
+    last_updated: summary?.last_updated ?? new Date().toISOString(),
+    kpis: summary?.kpis ?? {},
+    recent_alerts: summary?.recent_alerts ?? [],
+    risk_assessments: summary?.risk_assessments ?? [],
+    daily_overview: summary?.daily_overview,
+  };
+
   const generatedAt = meta.generatedAt ?? new Date().toISOString();
   const title = meta.patientName
     ? `Health KPI Report — ${meta.patientName}`
@@ -234,26 +252,26 @@ export function buildKpiReportHtml({ summary, recommendations, meta }: KpiReport
   <h1>${escapeHtml(title)}</h1>
   <div class="meta">
     Generated: ${escapeHtml(fmtDate(generatedAt))}<br />
-    Last data update: ${escapeHtml(fmtDate(summary.last_updated))}
+    Last data update: ${escapeHtml(fmtDate(safeSummary.last_updated))}
     ${meta.activity ? `<br />Activity: ${escapeHtml(meta.activity)}` : ''}
   </div>
 
   <h2>Live Vitals</h2>
-  ${kpiRows(summary)}
+  ${kpiRows(safeSummary)}
 
   <h2>Today's Summary</h2>
-  ${dailySection(summary)}
+  ${dailySection(safeSummary)}
 
   <h2>Recent Alerts</h2>
-  ${alertsSection(summary)}
+  ${alertsSection(safeSummary)}
 
   <h2>Risk Assessments</h2>
-  ${riskSection(summary)}
+  ${riskSection(safeSummary)}
 
   <h2>Recommendations</h2>
   ${recommendationsSection(recommendations)}
 
-  <p class="muted" style="margin-top:32px">SenioSentry / SenioSentry — confidential health summary</p>
+  <p class="muted" style="margin-top:32px">SenioSentry — confidential health summary</p>
 </body>
 </html>`;
 }
@@ -270,7 +288,9 @@ export function downloadKpiReportHtml(payload: KpiReportPayload, filename?: stri
   const link = document.createElement('a');
   link.href = url;
   link.download = name;
+  document.body.appendChild(link);
   link.click();
+  link.remove();
   URL.revokeObjectURL(url);
 }
 

@@ -38,7 +38,13 @@ export function KpiExportMenu({
   const { t } = useTranslation();
 
   const buildPayload = (): KpiReportPayload => ({
-    summary,
+    summary: summary ?? {
+      user_id: patientId,
+      last_updated: new Date().toISOString(),
+      kpis: {},
+      recent_alerts: [],
+      risk_assessments: [],
+    },
     recommendations,
     meta: {
       patientId,
@@ -52,7 +58,8 @@ export function KpiExportMenu({
     try {
       downloadKpiReportHtml(buildPayload());
       toast.success(t('report_downloaded', 'Report downloaded as HTML'));
-    } catch {
+    } catch (err) {
+      console.error('KPI HTML export failed', err);
       toast.error(t('report_export_failed', 'Failed to export report'));
     }
   };
@@ -63,8 +70,21 @@ export function KpiExportMenu({
       toast.message(
         t('print_pdf_hint', 'Use “Save as PDF” in the print dialog')
       );
-    } catch {
-      toast.error(t('report_export_failed', 'Failed to export report'));
+    } catch (err) {
+      console.error('KPI PDF export failed', err);
+      // Fallback: still give the user a downloadable report.
+      try {
+        downloadKpiReportHtml(buildPayload());
+        toast.message(
+          t(
+            'pdf_fallback_html',
+            'Print was blocked — downloaded HTML instead. Open it and use Print → Save as PDF.'
+          )
+        );
+      } catch (fallbackErr) {
+        console.error('KPI export fallback failed', fallbackErr);
+        toast.error(t('report_export_failed', 'Failed to export report'));
+      }
     }
   };
 
@@ -82,11 +102,23 @@ export function KpiExportMenu({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem onClick={handleDownloadHtml} className="gap-2 cursor-pointer">
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            handleDownloadHtml();
+          }}
+          className="cursor-pointer gap-2"
+        >
           <FileText className="h-4 w-4" />
           {t('download_html', 'Download HTML')}
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={handlePrintPdf} className="gap-2 cursor-pointer">
+        <DropdownMenuItem
+          onSelect={(e) => {
+            e.preventDefault();
+            handlePrintPdf();
+          }}
+          className="cursor-pointer gap-2"
+        >
           <Printer className="h-4 w-4" />
           {t('save_as_pdf', 'Save as PDF')}
         </DropdownMenuItem>
