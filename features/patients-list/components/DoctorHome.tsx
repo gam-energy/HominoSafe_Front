@@ -32,6 +32,10 @@ import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { useUser } from "@/context/UserContext";
 import { User } from "@/features/dashboard/types/caregiver/user";
 import { cn } from "@/lib/utils";
+import {
+  AddPatientButton,
+  InviteCaregiverButton,
+} from "./CareTeamActions";
 
 const StatCard = ({
   label,
@@ -237,7 +241,9 @@ export default function DoctorHome() {
               name: user?.first_name || (isCaregiver ? "Caregiver" : "Doctor"),
             })}
           />
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <InviteCaregiverButton />
+            <AddPatientButton />
             <Button variant="outline" onClick={() => router.push("/dashboard/chat")}>
               <MessageCircle className="w-4 h-4 me-2" />
               {t("chat", "Chat")}

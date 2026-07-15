@@ -43,7 +43,7 @@ function PatientRowActions({ user }: { user: User }) {
           <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52 bg-white">
+      <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuLabel>Actions</DropdownMenuLabel>
         <DropdownMenuItem asChild>
           <Link href={routes.detailRoute} className="flex items-center gap-2">

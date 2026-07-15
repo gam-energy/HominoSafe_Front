@@ -93,7 +93,7 @@ export const userColumns: ColumnDef<User>[] = [
               <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36 bg-white">
+          <DropdownMenuContent align="end" className="w-36">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
               <DropdownMenuItem asChild>
                 <Link href={`/dashboard/overview/${user.id}`} className="flex items-center gap-2">

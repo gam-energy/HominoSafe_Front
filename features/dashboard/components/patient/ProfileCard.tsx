@@ -28,6 +28,7 @@ import { useState } from 'react';
 
 type ViewedUser = {
   id: number;
+  uuid?: string;
   username: string;
   email: string;
   first_name: string;
@@ -175,7 +176,7 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           {statItems.map((item) => {
             const IconComponent = item.icon;
             return (
@@ -211,6 +212,28 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
         </div>
 
         <div className="mt-auto pt-4 space-y-2">
+          {user.uuid && (
+            <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-muted/30 dark:bg-zinc-800/20 p-3 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] uppercase font-extrabold text-muted-foreground tracking-wider">
+                  {t('patient_uuid', 'Patient UUID')}
+                </span>
+                <CopyButton
+                  content={String(user.uuid)}
+                  copyMessage={t('copied', 'Copied to clipboard')}
+                />
+              </div>
+              <div className="break-all font-mono text-xs font-bold text-gray-800 dark:text-zinc-200">
+                {user.uuid}
+              </div>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                {t(
+                  'patient_uuid_pi_hint',
+                  'Paste this as mqtt.patient_id in senio_pi/config.yaml when linking a Raspberry Pi camera.'
+                )}
+              </p>
+            </div>
+          )}
           {isViewingOther ? (
             <Button
               onClick={handleMessagePatient}
@@ -224,26 +247,6 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
             </Button>
           ) : (
             <>
-              <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-muted/30 dark:bg-zinc-800/20 p-3 space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] uppercase font-extrabold text-muted-foreground tracking-wider">
-                    {t('patient_id', 'Patient ID')}
-                  </span>
-                  <CopyButton
-                    content={String(user.id)}
-                    copyMessage={t('copied', 'Copied to clipboard')}
-                  />
-                </div>
-                <div className="font-bold text-base ltr-nums text-gray-800 dark:text-zinc-200">
-                  {user.id}
-                </div>
-                <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  {t(
-                    'patient_id_pi_hint',
-                    'Use this ID as mqtt.patient_id in senio_pi/config.yaml.'
-                  )}
-                </p>
-              </div>
               <Button
                 variant="secondary"
                 className="w-full rounded-2xl h-11"

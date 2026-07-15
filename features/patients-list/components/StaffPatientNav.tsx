@@ -19,9 +19,11 @@ import { staffPatientRoutes } from '@/features/patient-knowledge/utils/staffRout
 export function StaffPatientNav({
   role,
   patientId,
+  patientUuid,
 }: {
   role: string | undefined;
   patientId: number;
+  patientUuid?: string | null;
 }) {
   const { t } = useTranslation();
   const pathname = usePathname();
@@ -55,6 +57,8 @@ export function StaffPatientNav({
     },
   ];
 
+  const copyValue = patientUuid || String(patientId);
+
   return (
     <nav className="flex flex-wrap gap-2 rounded-2xl border border-border bg-muted/30 p-2">
       {items.map(({ href, label, icon: Icon }) => {
@@ -78,11 +82,15 @@ export function StaffPatientNav({
           </Link>
         );
       })}
-      <div className="ms-auto hidden items-center gap-1.5 text-xs text-muted-foreground sm:flex">
-        <Activity className="h-3.5 w-3.5" />
-        {t('patient_id', 'Patient ID')}: {patientId}
+      <div className="ms-auto hidden max-w-[min(100%,22rem)] items-center gap-1.5 text-xs text-muted-foreground sm:flex">
+        <Activity className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate font-mono" title={copyValue}>
+          {patientUuid
+            ? `${t('patient_uuid', 'UUID')}: ${patientUuid}`
+            : `${t('patient_id', 'Patient ID')}: ${patientId}`}
+        </span>
         <CopyButton
-          content={String(patientId)}
+          content={copyValue}
           copyMessage={t('copied', 'Copied to clipboard')}
         />
       </div>
