@@ -1,4 +1,3 @@
-
 import axios, {
   AxiosInstance,
   AxiosError,
@@ -8,20 +7,15 @@ import axios, {
 import Cookies from 'js-cookie';
 import { getApiBaseUrl } from '@/lib/api-utils';
 import { refreshAccessToken } from '@/api/axiosInstance';
+import { clearAuthCookies, redirectToSignIn } from '@/lib/auth-session';
 
 const API_BASE_URL = getApiBaseUrl();
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: new AxiosHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+  withCredentials: true,
 });
-
-const getRefreshToken = (): string | undefined => Cookies.get('refresh_token');
-
-const saveTokens = (accessToken: string, refreshToken: string): void => {
-  Cookies.set('access_token', accessToken);
-  Cookies.set('refresh_token', refreshToken);
-};
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
@@ -57,9 +51,8 @@ axiosInstance.interceptors.response.use(
         originalRequest.headers.set('Authorization', `Bearer ${newAccessToken}`);
         return axiosInstance(originalRequest);
       } catch (refreshError) {
-        Cookies.remove('access_token');
-        Cookies.remove('refresh_token');
-        window.location.href = '/auth/sign-in';
+        clearAuthCookies();
+        redirectToSignIn();
         return Promise.reject(refreshError);
       }
     }

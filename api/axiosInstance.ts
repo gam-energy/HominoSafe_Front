@@ -6,6 +6,11 @@ import axios, {
 } from 'axios';
 import Cookies from 'js-cookie';
 import { getApiBaseUrl } from '@/lib/api-utils';
+import {
+  AUTH_COOKIE_OPTS,
+  clearAuthCookies,
+  redirectToSignIn,
+} from '@/lib/auth-session';
 
 /** Prefer calling getApiBaseUrl() — host-aware in the browser. */
 export const API_BASE_URL = getApiBaseUrl();
@@ -14,13 +19,14 @@ const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   headers: new AxiosHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
   timeout: 30_000,
+  withCredentials: true,
 });
 
 const getRefreshToken = (): string | undefined => Cookies.get('refresh_token');
 
 const saveTokens = (accessToken: string, refreshToken: string): void => {
-  Cookies.set('access_token', accessToken);
-  Cookies.set('refresh_token', refreshToken);
+  Cookies.set('access_token', accessToken, { ...AUTH_COOKIE_OPTS, expires: 1 });
+  Cookies.set('refresh_token', refreshToken, { ...AUTH_COOKIE_OPTS, expires: 7 });
 };
 
 export interface RefreshTokenResponse {
@@ -28,6 +34,12 @@ export interface RefreshTokenResponse {
   refresh_token?: string;
   access?: string;
   refresh?: string;
+  synapse_access_token?: string;
+}
+
+function isAuthEndpoint(url?: string): boolean {
+  if (!url) return false;
+  return /\/(refresh-token|token|logout)(\?|$)/.test(url);
 }
 
 export async function refreshAccessToken(): Promise<string> {
@@ -37,10 +49,19 @@ export async function refreshAccessToken(): Promise<string> {
   }
 
   const base = getApiBaseUrl();
+  const prevAccess = Cookies.get('access_token');
+
   const { data } = await axios.post<RefreshTokenResponse>(
     `${base}/refresh-token`,
     { refresh_token: refreshToken },
-    { headers: { 'Content-Type': 'application/json' }, timeout: 12_000 }
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(prevAccess ? { Authorization: `Bearer ${prevAccess}` } : {}),
+      },
+      withCredentials: true,
+      timeout: 12_000,
+    }
   );
 
   const newAccessToken = data.access_token ?? data.access;
@@ -51,6 +72,12 @@ export async function refreshAccessToken(): Promise<string> {
   }
 
   saveTokens(newAccessToken, newRefreshToken);
+  if (data.synapse_access_token) {
+    Cookies.set('synapse_access_token', data.synapse_access_token, {
+      ...AUTH_COOKIE_OPTS,
+      expires: 7,
+    });
+  }
   return newAccessToken;
 }
 
@@ -75,13 +102,10 @@ const processQueue = (error: unknown, token: string | null = null) => {
 
 axiosInstance.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    // Re-resolve at request time so HTTPS/same-origin vs :3000→:8888 is correct
-    // even if this module was first evaluated during SSR.
     config.baseURL = getApiBaseUrl();
     if (!config.headers) {
       config.headers = new AxiosHeaders();
     }
-    // FormData must get a browser-generated multipart boundary.
     if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
       config.headers.delete('Content-Type');
     }
@@ -101,14 +125,22 @@ interface AxiosRequestConfigWithRetry extends InternalAxiosRequestConfig {
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as AxiosRequestConfigWithRetry;
+    const originalRequest = error.config as AxiosRequestConfigWithRetry | undefined;
 
-    if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
+    if (
+      error.response?.status === 401 &&
+      originalRequest &&
+      !originalRequest._retry &&
+      !isAuthEndpoint(originalRequest.url)
+    ) {
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         })
           .then((token) => {
+            if (!originalRequest.headers) {
+              originalRequest.headers = new AxiosHeaders();
+            }
             originalRequest.headers.set('Authorization', 'Bearer ' + token);
             return axiosInstance(originalRequest);
           })
@@ -122,29 +154,29 @@ axiosInstance.interceptors.response.use(
       if (!refreshToken) {
         isRefreshing = false;
         processQueue(new Error('No refresh token'), null);
-        window.location.href = '/auth/sign-in';
+        clearAuthCookies();
+        redirectToSignIn();
         return Promise.reject(error);
       }
 
-      return new Promise((resolve, reject) => {
-        refreshAccessToken()
-          .then((newAccessToken) => {
-            axiosInstance.defaults.headers.common['Authorization'] = 'Bearer ' + newAccessToken;
-            originalRequest.headers.set('Authorization', 'Bearer ' + newAccessToken);
-            processQueue(null, newAccessToken);
-            resolve(axiosInstance(originalRequest));
-          })
-          .catch((err) => {
-            processQueue(err, null);
-            Cookies.remove('access_token');
-            Cookies.remove('refresh_token');
-            window.location.href = '/auth/sign-in';
-            reject(err);
-          })
-          .finally(() => {
-            isRefreshing = false;
-          });
-      });
+      try {
+        const newAccessToken = await refreshAccessToken();
+        axiosInstance.defaults.headers.common['Authorization'] =
+          'Bearer ' + newAccessToken;
+        if (!originalRequest.headers) {
+          originalRequest.headers = new AxiosHeaders();
+        }
+        originalRequest.headers.set('Authorization', 'Bearer ' + newAccessToken);
+        processQueue(null, newAccessToken);
+        return axiosInstance(originalRequest);
+      } catch (err) {
+        processQueue(err, null);
+        clearAuthCookies();
+        redirectToSignIn();
+        return Promise.reject(err);
+      } finally {
+        isRefreshing = false;
+      }
     }
 
     return Promise.reject(error);

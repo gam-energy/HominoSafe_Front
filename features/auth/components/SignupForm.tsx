@@ -1,188 +1,54 @@
-// "use client";
-// import React, { useState } from "react";
-// import { useForm } from "react-hook-form";
-// import { zodResolver } from "@hookform/resolvers/zod";
-// import { useRouter } from "next/navigation";
-// import { Eye, EyeOff } from "lucide-react";
-
-// import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-// import { Input } from "@/components/ui/input";
-// import { Button } from "@/components/ui/button";
-// import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-
-// import { signUpSchema, relationships } from "../types/schema";
-// import { SignUpFormProps, SignUpFormValues } from "../types/auth";
-
-// export const SignUpForm: React.FC<SignUpFormProps> = ({ onSubmit }) => {
-//   const router = useRouter();
-
-//   const form = useForm<SignUpFormValues>({
-//     resolver: zodResolver(signUpSchema),
-//     defaultValues: {
-//       username: "",
-//       password: "",
-//       confirmPassword: "",
-//       email: "",
-//       phone_number: "",
-//       first_name: "",
-//       last_name: "",
-//       role: "caregiver",
-//       relationship_to_user: "",
-//     },
-//   });
-
-//   const [showPassword, setShowPassword] = useState(false);
-//   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-//   return (
-//     <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 md:p-10 mt-12 text-left">
-//       <div className="mb-6 text-center">
-//         <h1 className="text-2xl font-bold text-primary dark:text-white">Create a New Account</h1>
-//         <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
-//           Please fill in the information below to register.
-//         </p>
-//       </div>
-
-//       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-//         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-//           {["first_name", "last_name", "username", "email", "phone_number"].map((fieldName) => (
-//             <FormField
-//               key={fieldName}
-//               control={form.control}
-//               name={fieldName as keyof SignUpFormValues}
-//               render={({ field }) => (
-//                 <FormItem>
-//                   <FormLabel>{fieldName.replace("_", " ").toUpperCase()}</FormLabel>
-//                   <FormControl>
-//                     <Input {...field} placeholder={fieldName} />
-//                   </FormControl>
-//                   <FormMessage />
-//                 </FormItem>
-//               )}
-//             />
-//           ))}
-
-//           {/* Password */}
-//           <FormField
-//             control={form.control}
-//             name="password"
-//             render={({ field }) => (
-//               <FormItem>
-//                 <FormLabel>Password</FormLabel>
-//                 <FormControl>
-//                   <div className="relative">
-//                     <Input {...field} type={showPassword ? "text" : "password"} placeholder="Enter password" />
-//                     <button
-//                       type="button"
-//                       onClick={() => setShowPassword(!showPassword)}
-//                       className="absolute inset-y-0 right-2 flex items-center px-2 text-gray-600 dark:text-gray-400"
-//                       tabIndex={-1}
-//                     >
-//                       {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-//                     </button>
-//                   </div>
-//                 </FormControl>
-//                 <FormMessage />
-//               </FormItem>
-//             )}
-//           />
-
-//           {/* Confirm Password */}
-//           <FormField
-//             control={form.control}
-//             name="confirmPassword"
-//             render={({ field }) => (
-//               <FormItem>
-//                 <FormLabel>Confirm Password</FormLabel>
-//                 <FormControl>
-//                   <div className="relative">
-//                     <Input {...field} type={showConfirmPassword ? "text" : "password"} placeholder="Re-enter password" />
-//                     <button
-//                       type="button"
-//                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-//                       className="absolute inset-y-0 right-2 flex items-center px-2 text-gray-600 dark:text-gray-400"
-//                       tabIndex={-1}
-//                     >
-//                       {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-//                     </button>
-//                   </div>
-//                 </FormControl>
-//                 <FormMessage />
-//               </FormItem>
-//             )}
-//           />
-
-//           {/* Relationship */}
-//           <FormField
-//             control={form.control}
-//             name="relationship_to_user"
-//             render={({ field }) => (
-//               <FormItem>
-//                 <FormLabel>Relationship to User</FormLabel>
-//                 <Select value={field.value} onValueChange={field.onChange}>
-//                   <SelectTrigger>
-//                     <SelectValue placeholder="Select relationship" />
-//                   </SelectTrigger>
-//                   <SelectContent className="bg-white dark:bg-zinc-900 z-50">
-//                     {relationships.map((rel) => (
-//                       <SelectItem key={rel} value={rel}>
-//                         {rel}
-//                       </SelectItem>
-//                     ))}
-//                   </SelectContent>
-//                 </Select>
-//                 <FormMessage />
-//               </FormItem>
-//             )}
-//           />
-//         </div>
-
-//         <input type="hidden" {...form.register("role")} value="caregiver" />
-
-//         <Button type="submit" className="w-full mt-4">
-//           Sign Up
-//         </Button>
-
-//         <Button
-//           type="button"
-//           variant="ghost"
-//           className="w-full text-sm text-gray-600 dark:text-gray-400 hover:underline"
-//           onClick={() => router.push("/auth/sign-in")}
-//         >
-//           Already have an account? Sign In
-//         </Button>
-//       </form>
-//     </div>
-//   );
-// };
 "use client";
-import React, { useState } from "react";
-import { useRouter } from "next/navigation";
+
+import React, { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
+
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
-
-const relationships = ["Parent", "Sibling", "Spouse", "Friend", "Other"];
-
-export type SignUpFormValues = {
-  username: string;
-  password: string;
-  confirmPassword: string;
-  email: string;
-  phone_number: string;
-  first_name: string;
-  last_name: string;
-  role: string;
-  relationship_to_user: string;
-};
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectItem,
+} from "@/components/ui/select";
+import { relationships, type SignUpFormValues } from "../types/auth";
 
 interface SignUpFormProps {
   onSubmit: (values: SignUpFormValues) => void;
+  isPending?: boolean;
 }
 
-export const SignUpForm: React.FC<SignUpFormProps> = ({ onSubmit }) => {
+const RELATION_KEYS: Record<string, string> = {
+  Parent: "rel_parent",
+  Spouse: "rel_spouse",
+  Sibling: "rel_sibling",
+  Child: "rel_child",
+  Friend: "rel_friend",
+  Relative: "rel_relative",
+  Caregiver: "rel_caregiver",
+  Other: "rel_other",
+};
+
+const FIELD_KEYS: Record<string, string> = {
+  first_name: "first_name",
+  last_name: "last_name",
+  username: "username",
+  email: "email",
+  phone_number: "phone_number",
+};
+
+export const SignUpForm: React.FC<SignUpFormProps> = ({
+  onSubmit,
+  isPending = false,
+}) => {
+  const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const codeFromUrl = (searchParams.get("code") || "").toUpperCase();
+
   const [formData, setFormData] = useState<SignUpFormValues>({
     username: "",
     password: "",
@@ -193,12 +59,21 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSubmit }) => {
     last_name: "",
     role: "caregiver",
     relationship_to_user: "",
+    referral_code: codeFromUrl,
   });
+
+  useEffect(() => {
+    if (codeFromUrl) {
+      setFormData((prev) => ({ ...prev, referral_code: codeFromUrl }));
+    }
+  }, [codeFromUrl]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
@@ -206,92 +81,142 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSubmit }) => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ساده‌ترین اعتبارسنجی
+    if (!formData.referral_code.trim()) {
+      alert(t("err_referral_required"));
+      return;
+    }
     if (!formData.username || !formData.password || !formData.confirmPassword) {
-      alert("Username and passwords are required");
+      alert(t("err_username_password_required"));
+      return;
+    }
+    if (formData.password.length < 8) {
+      alert(t("err_password_min"));
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      alert(t("err_password_mismatch"));
+      return;
+    }
+    if (!formData.first_name || !formData.last_name) {
+      alert(t("err_name_required"));
+      return;
+    }
+    if (!formData.relationship_to_user) {
+      alert(t("err_relationship_required"));
       return;
     }
 
-    onSubmit(formData);
+    onSubmit({
+      ...formData,
+      referral_code: formData.referral_code.trim().toUpperCase(),
+      role: "caregiver",
+    });
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 md:p-10 mt-12 text-left">
-      <h1 className="text-2xl font-bold mb-4 text-center">Create a New Account</h1>
+    <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 md:p-10 mt-4 sm:mt-8">
+      <h1 className="text-2xl font-bold mb-2 text-center">
+        {t("caregiver_signup_title")}
+      </h1>
+      <p className="text-sm text-muted-foreground text-center mb-6">
+        {t("caregiver_signup_subtitle")}
+      </p>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {["first_name", "last_name", "username", "email", "phone_number"].map((field) => (
-            <div key={field}>
-              <label className="block capitalize">{field.replace("_", " ")}</label>
-              <Input
-                name={field}
-                value={(formData as any)[field]}
-                onChange={handleChange}
-                placeholder={field}
-              />
-            </div>
-          ))}
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            {t("doctor_referral_code")}
+          </label>
+          <Input
+            name="referral_code"
+            dir="ltr"
+            value={formData.referral_code}
+            onChange={handleChange}
+            placeholder={t("referral_code_placeholder")}
+            className="uppercase tracking-wider"
+          />
+        </div>
 
-          {/* Password */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {(["first_name", "last_name", "username", "email", "phone_number"] as const).map(
+            (field) => (
+              <div key={field}>
+                <label className="block text-sm mb-1">
+                  {t(FIELD_KEYS[field])}
+                </label>
+                <Input
+                  name={field}
+                  dir="ltr"
+                  value={formData[field]}
+                  onChange={handleChange}
+                  placeholder={t(FIELD_KEYS[field])}
+                />
+              </div>
+            )
+          )}
+
           <div>
-            <label>Password</label>
+            <label className="block text-sm mb-1">{t("password")}</label>
             <div className="relative">
               <Input
                 name="password"
+                dir="ltr"
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Enter password"
+                placeholder={t("enter_password")}
+                className="pe-10"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-2 px-2"
+                className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground"
+                tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
           </div>
 
-          {/* Confirm Password */}
           <div>
-            <label>Confirm Password</label>
+            <label className="block text-sm mb-1">{t("confirm_password")}</label>
             <div className="relative">
               <Input
                 name="confirmPassword"
+                dir="ltr"
                 type={showConfirmPassword ? "text" : "password"}
-                value={formData.confirmPassword}
+                value={formData.confirmPassword || ""}
                 onChange={handleChange}
-                placeholder="Re-enter password"
+                placeholder={t("reenter_password")}
+                className="pe-10"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-2 px-2"
+                className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground"
+                tabIndex={-1}
               >
                 {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
           </div>
 
-          {/* Relationship */}
           <div>
-            <label>Relationship to User</label>
+            <label className="block text-sm mb-1">
+              {t("relationship_to_patient")}
+            </label>
             <Select
               value={formData.relationship_to_user}
-              onValueChange={(val) => setFormData((prev) => ({ ...prev, relationship_to_user: val }))}
+              onValueChange={(val) =>
+                setFormData((prev) => ({ ...prev, relationship_to_user: val }))
+              }
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Select relationship" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={t("select_relationship")} />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-zinc-900 z-50">
                 {relationships.map((rel) => (
                   <SelectItem key={rel} value={rel}>
-                    {rel}
+                    {t(RELATION_KEYS[rel] || rel)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -299,19 +224,16 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({ onSubmit }) => {
           </div>
         </div>
 
-        <input type="hidden" name="role" value="caregiver" />
-
-        <Button type="submit" className="w-full mt-4">
-          Sign Up
+        <Button type="submit" className="w-full" disabled={isPending}>
+          {isPending ? t("creating_account") : t("create_caregiver_account")}
         </Button>
-
         <Button
           type="button"
           variant="ghost"
-          className="w-full text-sm text-gray-600 dark:text-gray-400 hover:underline"
+          className="w-full"
           onClick={() => router.push("/auth/sign-in")}
         >
-          Already have an account? Sign In
+          {t("already_have_account")}
         </Button>
       </form>
     </div>

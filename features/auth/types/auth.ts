@@ -6,12 +6,14 @@ export type LoginFormValues = {
 export type SignUpFormValues = {
   username: string
   password: string,
+  confirmPassword?: string,
   email: string,
   phone_number: string,
   first_name: string,
   last_name: string,
   role: "caregiver",
   relationship_to_user: string,
+  referral_code: string,
   assigned_patients?: number[]
 }
 
