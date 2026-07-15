@@ -3,13 +3,20 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
   Collapsible,
   CollapsibleContent,
 } from '@/components/ui/collapsible';
-import { Brain, ChevronDown, ChevronUp, Clock, Loader2 } from 'lucide-react';
+import {
+  Brain,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Loader2,
+  ListChecks,
+  AlertTriangle,
+} from 'lucide-react';
 import { FindingsList } from '@/features/clinical-agent/components/FindingsList';
 import { RecommendationsList } from '@/features/clinical-agent/components/RecommendationsList';
 import { DecisionGraphPanel } from '@/features/clinical-agent/components/DecisionGraphPanel.lazy';
@@ -19,9 +26,6 @@ import { useClinicalReportDetail } from '@/features/clinical-reports/api/useClin
 import type { CdsFinding, CdsRecommendation } from '@/features/clinical-agent/types/cds';
 import type { ClinicalReportDetail } from '@/features/clinical-reports/types/reports';
 import { cn } from '@/lib/utils';
-
-const PREVIEW_FINDINGS = 2;
-const PREVIEW_RECS = 2;
 
 function mapScheduledReport(detail: ClinicalReportDetail): {
   overall_status: string;
@@ -77,13 +81,24 @@ function mapScheduledReport(detail: ClinicalReportDetail): {
   };
 }
 
+function friendlyStatus(status: string, t: (k: string, d: string) => string) {
+  const s = status.toLowerCase();
+  if (s.includes('critical')) return t('status_critical', 'Needs attention');
+  if (s.includes('high')) return t('status_high', 'Higher priority');
+  if (s.includes('medium') || s.includes('moderate'))
+    return t('status_moderate', 'Worth a look');
+  if (s.includes('low') || s.includes('completed') || s.includes('normal'))
+    return t('status_ok', 'Looking okay');
+  return status;
+}
+
 /**
- * Patient-facing agent analysis from the **8-hour scheduled** clinical agent
- * (`clinical_agent_reports` table) — not from CNN `window_risk_readings`.
+ * Patient-facing agent analysis — compact summary first; details on demand.
  */
 export function AgentAnalysisSection({ patientId }: { patientId: number }) {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
+  const [openDetails, setOpenDetails] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const {
     data: listData,
@@ -110,162 +125,173 @@ export function AgentAnalysisSection({ patientId }: { patientId: number }) {
 
   const findings = mapped?.findings ?? [];
   const recommendations = mapped?.recommendations ?? [];
-
-  const previewFindings = findings.slice(0, PREVIEW_FINDINGS);
-  const restFindings = findings.slice(PREVIEW_FINDINGS);
-  const previewRecs = recommendations.slice(0, PREVIEW_RECS);
-  const restRecs = recommendations.slice(PREVIEW_RECS);
   const isLoading = listLoading || (!!latestSummary && detailLoading);
-  const hiddenCount = restFindings.length + restRecs.length;
-  const hasMore = hiddenCount > 0 || !!detail?.graph_snapshot;
 
   return (
     <div className="min-w-0 max-w-full space-y-4 overflow-x-hidden">
-      <Card className="min-w-0 overflow-hidden border-border/80">
-        <CardHeader className="px-4 sm:px-6">
-          <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
-            <CardTitle className="flex min-w-0 items-center gap-2 text-lg">
-              <Brain className="h-5 w-5 shrink-0" />
-              <span className="break-words">
-                {t('agent_analysis', 'Agent analysis')}
-              </span>
-            </CardTitle>
+      <section className="min-w-0 overflow-hidden rounded-[1.5rem] border border-border/70 bg-card shadow-sm">
+        <div className="relative border-b border-border/60 px-4 py-5 sm:px-6">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,hsl(221_70%_50%/0.06),transparent_45%,hsl(186_55%_40%/0.05))]"
+          />
+          <div className="relative flex min-w-0 flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <h2 className="flex min-w-0 items-center gap-2 font-[family-name:var(--font-instrument)] text-xl font-semibold tracking-tight">
+                <Brain className="h-5 w-5 shrink-0 text-primary" />
+                <span className="break-words">
+                  {t('care_check', 'Care check')}
+                </span>
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'care_check_blurb',
+                  'A short automatic review of how you’re doing.'
+                )}
+              </p>
+            </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="gap-1 font-normal">
+              <span className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-2.5 py-1 text-xs font-medium text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                {t('every_8_hours', 'Every 8 hours')}
-              </Badge>
+                {t('every_8_hours_short', 'Every 8 hours')}
+              </span>
               {mapped?.overall_status ? (
-                <Badge variant="secondary">{mapped.overall_status}</Badge>
+                <Badge variant="secondary" className="rounded-xl">
+                  {friendlyStatus(mapped.overall_status, t)}
+                </Badge>
               ) : null}
             </div>
           </div>
-          <p className="break-words text-sm text-muted-foreground">
-            {t(
-              'agent_analysis_desc_scheduled',
-              'Scheduled clinical-agent review of your knowledge graph and vitals (separate from watch CNN scores). Stored in clinical agent reports — not written on every CNN window.'
-            )}
-          </p>
-          {mapped?.analyzed_at ? (
-            <p className="text-xs text-muted-foreground">
-              {t('last_agent_run', 'Last agent run')}:{' '}
-              {new Date(mapped.analyzed_at).toLocaleString()}
-              {detail?.triggered_by ? (
-                <> · {t('source', 'Source')}: {detail.triggered_by}</>
-              ) : null}
-            </p>
-          ) : null}
-        </CardHeader>
+        </div>
 
-        <CardContent className="space-y-4 px-4 pb-4 sm:px-6">
+        <div className="space-y-3 px-4 py-5 sm:px-6 sm:pb-6">
           {isLoading ? (
             <div className="flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              {t('loading_report', 'Loading clinical report...')}
+              {t('loading_check', 'Loading your care check...')}
             </div>
           ) : listError || detailError ? (
             <p className="text-sm text-destructive">
               {(listErr as Error)?.message ||
-                t(
-                  'failed_load_agent_report',
-                  'Failed to load scheduled agent report.'
-                )}
+                t('failed_load_care_check', 'Couldn’t load the latest care check.')}
             </p>
           ) : !mapped ? (
-            <p className="text-sm text-muted-foreground">
-              {t(
-                'no_scheduled_agent_yet',
-                'No scheduled agent report yet. The clinical agent runs automatically every 8 hours for patients with indexed knowledge.'
-              )}
-            </p>
+            <div className="rounded-2xl border border-dashed border-border px-4 py-8 text-center">
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'no_care_check_yet',
+                  'No care check yet. We’ll run one automatically every 8 hours.'
+                )}
+              </p>
+            </div>
           ) : (
             <>
-              <section className="space-y-2">
-                <h3 className="text-sm font-semibold">
-                  {t('critical_findings', 'Critical Findings')}
-                  {findings.length > PREVIEW_FINDINGS ? (
-                    <span className="ms-2 text-xs font-normal text-muted-foreground">
-                      ({previewFindings.length}/{findings.length})
-                    </span>
-                  ) : null}
-                </h3>
-                <FindingsList findings={previewFindings} />
-              </section>
+              {/* Compact human summary — no long text */}
+              <div className="grid gap-2 sm:grid-cols-3">
+                <div className="rounded-2xl border border-border/60 bg-muted/20 px-3 py-3">
+                  <p className="text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                    {t('last_checked', 'Last checked')}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold ltr-nums">
+                    {mapped.analyzed_at
+                      ? new Date(mapped.analyzed_at).toLocaleString()
+                      : '—'}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-muted/20 px-3 py-3">
+                  <p className="flex items-center gap-1 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                    <AlertTriangle className="h-3 w-3" />
+                    {t('findings', 'Findings')}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold ltr-nums">
+                    {findings.length}
+                  </p>
+                </div>
+                <div className="rounded-2xl border border-border/60 bg-muted/20 px-3 py-3">
+                  <p className="flex items-center gap-1 text-[11px] font-bold tracking-wider text-muted-foreground uppercase">
+                    <ListChecks className="h-3 w-3" />
+                    {t('suggestions', 'Suggestions')}
+                  </p>
+                  <p className="mt-1 text-sm font-semibold ltr-nums">
+                    {recommendations.length}
+                  </p>
+                </div>
+              </div>
 
-              <section className="space-y-2">
-                <h3 className="text-sm font-semibold">
-                  {t('recommendations', 'Recommendations')}
-                  {recommendations.length > PREVIEW_RECS ? (
-                    <span className="ms-2 text-xs font-normal text-muted-foreground">
-                      ({previewRecs.length}/{recommendations.length})
-                    </span>
-                  ) : null}
-                </h3>
-                <RecommendationsList recommendations={previewRecs} />
-              </section>
+              <Collapsible open={openDetails} onOpenChange={setOpenDetails}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full gap-2 rounded-xl"
+                  onClick={() => setOpenDetails((v) => !v)}
+                  aria-expanded={openDetails}
+                >
+                  {openDetails ? (
+                    <>
+                      <ChevronUp className="h-4 w-4" />
+                      {t('hide_details', 'Hide details')}
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className={cn('h-4 w-4')} />
+                      {t('show_details', 'Show details')}
+                    </>
+                  )}
+                </Button>
 
-              <Collapsible open={expanded} onOpenChange={setExpanded}>
-                <CollapsibleContent className="space-y-4">
-                  {restFindings.length > 0 ? (
-                    <section className="space-y-2">
-                      <h3 className="text-sm font-semibold text-muted-foreground">
-                        {t('more_findings', 'More findings')}
-                      </h3>
-                      <FindingsList findings={restFindings} />
-                    </section>
-                  ) : null}
-                  {restRecs.length > 0 ? (
-                    <section className="space-y-2">
-                      <h3 className="text-sm font-semibold text-muted-foreground">
-                        {t('more_recommendations', 'More recommendations')}
-                      </h3>
-                      <RecommendationsList recommendations={restRecs} />
-                    </section>
-                  ) : null}
-                  <DecisionGraphPanel
-                    decisionGraph={undefined}
-                    causalGraph={undefined}
-                    showDecisionFallback
-                  />
-                </CollapsibleContent>
+                <CollapsibleContent className="mt-4 space-y-4">
+                  <section className="space-y-2">
+                    <h3 className="text-sm font-semibold">
+                      {t('findings', 'Findings')}
+                    </h3>
+                    <FindingsList findings={findings} expandableDetails />
+                  </section>
 
-                {hasMore ? (
-                  <div className="pt-1">
+                  <section className="space-y-2">
+                    <h3 className="text-sm font-semibold">
+                      {t('suggestions', 'Suggestions')}
+                    </h3>
+                    <RecommendationsList
+                      recommendations={recommendations}
+                      expandableDetails
+                    />
+                  </section>
+
+                  <Collapsible open={showHelp} onOpenChange={setShowHelp}>
                     <Button
                       type="button"
-                      variant="outline"
-                      className="w-full gap-2"
-                      onClick={() => setExpanded((v) => !v)}
-                      aria-expanded={expanded}
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-muted-foreground"
+                      onClick={() => setShowHelp((v) => !v)}
                     >
-                      {expanded ? (
-                        <>
-                          <ChevronUp className="h-4 w-4" />
-                          {t('show_less_analysis', 'Show less')}
-                        </>
+                      {showHelp ? (
+                        <ChevronUp className="h-3.5 w-3.5" />
                       ) : (
-                        <>
-                          <ChevronDown className={cn('h-4 w-4')} />
-                          {hiddenCount > 0
-                            ? t(
-                                'show_full_analysis_more',
-                                'Show full analysis ({{count}}+ more)',
-                                { count: hiddenCount }
-                              )
-                            : t(
-                                'show_full_analysis',
-                                'Show full analysis & graphs'
-                              )}
-                        </>
+                        <ChevronDown className="h-3.5 w-3.5" />
                       )}
+                      {t('about_this_check', 'About this check')}
                     </Button>
-                  </div>
-                ) : null}
+                    <CollapsibleContent className="mt-2 space-y-3">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        {t(
+                          'agent_analysis_desc_scheduled',
+                          'Scheduled clinical-agent review of your knowledge graph and vitals (separate from watch CNN scores).'
+                        )}
+                      </p>
+                      <DecisionGraphPanel
+                        decisionGraph={undefined}
+                        causalGraph={undefined}
+                        showDecisionFallback
+                      />
+                    </CollapsibleContent>
+                  </Collapsible>
+                </CollapsibleContent>
               </Collapsible>
             </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </section>
 
       <ScheduledReportsPanel patientId={patientId} />
     </div>
