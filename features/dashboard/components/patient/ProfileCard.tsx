@@ -2,8 +2,8 @@
 
 import { useUser } from '@/context/UserContext';
 import { CardTitle } from '@/components/ui/card';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
+import { MatrixAvatar } from '@/components/matrix-avatar';
 import {
   Edit,
   Phone,
@@ -14,6 +14,9 @@ import {
   CalendarDays,
   MessageCircle,
   Watch,
+  Stethoscope,
+  HeartHandshake,
+  Building2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -25,6 +28,27 @@ import { useProfileStats } from '@/features/profile/hook/useGetUser';
 import { PairWatchDialog } from './PairWatchDialog';
 import { CopyButton } from '@/components/ui/copy-button';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import axiosInstance from '@/api/axiosInstance';
+
+type CareTeamMember = {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  specialization?: string | null;
+  relationship_to_patient?: string | null;
+  email?: string | null;
+  phone_number?: string | null;
+};
+
+type ClinicInfo = {
+  id: number;
+  name: string;
+  code?: string | null;
+  address?: string | null;
+  phone?: string | null;
+};
 
 type ViewedUser = {
   id: number;
@@ -35,6 +59,12 @@ type ViewedUser = {
   last_name: string;
   phone_number: string;
   status?: string;
+  doctor?: CareTeamMember | null;
+  caregiver?: CareTeamMember | null;
+  clinic?: ClinicInfo | null;
+  doctor_id?: number | null;
+  caregiver_id?: number | null;
+  clinic_id?: number | null;
 };
 
 interface ProfileCardProps {
@@ -52,6 +82,12 @@ function formatStat(value: number | null | undefined, unit: string): string {
   return `${value}${unit ? '' : ''}`;
 }
 
+function memberName(m?: CareTeamMember | null) {
+  if (!m) return null;
+  const full = `${m.first_name || ''} ${m.last_name || ''}`.trim();
+  return full || m.username || null;
+}
+
 export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
   const { t } = useTranslation();
   const { user: currentUser } = useUser();
@@ -66,6 +102,30 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
   const { data: profileStats, isLoading: statsLoading } = useProfileStats(
     isViewingOther ? viewedUser?.id : undefined
   );
+
+  // When staff pass a thin viewedUser, refresh care-team details from /user/{id}.
+  const { data: careTeamUser } = useQuery({
+    queryKey: ['user-care-team', viewedUser?.id ?? currentUser?.id ?? 'self'],
+    enabled: !!user,
+    staleTime: 60_000,
+    queryFn: async () => {
+      if (isViewingOther && viewedUser?.id) {
+        const { data } = await axiosInstance.get<ViewedUser>(
+          `/user/${viewedUser.id}`,
+          { headers: { 'Content-Type': 'application/json' } }
+        );
+        return data;
+      }
+      const { data } = await axiosInstance.get<ViewedUser>('/user/', {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return data;
+    },
+  });
+
+  const doctor = careTeamUser?.doctor ?? viewedUser?.doctor ?? null;
+  const caregiver = careTeamUser?.caregiver ?? viewedUser?.caregiver ?? null;
+  const clinic = careTeamUser?.clinic ?? viewedUser?.clinic ?? null;
 
   if (!user) {
     return (
@@ -120,6 +180,33 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
     },
   ];
 
+  const careRows = [
+    {
+      key: 'doctor',
+      label: t('doctor', 'Doctor'),
+      icon: Stethoscope,
+      name: memberName(doctor),
+      detail: doctor?.specialization || null,
+      empty: t('no_doctor_assigned', 'No doctor assigned'),
+    },
+    {
+      key: 'caregiver',
+      label: t('caregiver', 'Caregiver'),
+      icon: HeartHandshake,
+      name: memberName(caregiver),
+      detail: caregiver?.relationship_to_patient || null,
+      empty: t('no_caregiver_assigned', 'No caregiver assigned'),
+    },
+    {
+      key: 'clinic',
+      label: t('clinic', 'Clinic'),
+      icon: Building2,
+      name: clinic?.name || null,
+      detail: clinic?.code ? `${clinic.code}` : clinic?.address || null,
+      empty: t('no_clinic_assigned', 'No clinic assigned'),
+    },
+  ];
+
   return (
     <>
       <motion.div
@@ -132,13 +219,13 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
 
         <div className="flex flex-col items-center text-center gap-4 pt-4">
           <div className="relative">
-            <Avatar className="h-24 w-24 ring-4 ring-primary/20 shadow-md group-hover:ring-primary/40 transition-all duration-300">
-              <AvatarImage src="/placeholder-user.png" alt={user.first_name} />
-              <AvatarFallback className="text-2xl font-black bg-gradient-to-br from-primary to-primary-hover text-white">
-                {user.first_name[0]}
-                {user.last_name[0]}
-              </AvatarFallback>
-            </Avatar>
+            <MatrixAvatar
+              username={user.username}
+              firstName={user.first_name}
+              lastName={user.last_name}
+              className="h-24 w-24 ring-4 ring-primary/20 shadow-md group-hover:ring-primary/40 transition-all duration-300"
+              fallbackClassName="text-2xl font-black bg-gradient-to-br from-primary to-primary-hover text-white"
+            />
 
             <span className="absolute bottom-1 right-1 flex h-4.5 w-4.5 rounded-full border-2 border-white dark:border-zinc-900 bg-background items-center justify-center">
               <span
@@ -174,6 +261,36 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
             <Mail className="w-4 h-4 text-primary" />
             <span className="truncate font-semibold">{user.email || 'No email provided'}</span>
           </div>
+        </div>
+
+        <div className="space-y-2 rounded-2xl border border-zinc-200/70 bg-muted/20 p-3 dark:border-zinc-800/70">
+          <p className="text-[10px] uppercase font-extrabold tracking-wider text-muted-foreground px-1">
+            {t('care_team', 'Care team')}
+          </p>
+          {careRows.map((row) => {
+            const Icon = row.icon;
+            return (
+              <div
+                key={row.key}
+                className="flex items-start gap-3 rounded-xl bg-background/70 px-2.5 py-2"
+              >
+                <div className="mt-0.5 rounded-lg bg-primary/10 p-1.5 text-primary">
+                  <Icon className="h-3.5 w-3.5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">
+                    {row.label}
+                  </p>
+                  <p className="truncate text-sm font-semibold text-foreground">
+                    {row.name || row.empty}
+                  </p>
+                  {row.name && row.detail ? (
+                    <p className="truncate text-xs text-muted-foreground">{row.detail}</p>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <div className="grid grid-cols-3 gap-2 sm:gap-3">

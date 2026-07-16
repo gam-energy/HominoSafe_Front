@@ -5,6 +5,21 @@ import { AxiosError } from "axios";
 import Cookies from "js-cookie";
 import { clearAuthRedirectGuard, isJwtExpired } from "@/lib/auth-session";
 
+type CareTeamMember = {
+  id: number;
+  username: string;
+  first_name: string;
+  last_name: string;
+  specialization?: string | null;
+  relationship_to_patient?: string | null;
+};
+
+type ClinicInfo = {
+  id: number;
+  name: string;
+  code?: string | null;
+};
+
 type User = {
   username: string;
   email: string;
@@ -15,6 +30,12 @@ type User = {
   uuid?: string;
   role: "admin" | "patient" | "caregiver" | "doctor";
   status: "active" | "inactive";
+  doctor_id?: number | null;
+  caregiver_id?: number | null;
+  clinic_id?: number | null;
+  doctor?: CareTeamMember | null;
+  caregiver?: CareTeamMember | null;
+  clinic?: ClinicInfo | null;
 } | null;
 
 interface UserContextType {
