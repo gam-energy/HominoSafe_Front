@@ -1,4 +1,6 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+'use client';
+
+import { MatrixAvatar } from '@/components/matrix-avatar';
 
 interface UserAvatarProfileProps {
   className?: string;
@@ -10,8 +12,8 @@ interface UserAvatarProfileProps {
     last_name: string;
     phone_number: string;
     id: number;
-    role: "admin" | "patient" | "caregiver" | "doctor";
-    status: "active" | "inactive";
+    role: 'admin' | 'patient' | 'caregiver' | 'doctor';
+    status: 'active' | 'inactive';
   } | null;
 }
 
@@ -24,12 +26,14 @@ export function UserAvatarProfile({
 
   return (
     <div className="flex items-center gap-2">
-      <Avatar className={className}>
-        <AvatarImage src="" alt={fullName} />
-        <AvatarFallback className="rounded-lg">
-          {user ? fullName.slice(0, 2).toUpperCase() : 'CN'}
-        </AvatarFallback>
-      </Avatar>
+      <MatrixAvatar
+        username={user?.username}
+        firstName={user?.first_name}
+        lastName={user?.last_name}
+        className={className}
+        fallbackClassName="rounded-lg"
+        alt={fullName || 'User'}
+      />
 
       {showInfo && user && (
         <div className="grid flex-1 text-left text-sm leading-tight">
