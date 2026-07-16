@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo } from 'react';
 import {
   Chart as ChartJS,
   LineElement,
@@ -102,6 +103,77 @@ const METRIC_COLORS: Record<Metric, string> = {
   mq2: '#eab308',
 };
 
+/** Target max points rendered — keeps week/month charts readable. */
+const MAX_POINTS: Record<TimePeriod, number> = {
+  day: 96, // ~15 min
+  week: 84, // ~2 h
+  month: 90, // ~8 h
+};
+
+const BUCKET_MS: Record<TimePeriod, number> = {
+  day: 15 * 60 * 1000,
+  week: 2 * 60 * 60 * 1000,
+  month: 8 * 60 * 60 * 1000,
+};
+
+/**
+ * Average values into fixed time buckets, then cap total points.
+ * Preserves trend without plotting every raw sample.
+ */
+export function downsampleHistory(
+  points: HistoryDataPoint[],
+  timePeriod: TimePeriod
+): HistoryDataPoint[] {
+  if (points.length === 0) return points;
+
+  // Always bucket so sparse-but-noisy series still read as a trend.
+  const bucketMs = BUCKET_MS[timePeriod];
+  if (points.length <= MAX_POINTS[timePeriod] && points.length <= 48) {
+    return points;
+  }
+
+  const buckets = new Map<number, { sum: number; count: number }>();
+
+  for (const p of points) {
+    const t = new Date(p.timestamp).getTime();
+    if (!Number.isFinite(t) || !Number.isFinite(p.value)) continue;
+    const key = Math.floor(t / bucketMs) * bucketMs;
+    const cur = buckets.get(key);
+    if (cur) {
+      cur.sum += p.value;
+      cur.count += 1;
+    } else {
+      buckets.set(key, { sum: p.value, count: 1 });
+    }
+  }
+
+  let aggregated = [...buckets.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([ts, { sum, count }]) => ({
+      timestamp: new Date(ts + bucketMs / 2).toISOString(),
+      value: Math.round((sum / count) * 10) / 10,
+    }));
+
+  // Safety cap if still too dense (e.g. long month ranges).
+  const max = MAX_POINTS[timePeriod];
+  if (aggregated.length > max) {
+    const step = aggregated.length / max;
+    const thinned: HistoryDataPoint[] = [];
+    for (let i = 0; i < max; i++) {
+      const idx = Math.min(aggregated.length - 1, Math.floor(i * step));
+      thinned.push(aggregated[idx]);
+    }
+    // Always keep last point for currency.
+    const last = aggregated[aggregated.length - 1];
+    if (thinned[thinned.length - 1]?.timestamp !== last.timestamp) {
+      thinned[thinned.length - 1] = last;
+    }
+    aggregated = thinned;
+  }
+
+  return aggregated;
+}
+
 /* ================= COMPONENT ================= */
 
 export function HistoryChart({
@@ -118,9 +190,12 @@ export function HistoryChart({
   const { prefs } = useDashboardPrefs();
   const compact = prefs.compactCharts;
 
-  const filteredData = Array.isArray(data)
-    ? data.filter((d) => d.timestamp && d.value != null && !isNaN(d.value))
-    : [];
+  const filteredData = useMemo(() => {
+    const clean = Array.isArray(data)
+      ? data.filter((d) => d.timestamp && d.value != null && !isNaN(d.value))
+      : [];
+    return downsampleHistory(clean, timePeriod);
+  }, [data, timePeriod]);
 
   const color = METRIC_COLORS[metric] ?? '#6366F1';
   const label =
@@ -135,12 +210,14 @@ export function HistoryChart({
         label: `${label}${unit ? ` (${unit})` : ''}`,
         data: filteredData.map((d) => d.value),
         borderColor: color,
-        backgroundColor: color + '1A',
-        tension: 0.35,
+        backgroundColor: color + '22',
+        tension: 0.4,
         fill: true,
-        pointRadius: compact ? 0 : 2,
-        pointHoverRadius: 4,
-        borderWidth: 2,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHitRadius: 12,
+        borderWidth: 2.25,
+        spanGaps: true,
       },
     ],
   };
@@ -160,7 +237,12 @@ export function HistoryChart({
       },
       tooltip: {
         callbacks: {
-          label: (ctx) => `${ctx.parsed.y} ${unit ?? ''}`.trim(),
+          label: (ctx) => {
+            const y = ctx.parsed.y;
+            const formatted =
+              typeof y === 'number' ? (Number.isInteger(y) ? String(y) : y.toFixed(1)) : String(y);
+            return `${formatted}${unit ? ` ${unit}` : ''}`;
+          },
         },
       },
     },
