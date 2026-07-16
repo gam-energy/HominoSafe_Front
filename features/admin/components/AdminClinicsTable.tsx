@@ -19,6 +19,16 @@ import {
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -165,6 +175,87 @@ export function AdminClinicsTable() {
           icon={<AlertTriangle className="h-4 w-4" />}
           tone={kpis.overdue > 0 ? 'rose' : 'slate'}
         />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Patients by clinic</CardTitle>
+          </CardHeader>
+          <CardContent className="h-56">
+            {(data ?? []).length === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No clinic data yet.
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[...(data ?? [])]
+                    .map((c) => ({
+                      name: c.name.length > 14 ? `${c.name.slice(0, 14)}…` : c.name,
+                      patients: c.patient_count || 0,
+                      doctors: c.doctor_count || 0,
+                    }))
+                    .slice(0, 8)}
+                  margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} />
+                  <Tooltip />
+                  <Bar dataKey="patients" fill="#6366f1" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="doctors" fill="#14b8a6" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Collection rate by clinic</CardTitle>
+          </CardHeader>
+          <CardContent className="h-56">
+            {(data ?? []).length === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No billing data yet.
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[...(data ?? [])]
+                    .map((c) => {
+                      const billed = c.billing_total || 0;
+                      const paid = c.billing_paid || 0;
+                      return {
+                        name: c.name.length > 14 ? `${c.name.slice(0, 14)}…` : c.name,
+                        rate: billed > 0 ? Math.round((paid / billed) * 1000) / 10 : 0,
+                      };
+                    })
+                    .slice(0, 8)}
+                  margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                  <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} width={28} unit="%" />
+                  <Tooltip />
+                  <Bar dataKey="rate" radius={[6, 6, 0, 0]}>
+                    {[...(data ?? [])].slice(0, 8).map((c, i) => {
+                      const billed = c.billing_total || 0;
+                      const paid = c.billing_paid || 0;
+                      const rate = billed > 0 ? paid / billed : 0;
+                      return (
+                        <Cell
+                          key={c.id}
+                          fill={rate >= 0.8 ? '#10b981' : rate >= 0.5 ? '#f59e0b' : '#f43f5e'}
+                        />
+                      );
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       <Card>

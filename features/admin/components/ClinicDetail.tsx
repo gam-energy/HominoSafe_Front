@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   ArrowLeft,
   AlertTriangle,
+  Brain,
   CheckCircle2,
   CreditCard,
   Loader2,
@@ -22,6 +23,16 @@ import {
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -205,6 +216,86 @@ export function ClinicDetail({ clinicId }: { clinicId: number }) {
         </Card>
       )}
 
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Clinic roster mix</CardTitle>
+          </CardHeader>
+          <CardContent className="h-52">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={[
+                  { name: 'Doctors', value: clinic.doctor_count || 0 },
+                  { name: 'Patients', value: clinic.patient_count || 0 },
+                  {
+                    name: 'Caregivers',
+                    value: clinic.caregiver_count || caregivers.data?.length || 0,
+                  },
+                ]}
+                margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} />
+                <Tooltip />
+                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                  {['#14b8a6', '#6366f1', '#f59e0b'].map((fill, i) => (
+                    <Cell key={i} fill={fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Billing by year</CardTitle>
+          </CardHeader>
+          <CardContent className="h-52">
+            {(billings.data ?? []).length === 0 ? (
+              <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                No billing records yet.
+              </p>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={[...(billings.data ?? [])]
+                    .slice()
+                    .sort((a, b) => a.year - b.year)
+                    .map((b) => ({
+                      year: String(b.year),
+                      amount: Number(b.amount || 0),
+                    }))}
+                  margin={{ top: 8, right: 8, left: -8, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="year" tick={{ fontSize: 11 }} />
+                  <YAxis tick={{ fontSize: 11 }} width={36} />
+                  <Tooltip />
+                  <Bar dataKey="amount" radius={[6, 6, 0, 0]}>
+                    {[...(billings.data ?? [])]
+                      .slice()
+                      .sort((a, b) => a.year - b.year)
+                      .map((b) => (
+                        <Cell
+                          key={b.id}
+                          fill={
+                            b.status === 'paid'
+                              ? '#10b981'
+                              : b.status === 'overdue'
+                                ? '#f43f5e'
+                                : '#f59e0b'
+                          }
+                        />
+                      ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
       <Tabs defaultValue="doctors">
         <TabsList>
           <TabsTrigger value="doctors">Doctors</TabsTrigger>
@@ -234,6 +325,7 @@ export function ClinicDetail({ clinicId }: { clinicId: number }) {
             onAdd={() => setAssignRole('PATIENT')}
             onRemove={onRemoveMember}
             removing={removeMember.isPending}
+            enablePatientAi
           />
         </TabsContent>
 
@@ -445,6 +537,7 @@ function MemberCard({
   onAdd,
   onRemove,
   removing,
+  enablePatientAi = false,
 }: {
   title: string;
   role: 'DOCTOR' | 'PATIENT' | 'CAREGIVER';
@@ -462,6 +555,7 @@ function MemberCard({
   onAdd: () => void;
   onRemove: (id: number, name: string) => void;
   removing: boolean;
+  enablePatientAi?: boolean;
 }) {
   return (
     <Card>
@@ -517,14 +611,30 @@ function MemberCard({
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          disabled={removing}
-                          onClick={() => onRemove(m.id, full || m.username)}
-                        >
-                          <UserMinus className="h-3.5 w-3.5" /> Remove
-                        </Button>
+                        <div className="inline-flex items-center gap-1">
+                          {enablePatientAi && (
+                            <>
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link href={`/dashboard/ai?patientId=${m.id}`}>
+                                  <Brain className="h-3.5 w-3.5" /> AI
+                                </Link>
+                              </Button>
+                              <Button variant="ghost" size="sm" asChild>
+                                <Link href={`/dashboard/patients/${m.id}/clinical-agent`}>
+                                  Agent
+                                </Link>
+                              </Button>
+                            </>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            disabled={removing}
+                            onClick={() => onRemove(m.id, full || m.username)}
+                          >
+                            <UserMinus className="h-3.5 w-3.5" /> Remove
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   );
