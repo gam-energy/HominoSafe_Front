@@ -1,18 +1,31 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/api/axiosInstance';
 import { AxiosError } from 'axios';
-// import { toast } from 'sonner'; // در صورت نیاز فعال کن
 
 export type SessionResponse = {
   session_id: string;
-  status: string;
-}
+  status?: string;
+  message?: string;
+};
 
-// تابع POST بدون body
-const createSession = async (): Promise<SessionResponse> => {
-  const response = await axiosInstance.post<SessionResponse>('/api/v1/chatbot/sessions');
+export type CreateSessionInput = {
+  patient_id?: number;
+};
 
-  if (response.status !== 201) {
+const createSession = async (
+  input?: CreateSessionInput
+): Promise<SessionResponse> => {
+  const body =
+    input?.patient_id != null ? { patient_id: input.patient_id } : {};
+  const response = await axiosInstance.post<SessionResponse>(
+    '/api/v1/chatbot/sessions',
+    body,
+    {
+      headers: { 'Content-Type': 'application/json' },
+    }
+  );
+
+  if (response.status !== 201 && response.status !== 200) {
     throw new Error('Failed to create session');
   }
 
@@ -22,18 +35,14 @@ const createSession = async (): Promise<SessionResponse> => {
 export const useCreateSession = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<SessionResponse, AxiosError, void>({
-    mutationFn: createSession,
+  return useMutation<SessionResponse, AxiosError, CreateSessionInput | void>({
+    mutationFn: (input) => createSession(input || undefined),
 
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['sessions'] });
-
-      // toast.success('جلسه با موفقیت ایجاد شد!');
-      console.log('Session created:', data);
     },
 
     onError: (error) => {
-      // toast.error(error.message || 'خطا در ایجاد جلسه!');
       console.error('Create session error:', error);
     },
   });

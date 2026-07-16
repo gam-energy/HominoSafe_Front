@@ -211,6 +211,14 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
+      title: 'AI Chat',
+      url: '/dashboard/ai',
+      icon: 'aiChat',
+      shortcut: ['a', 'i'],
+      isActive: false,
+      items: [],
+    },
+    {
       title: 'Chat Sessions',
       url: '/dashboard/chat-sessions',
       icon: 'aiChat',

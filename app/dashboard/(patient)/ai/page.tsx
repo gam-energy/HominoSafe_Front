@@ -5,14 +5,23 @@ import { DEFAULT_CHAT_MODEL } from '@/lib/ai/models';
 import { DataStreamHandler } from '@/components/chat/data-stream-handler';
 import { ChatKnowledgeGate } from '@/components/chat/chat-knowledge-gate';
 import { useCreateSession } from '@/features/ai/api/useCreateSession';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { GetSessions } from '@/features/ai/api/useGetSessions';
 import { GetChatById } from '@/features/ai/api/useGetChatById';
 import { LoaderIcon } from '@/components/chat/icons';
 import { useUser } from '@/context/UserContext';
+import { useSearchParams } from 'next/navigation';
 
 export default function Page() {
   const { user } = useUser();
+  const searchParams = useSearchParams();
+  const patientIdParam = searchParams.get('patientId');
+  const patientId = useMemo(() => {
+    if (!patientIdParam) return undefined;
+    const n = Number(patientIdParam);
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  }, [patientIdParam]);
+
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [checked, setChecked] = useState(false);
 
@@ -25,14 +34,37 @@ export default function Page() {
       new Date(b.last_message_at ?? b.created_at).getTime() -
       new Date(a.last_message_at ?? a.created_at).getTime()
   );
-  const lastSession = sortedSessions[0];
+
+  // When scoped to a patient, always start a fresh patient-bound session.
+  const lastSession = patientId ? null : sortedSessions[0];
 
   const { data: lastSessionChat, isLoading: chatLoading } = GetChatById(
     lastSession?.session_id || ''
   );
 
   useEffect(() => {
+    // Reset when patient scope changes so we create the right session.
+    setChecked(false);
+    setSessionId(null);
+  }, [patientId]);
+
+  useEffect(() => {
     if (sessionsLoading || chatLoading || checked) return;
+
+    if (patientId) {
+      createSession(
+        { patient_id: patientId },
+        {
+          onSuccess: (data) => {
+            if (data?.session_id) {
+              setSessionId(data.session_id);
+              setChecked(true);
+            }
+          },
+        }
+      );
+      return;
+    }
 
     if (!lastSession) {
       createSession(undefined, {
@@ -63,6 +95,7 @@ export default function Page() {
     lastSessionChat,
     createSession,
     checked,
+    patientId,
   ]);
 
   if (!user?.id) {
@@ -80,7 +113,9 @@ export default function Page() {
           <LoaderIcon size={40} />
         </div>
         <span className="text-lg text-muted-foreground">
-          Preparing chat screen...
+          {patientId
+            ? `Preparing AI chat for patient #${patientId}...`
+            : 'Preparing chat screen...'}
         </span>
       </div>
     );
