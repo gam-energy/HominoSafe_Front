@@ -93,7 +93,7 @@ export const RecommendSection: FC<{
   const AlertIcon = alert.icon;
 
   return (
-    <section className="space-y-6 pt-2 pb-10 w-full max-w-full overflow-hidden">
+    <section className="w-full max-w-full space-y-5 overflow-hidden pt-1 pb-1">
       {/* ===== Overall Health Status Card ===== */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}

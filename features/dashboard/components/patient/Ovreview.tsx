@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { SummarySection } from "./SummarySection";
 import { useSummary } from "../../api/patient/useGetSummary";
 import { useUser } from "@/context/UserContext";
@@ -241,8 +240,8 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
   };
 
   return (
-    <Card className="flex h-full flex-col rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
-      <div className="flex items-center justify-end mb-1">
+    <Card className="flex h-full min-h-0 flex-col rounded-3xl border border-zinc-200/80 bg-white/70 p-4 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md sm:p-5">
+      <div className="mb-1 flex shrink-0 items-center justify-end">
         <KpiExportMenu
           summary={exportSummary}
           recommendations={
@@ -264,9 +263,9 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
       <Tabs
         value={activeTab}
         onValueChange={(val) => handleTabChange(val as TabType)}
-        className="flex h-full w-full flex-col gap-5"
+        className="flex min-h-0 w-full flex-1 flex-col gap-3"
       >
-        <TabsList className="grid h-auto min-h-10 w-full grid-cols-3 items-stretch rounded-full bg-muted/80 p-1 transition-all duration-300 sm:h-11">
+        <TabsList className="grid h-auto min-h-10 w-full shrink-0 grid-cols-3 items-stretch rounded-full bg-muted/80 p-1 transition-all duration-300 sm:h-11">
           {(["overview", "recommendation", "risk"] as TabType[]).map((tab) => {
             const label =
               tab === "overview"
@@ -286,20 +285,33 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
           })}
         </TabsList>
 
-        <ScrollArea className="mt-2 h-[280px] pr-2 sm:h-[420px] sm:pr-4">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, x: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: -8 }}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="h-full w-full pb-6"
-            >
-              {renderTabContent()}
-            </motion.div>
-          </AnimatePresence>
-        </ScrollArea>
+        {/* Scrollable body: reserved gutter so the scrollbar never sits on content */}
+        <div className="flex min-h-0 flex-1">
+          <div
+            className={
+              "overview-panel-scroll min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-scroll pe-3 " +
+              "[scrollbar-gutter:stable] [scrollbar-width:thin] " +
+              "[&::-webkit-scrollbar]:w-2.5 " +
+              "[&::-webkit-scrollbar-track]:bg-transparent " +
+              "[&::-webkit-scrollbar-thumb]:rounded-full " +
+              "[&::-webkit-scrollbar-thumb]:bg-zinc-300/80 " +
+              "dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600/80"
+            }
+          >
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, x: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="w-full max-w-full pe-1 pb-1"
+              >
+                {renderTabContent()}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+        </div>
       </Tabs>
     </Card>
   );

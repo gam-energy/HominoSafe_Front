@@ -64,8 +64,10 @@ const Dashboard = () => {
           <div className="min-w-0 xl:col-span-4">
             <ProfileCard />
           </div>
-          <div className="min-w-0 xl:col-span-8">
-            <Ovreview />
+          <div className="flex min-h-[320px] min-w-0 xl:col-span-8 xl:min-h-0">
+            <div className="w-full min-h-0">
+              <Ovreview />
+            </div>
           </div>
         </div>
 

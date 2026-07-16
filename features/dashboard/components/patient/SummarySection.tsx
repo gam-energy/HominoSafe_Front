@@ -209,7 +209,7 @@ export const SummarySection: FC<SummarySectionProps> = ({
   }>;
 
   return (
-    <div className="space-y-6 w-full max-w-full overflow-hidden pt-2">
+    <div className="w-full max-w-full space-y-5 overflow-hidden pt-1">
       {layout === "full" && (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-muted/30 px-4 py-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">

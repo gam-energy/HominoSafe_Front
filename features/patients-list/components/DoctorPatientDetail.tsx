@@ -277,18 +277,20 @@ export default function DoctorPatientDetail() {
         />
 
         <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-12">
-          <div className="xl:col-span-4">
+          <div className="min-w-0 xl:col-span-4">
             <ProfileCard viewedUser={patientInfo} />
           </div>
-          <div className="xl:col-span-8">
-            <Ovreview
-              userId={userId}
-              patientName={
-                patientInfo
-                  ? `${patientInfo.first_name} ${patientInfo.last_name}`.trim()
-                  : undefined
-              }
-            />
+          <div className="flex min-h-[320px] min-w-0 xl:col-span-8 xl:min-h-0">
+            <div className="w-full min-h-0">
+              <Ovreview
+                userId={userId}
+                patientName={
+                  patientInfo
+                    ? `${patientInfo.first_name} ${patientInfo.last_name}`.trim()
+                    : undefined
+                }
+              />
+            </div>
           </div>
         </div>
 
