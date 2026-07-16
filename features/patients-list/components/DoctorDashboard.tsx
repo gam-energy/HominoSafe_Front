@@ -9,6 +9,7 @@ import { Heading } from "@/components/ui/heading";
 import { useTranslation } from "react-i18next";
 import { Users, UserCheck, UserX, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import StaffCaseloadInsights from "./StaffCaseloadInsights";
 
 type FilterOption = "all_users" | "active" | "inactive" | "non_covered";
 
@@ -150,6 +151,8 @@ const DoctorDashboard = () => {
             onClick={() => setFilterOption("non_covered")}
           />
         </div>
+
+        <StaffCaseloadInsights patients={patients ?? []} />
 
         <DataTable columns={userColumns} data={filteredData} />
       </div>

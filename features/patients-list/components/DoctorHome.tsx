@@ -36,6 +36,7 @@ import {
   AddPatientButton,
   InviteCaregiverButton,
 } from "./CareTeamActions";
+import StaffCaseloadInsights from "./StaffCaseloadInsights";
 
 const StatCard = ({
   label,
@@ -286,6 +287,8 @@ export default function DoctorHome() {
             bg="bg-rose-500/10"
           />
         </div>
+
+        <StaffCaseloadInsights patients={patients ?? []} />
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           {/* Patients quick list */}
