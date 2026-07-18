@@ -28,7 +28,7 @@ type User = {
   phone_number: string;
   id: number;
   uuid?: string;
-  role: "admin" | "patient" | "caregiver" | "doctor";
+  role: "admin" | "clinic_admin" | "patient" | "caregiver" | "doctor";
   status: "active" | "inactive";
   doctor_id?: number | null;
   caregiver_id?: number | null;

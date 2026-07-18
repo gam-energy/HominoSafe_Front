@@ -1,5 +1,5 @@
 import { NavItem } from '@/types';
-export type Role = 'patient' | 'caregiver' | 'admin' | "doctor";
+export type Role = 'patient' | 'caregiver' | 'admin' | 'clinic_admin' | "doctor";
 
 
 
@@ -68,6 +68,14 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       isActive: false,
       items: [],
     },
+    {
+      title: 'Appointments',
+      url: '/dashboard/appointments',
+      icon: 'appointment',
+      shortcut: ['a', 'p'],
+      isActive: false,
+      items: [],
+    },
   ],
   caregiver: [
     {
@@ -118,6 +126,14 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       isActive: false,
       items: [],
     },
+    {
+      title: 'Appointments',
+      url: '/dashboard/appointments',
+      icon: 'appointment',
+      shortcut: ['a', 'p'],
+      isActive: false,
+      items: [],
+    },
   ],
   doctor: [
     {
@@ -149,6 +165,14 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       url: '/dashboard/patient-alert',
       icon: 'alertTriangle',
       shortcut: ['a', 'l'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'Appointments',
+      url: '/dashboard/appointments',
+      icon: 'appointment',
+      shortcut: ['a', 'p'],
       isActive: false,
       items: [],
     },
@@ -231,6 +255,56 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       url: '/dashboard/chat-sessions',
       icon: 'aiChat',
       shortcut: ['c', 's'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'Chat',
+      url: '/dashboard/chat',
+      icon: 'chat',
+      shortcut: ['c', 'c'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'Appointments',
+      url: '/dashboard/appointments',
+      icon: 'appointment',
+      shortcut: ['a', 'p'],
+      isActive: false,
+      items: [],
+    },
+  ],
+  clinic_admin: [
+    {
+      title: 'My Clinic',
+      url: '/dashboard/clinics',
+      icon: 'clinic',
+      shortcut: ['c', 'l'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'Patients',
+      url: '/dashboard/my-patients',
+      icon: 'user',
+      shortcut: ['p', 't'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'Appointments',
+      url: '/dashboard/appointments',
+      icon: 'appointment',
+      shortcut: ['a', 'p'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'AI Chat',
+      url: '/dashboard/ai',
+      icon: 'aiChat',
+      shortcut: ['a', 'i'],
       isActive: false,
       items: [],
     },
