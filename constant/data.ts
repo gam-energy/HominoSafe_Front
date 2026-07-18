@@ -195,6 +195,14 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
+      title: 'B2C Orders',
+      url: '/dashboard/orders',
+      icon: 'package',
+      shortcut: ['o', 'r'],
+      isActive: false,
+      items: [],
+    },
+    {
       title: 'Relations',
       url: '/dashboard/relations',
       icon: 'relations',

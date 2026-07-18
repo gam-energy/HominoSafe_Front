@@ -49,6 +49,7 @@ import {
   IconBuilding,
   IconUsersGroup,
   IconLink,
+  IconPackage,
 } from "@tabler/icons-react";
 
 export type Icon = React.ComponentType<IconProps>;
@@ -76,6 +77,7 @@ export const Icons: Record<string, Icon> = {
   billing: IconCreditCard,
   clinic: IconBuildingHospital,
   clinics: IconBuildingHospital,
+  package: IconPackage,
   building: IconBuilding,
   relations: IconLink,
   usersGroup: IconUsersGroup,
