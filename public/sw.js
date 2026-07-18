@@ -1,11 +1,23 @@
-/* Self-destructing service worker.
+/* Self-destructing service worker (v2 — aggressive).
  *
- * An older deploy registered a PWA service worker that precached build
- * chunks. New builds use turbopack (next-pwa's webpack plugin doesn't run),
- * so the precache went permanently stale and broke the app for returning
- * visitors. This worker replaces the old one, wipes every cache, and
- * unregisters itself; pages then load directly from the network.
+ * The previous version only ran on activate, which can be skipped if the
+ * browser never re-checks sw.js. This version also intercepts every fetch
+ * and bypasses cache entirely (network-first), so even while the old worker
+ * is still active, requests go to the network instead of stale precache.
+ * On activate it wipes all caches, unregisters itself, and force-reloads
+ * all open tabs.
  */
+
+// Network-first: never serve from cache, always go to network.
+self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET') return;
+  event.respondWith(
+    fetch(event.request, { cache: 'no-store', credentials: 'include' }).catch(
+      () => new Response('', { status: 502 })
+    )
+  );
+});
+
 self.addEventListener('install', () => {
   self.skipWaiting();
 });
@@ -13,11 +25,20 @@ self.addEventListener('install', () => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     (async () => {
+      // Wipe every cache storage entry.
       const keys = await caches.keys();
       await Promise.all(keys.map((key) => caches.delete(key)));
+
+      // Unregister this worker.
       await self.registration.unregister();
-      const clients = await self.clients.matchAll({ type: 'window' });
-      clients.forEach((client) => client.navigate(client.url));
+
+      // Force-reload all open tabs so they pick up the new build.
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+      clients.forEach((client) => {
+        try {
+          client.navigate(client.url);
+        } catch {}
+      });
     })()
   );
 });
