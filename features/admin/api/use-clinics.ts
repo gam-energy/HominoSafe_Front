@@ -141,6 +141,34 @@ export function useUpdateClinic(id: number) {
   });
 }
 
+// Logo
+export function useClinicLogo(clinicId?: number) {
+  return useQuery({
+    queryKey: ['admin-clinic-logo', clinicId],
+    enabled: typeof clinicId === 'number',
+    retry: false,
+    queryFn: async () => {
+      const { data } = await axiosInstance.get(`/admin/clinics/${clinicId}/logo`, {
+        responseType: 'blob',
+      });
+      return URL.createObjectURL(data as Blob);
+    },
+  });
+}
+
+export function useUploadClinicLogo(clinicId: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (file: File) => {
+      const form = new FormData();
+      form.append('file', file);
+      const { data } = await axiosInstance.put(`/admin/clinics/${clinicId}/logo`, form);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-clinic-logo', clinicId] }),
+  });
+}
+
 export function useDeleteClinic() {
   const qc = useQueryClient();
   return useMutation({

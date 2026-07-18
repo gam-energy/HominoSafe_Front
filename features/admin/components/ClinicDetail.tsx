@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -8,6 +8,7 @@ import {
   Brain,
   CheckCircle2,
   CreditCard,
+  ImagePlus,
   Loader2,
   Mail,
   Pencil,
@@ -43,6 +44,8 @@ import {
   useClinic,
   useClinicMembers,
   useClinicBillings,
+  useClinicLogo,
+  useUploadClinicLogo,
   useRemoveClinicMember,
   useDeleteBilling,
   type ClinicBilling,
@@ -60,6 +63,9 @@ export function ClinicDetail({ clinicId }: { clinicId: number }) {
 
   const removeMember = useRemoveClinicMember(clinicId);
   const deleteBilling = useDeleteBilling();
+  const logo = useClinicLogo(clinicId);
+  const uploadLogo = useUploadClinicLogo(clinicId);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const [editOpen, setEditOpen] = useState(false);
   const [billingOpen, setBillingOpen] = useState(false);
@@ -105,6 +111,18 @@ export function ClinicDetail({ clinicId }: { clinicId: number }) {
       ? Math.round((clinic.patient_count / clinic.doctor_count) * 10) / 10
       : 0;
 
+  const onLogoSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    try {
+      await uploadLogo.mutateAsync(file);
+      toast.success('Clinic logo updated');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to upload logo');
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -114,6 +132,14 @@ export function ClinicDetail({ clinicId }: { clinicId: number }) {
               <ArrowLeft className="h-4 w-4" /> Clinics
             </Link>
           </Button>
+          {logo.data && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logo.data}
+              alt={`${clinic.name} logo`}
+              className="h-12 w-12 rounded-md border object-contain bg-white"
+            />
+          )}
           <div>
             <h1 className="text-2xl font-bold">{clinic.name}</h1>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
@@ -124,9 +150,30 @@ export function ClinicDetail({ clinicId }: { clinicId: number }) {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setEditOpen(true)}>
-          <Pencil className="h-4 w-4" /> Edit
-        </Button>
+        <div className="flex items-center gap-2">
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={onLogoSelected}
+          />
+          <Button
+            variant="outline"
+            onClick={() => logoInputRef.current?.click()}
+            disabled={uploadLogo.isPending}
+          >
+            {uploadLogo.isPending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <ImagePlus className="h-4 w-4" />
+            )}{' '}
+            Logo
+          </Button>
+          <Button variant="outline" onClick={() => setEditOpen(true)}>
+            <Pencil className="h-4 w-4" /> Edit
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
