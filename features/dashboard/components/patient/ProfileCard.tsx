@@ -28,6 +28,8 @@ import { useProfileStats } from '@/features/profile/hook/useGetUser';
 import { PairWatchDialog } from './PairWatchDialog';
 import { CopyButton } from '@/components/ui/copy-button';
 import { useState } from 'react';
+import EhrDownloadDialog from '@/features/ehr/components/EhrDownloadDialog';
+import { FileDown } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import axiosInstance from '@/api/axiosInstance';
 
@@ -384,6 +386,20 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
                 </Button>
               </Link>
             </>
+          )}
+          {user?.id && (
+            <EhrDownloadDialog
+              patientId={user.id}
+              trigger={
+                <Button
+                  variant="outline"
+                  className="w-full rounded-2xl h-11 hover:bg-primary hover:text-white dark:hover:bg-blue-600 dark:hover:text-white border-zinc-200 dark:border-zinc-800 hover:border-transparent transition-all duration-300 group"
+                >
+                  <FileDown className="w-4 h-4 me-2 group-hover:rotate-12 transition-transform duration-300" />
+                  {t('download_ehr', 'Download medical record')}
+                </Button>
+              }
+            />
           )}
         </div>
       </motion.div>

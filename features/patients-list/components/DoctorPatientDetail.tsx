@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Activity, ArrowLeft, Brain, FileHeart, FileUp, Gauge, MessageCircle } from "lucide-react";
+import { Activity, ArrowLeft, Brain, FileHeart, FileUp, Gauge, MessageCircle, FileDown } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -30,6 +30,7 @@ import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRout
 import { StaffPatientNav } from "@/features/patients-list/components/StaffPatientNav";
 import { PatientOnboardingBanner } from "@/features/patients-list/components/PatientOnboardingBanner";
 import { useUser } from "@/context/UserContext";
+import EhrDownloadDialog from "@/features/ehr/components/EhrDownloadDialog";
 
 type OverviewData = {
   wearable: {
@@ -248,6 +249,18 @@ export default function DoctorPatientDetail() {
               <Brain className="w-4 h-4 me-2 shrink-0" />
               <span className="truncate">{t("clinical_agent", "Clinical Agent")}</span>
             </Button>
+            <EhrDownloadDialog
+              patientId={userId}
+              trigger={
+                <Button
+                  variant="outline"
+                  className="h-10 w-full sm:w-auto"
+                >
+                  <FileDown className="w-4 h-4 me-2 shrink-0" />
+                  <span className="truncate">{t("download_ehr", "Download medical record")}</span>
+                </Button>
+              }
+            />
             <Button
               onClick={handleMessagePatient}
               disabled={isCreatingRoom || !patientInfo}
