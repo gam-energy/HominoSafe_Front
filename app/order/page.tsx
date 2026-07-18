@@ -9,7 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCreateOrder, type CustomerOrder } from '@/features/orders/api/use-orders';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useCreateOrder, type CustomerOrder, type Gender } from '@/features/orders/api/use-orders';
 import { LanguageToggle } from '@/components/layout/language-toggle';
 import { ModeToggle } from '@/components/layout/ThemeToggle/theme-toggle';
 
@@ -26,11 +33,17 @@ export default function OrderPage() {
     email: '',
     phone_number: '',
     national_code: '',
+    dob: '',
+    gender: '' as Gender | '',
     notes: '',
   });
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.gender) {
+      toast.error('Please select a gender');
+      return;
+    }
     try {
       const order = await createOrder.mutateAsync({
         first_name: form.first_name,
@@ -38,6 +51,8 @@ export default function OrderPage() {
         email: form.email,
         phone_number: form.phone_number || undefined,
         national_code: form.national_code || undefined,
+        dob: form.dob,
+        gender: form.gender,
         plan: 'b2c_annual',
         device_amount: DEVICE_PRICE,
         currency: 'EUR',
@@ -157,6 +172,34 @@ export default function OrderPage() {
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-1.5">
+                <Label htmlFor="dob">Date of birth *</Label>
+                <Input
+                  id="dob"
+                  type="date"
+                  required
+                  value={form.dob}
+                  onChange={(e) => setForm({ ...form, dob: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-1.5">
+                <Label htmlFor="gender">Gender *</Label>
+                <Select
+                  value={form.gender}
+                  onValueChange={(v) => setForm({ ...form, gender: v as Gender })}
+                >
+                  <SelectTrigger id="gender">
+                    <SelectValue placeholder="Select…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Male">Male</SelectItem>
+                    <SelectItem value="Female">Female</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">

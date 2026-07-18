@@ -13,6 +13,7 @@ export type OrderStatus =
 export type SubscriptionPlan = 'b2c_annual' | 'b2c_monthly';
 export type SubscriptionStatus = 'pending_activation' | 'active' | 'expired' | 'cancelled';
 export type ShipmentStatus = 'pending' | 'in_transit' | 'delivered' | 'failed';
+export type Gender = 'Male' | 'Female' | 'Other';
 
 export interface CustomerOrder {
   id: number;
@@ -23,6 +24,8 @@ export interface CustomerOrder {
   first_name: string;
   last_name: string;
   national_code?: string | null;
+  dob?: string | null;
+  gender?: Gender | null;
   subscription_amount: number;
   subscription_plan: SubscriptionPlan;
   device_amount: number;
@@ -81,6 +84,8 @@ export interface OrderCreatePayload {
   first_name: string;
   last_name: string;
   national_code?: string;
+  dob: string; // YYYY-MM-DD
+  gender: Gender;
   plan?: SubscriptionPlan;
   device_amount?: number;
   currency?: string;

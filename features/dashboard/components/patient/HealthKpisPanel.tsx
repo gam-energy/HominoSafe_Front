@@ -262,7 +262,16 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
       const kpi = kpis[k];
       if (!kpi) return spark(fallback);
       const v = kpi.value;
-      return spark([v * 0.9, v * 0.93, v * 0.95, v * 0.97, v * 0.98, v * 0.99, v]);
+      const base = kpi.average_last_24h ?? v;
+      // Interpolate from the 24h baseline to the current value.
+      return spark([0, 0.2, 0.4, 0.6, 0.8, 0.92, 1].map((f) => base + (v - base) * f));
+    };
+
+    // Delta = current value vs 24h average (rounded to 1 decimal).
+    const deltaOf = (k: string) => {
+      const kpi = kpis[k];
+      if (!kpi || kpi.average_last_24h == null) return 0;
+      return Math.round((kpi.value - kpi.average_last_24h) * 10) / 10;
     };
 
     return [
@@ -270,8 +279,8 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
         key: "overall_health",
         value: String(Math.round(overall)),
         suffix: "/100",
-        delta: Number(kpis.overall_health?.trend ?? 0) || 0,
-        deltaUp: Number(kpis.overall_health?.trend ?? 0) >= 0,
+        delta: deltaOf("overall_health"),
+        deltaUp: deltaOf("overall_health") >= 0,
         icon: HeartPulse,
         accent: "text-emerald-500",
         ring: "stroke-emerald-500",
@@ -283,8 +292,9 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
         key: "risk_score",
         value: riskScore.toFixed(1),
         suffix: "/100",
-        delta: Number(kpis.risk_score?.trend ?? 0) || 0,
-        deltaUp: Number(kpis.risk_score?.trend ?? 0) >= 0,
+        // For risk, an increase is bad — flip the "up is good" colour.
+        delta: deltaOf("risk_score"),
+        deltaUp: deltaOf("risk_score") <= 0,
         icon: ShieldAlert,
         accent: "text-amber-500",
         ring: "stroke-amber-500",
@@ -296,8 +306,8 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
         key: "adherence",
         value: String(Math.round(adherence)),
         suffix: "%",
-        delta: Number(kpis.adherence?.trend ?? 0) || 0,
-        deltaUp: Number(kpis.adherence?.trend ?? 0) >= 0,
+        delta: deltaOf("adherence"),
+        deltaUp: deltaOf("adherence") >= 0,
         icon: Pill,
         accent: "text-blue-500",
         ring: "stroke-blue-500",
@@ -450,7 +460,8 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {heroCards.map((card) => {
             const Icon = card.icon;
-            const Delta = card.deltaUp ? TrendingUp : TrendingDown;
+            // Arrow shows the direction of change; colour shows whether it's good.
+            const Delta = card.delta === 0 ? Minus : card.delta > 0 ? TrendingUp : TrendingDown;
             return (
               <Card key={card.key} className="relative overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md">
                 <CardContent className="flex flex-col gap-3 p-5">
