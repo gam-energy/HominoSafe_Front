@@ -64,15 +64,15 @@ const Dashboard = () => {
         <SubscriptionBanner />
 
         <div className="grid grid-cols-1 items-stretch gap-4 sm:gap-6 xl:grid-cols-12">
-          {/* Profile card defines the row height (full content, no scroll).
-              Overview cell stretches to match and scrolls internally; on xl its
-              content is clipped by overflow-hidden + min-h-0 so it doesn't grow
-              the row. On mobile it stacks naturally. */}
+          {/* Profile card shows full content and defines the row height.
+              On xl the overview is absolutely positioned inside its cell, so it
+              gets the exact row height (= profile card height) and scrolls
+              internally. On mobile both stack naturally. */}
           <div className="min-w-0 xl:col-span-4">
             <ProfileCard />
           </div>
-          <div className="flex min-h-[320px] min-w-0 xl:col-span-8 xl:min-h-0 xl:overflow-hidden">
-            <div className="w-full min-h-0">
+          <div className="min-h-[420px] min-w-0 xl:col-span-8 xl:relative xl:min-h-0">
+            <div className="h-full min-h-[420px] xl:absolute xl:inset-0 xl:min-h-0">
               <Ovreview />
             </div>
           </div>
