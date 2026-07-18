@@ -214,12 +214,7 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
         className={
-          'relative flex h-full min-h-0 flex-col gap-6 overflow-x-hidden overflow-y-auto rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md group ' +
-          '[scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 ' +
-          '[&::-webkit-scrollbar-track]:bg-transparent ' +
-          '[&::-webkit-scrollbar-thumb]:rounded-full ' +
-          '[&::-webkit-scrollbar-thumb]:bg-zinc-300/70 ' +
-          'dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600/70'
+          'relative flex flex-col gap-6 overflow-x-hidden overflow-hidden rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md group '
         }
       >
         <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent -z-10 dark:from-blue-500/10 dark:via-blue-500/5" />
