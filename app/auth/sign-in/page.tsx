@@ -33,6 +33,11 @@ const Page = () => {
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 dark:bg-blue-900/20 rounded-full blur-3xl opacity-70" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-100 dark:bg-purple-900/20 rounded-full blur-3xl opacity-70" />
 
+      <div className="absolute top-4 end-4 z-20 flex items-center gap-2">
+        <ModeToggle />
+        <LanguageToggle />
+      </div>
+
       <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center justify-center gap-12 relative z-10">
         <div className="hidden lg:flex flex-col gap-6 w-1/2">
           <div className="flex items-center gap-3">
@@ -62,10 +67,6 @@ const Page = () => {
         </div>
 
         <div className="w-full lg:w-1/2 max-w-md relative">
-          <div className="absolute top-0 right-0 p-4 flex items-center gap-2">
-            <ModeToggle />
-            <LanguageToggle />
-          </div>
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
             <Image src="/assets/images/logo.png" alt="Logo" width={32} height={32} />
             <h1 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
