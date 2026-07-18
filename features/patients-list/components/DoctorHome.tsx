@@ -37,6 +37,7 @@ import {
   InviteCaregiverButton,
 } from "./CareTeamActions";
 import StaffCaseloadInsights from "./StaffCaseloadInsights";
+import AppointmentsWidget from "@/features/appointments/components/AppointmentsWidget";
 
 const StatCard = ({
   label,
@@ -287,6 +288,8 @@ export default function DoctorHome() {
             bg="bg-rose-500/10"
           />
         </div>
+
+        <AppointmentsWidget />
 
         <StaffCaseloadInsights patients={patients ?? []} />
 
