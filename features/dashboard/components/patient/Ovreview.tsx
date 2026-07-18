@@ -41,7 +41,7 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
     refetch: refetchSummary,
     isLoading: summaryLoading,
   } = useSummary(userId);
-  const { data: recommendationData, isLoading: recLoading } =
+  const { data: recommendationData, isLoading: recLoading, isError: recError } =
     useRecommendation(userId);
   const { data: overViewData, isLoading: overviewLoading } =
     useGetOVerview(userId);
@@ -167,22 +167,11 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
           </div>
         );
       }
-      if (!recommendationData) {
-        return (
-          <p className="text-sm text-muted-foreground italic py-8 text-center">
-            {t("no_recommendations", "No recommendations available yet.")}
-          </p>
-        );
-      }
       return (
         <RecommendSection
           key="recommendation"
-          data={{
-            ...recommendationData,
-            alert_level_value: (
-              (recommendationData as { alert_level_value?: string }).alert_level_value ?? "0"
-            ) as "0" | "1" | "2",
-          }}
+          data={recommendationData}
+          isError={recError}
           activeSection="alerts"
         />
       );
@@ -244,16 +233,7 @@ export default function Ovreview({ userId: userIdProp, patientName: patientNameP
       <div className="mb-1 flex shrink-0 items-center justify-end">
         <KpiExportMenu
           summary={exportSummary}
-          recommendations={
-            recommendationData
-              ? {
-                  ...recommendationData,
-                  alert_level_value: (
-                    (recommendationData as { alert_level_value?: string }).alert_level_value ?? "0"
-                  ) as "0" | "1" | "2",
-                }
-              : null
-          }
+          recommendations={recommendationData ?? null}
           patientId={userId}
           patientName={patientName || undefined}
           activity={overViewData?.wearable?.activity}

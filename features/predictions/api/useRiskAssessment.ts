@@ -37,6 +37,9 @@ export const useRiskAssessment = () => {
       queryClient.invalidateQueries({
         queryKey: ['dashboard-summary', variables.userId],
       });
+      queryClient.invalidateQueries({
+        queryKey: ['recommendation', variables.userId],
+      });
     },
   });
 };

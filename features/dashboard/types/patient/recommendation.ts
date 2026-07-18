@@ -17,5 +17,5 @@ export interface RecommendData {
     [metric: string]: MetricRecommendation;
   };
   general_recommendations: string[];
-  alert_level: 'low' | 'medium' | 'high';
+  alert_level_value: number;
 }
