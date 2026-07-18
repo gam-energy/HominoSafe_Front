@@ -78,6 +78,16 @@ function useSyncedKpis(data: SummaryData, liveData?: DashboardData) {
   const wearable = liveData?.wearable;
   const environmental = liveData?.environmental;
 
+  // Prefer body (wearable) temperature for the Temperature card — do not mix
+  // watch live values into ambient environmental averages/trends.
+  const bodyTempKpi = data.kpis["body_temperature"] ?? {
+    value: null as unknown as number,
+    trend: "stable",
+    average_last_24h: null,
+    average_last_7d: null,
+    unit: "°C",
+  };
+
   return {
     ...data.kpis,
     heart_rate: {
@@ -96,13 +106,14 @@ function useSyncedKpis(data: SummaryData, liveData?: DashboardData) {
       ...data.kpis["spo2"],
       value: wearable?.spo2 ?? data.kpis["spo2"]?.value,
     },
+    body_temperature: {
+      ...bodyTempKpi,
+      value: wearable?.temperature ?? bodyTempKpi?.value,
+    },
+    // Ambient room temperature (env sensor) — kept separate from body temp.
     temperature: {
       ...data.kpis["temperature"],
-      value: wearable?.temperature ?? data.kpis["temperature"]?.value,
-    },
-    body_temperature: {
-      ...data.kpis["body_temperature"],
-      value: wearable?.temperature ?? data.kpis["body_temperature"]?.value,
+      value: environmental?.temperature ?? data.kpis["temperature"]?.value,
     },
     humidity: {
       ...data.kpis["humidity"],
@@ -113,6 +124,36 @@ function useSyncedKpis(data: SummaryData, liveData?: DashboardData) {
       value: environmental?.CO2 ?? data.kpis["CO2"]?.value,
     },
   };
+}
+
+/** Collapse near-duplicate alerts (same type + message within a short window). */
+function dedupeRecentAlerts(alerts: RecentAlert[], windowMs = 15 * 60 * 1000): RecentAlert[] {
+  const out: RecentAlert[] = [];
+  for (const alert of alerts) {
+    const prev = out[out.length - 1];
+    if (
+      prev &&
+      prev.alert_type === alert.alert_type &&
+      prev.message === alert.message &&
+      prev.time &&
+      alert.time
+    ) {
+      const dt = Math.abs(new Date(prev.time).getTime() - new Date(alert.time).getTime());
+      if (Number.isFinite(dt) && dt <= windowMs) continue;
+    }
+    out.push(alert);
+  }
+  return out;
+}
+
+function formatTrendLabel(trend: string | null | undefined): string {
+  if (!trend) return "Stable";
+  const key = trend.toLowerCase().replace(/-/g, "_");
+  if (key === "not_enough_data" || key === "insufficient_data") return "Limited data";
+  if (key.includes("increasing") || key.includes("rising")) return "Rising";
+  if (key.includes("decreasing") || key.includes("falling")) return "Falling";
+  if (key.includes("stable")) return "Stable";
+  return trend.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function buildBpKpi(syncedKpis: ReturnType<typeof useSyncedKpis>): KPI {
@@ -175,10 +216,10 @@ export const SummarySection: FC<SummarySectionProps> = ({
       color: "text-blue-500",
       bg: "bg-blue-500/10",
     },
-    syncedKpis.temperature?.value != null && {
-      name: "temperature",
-      title: t("temperature", "Temperature"),
-      kpi: syncedKpis.temperature,
+    syncedKpis.body_temperature?.value != null && {
+      name: "body_temperature",
+      title: t("body_temperature", "Body Temperature"),
+      kpi: syncedKpis.body_temperature,
       icon: Thermometer,
       color: "text-orange-500",
       bg: "bg-orange-500/10",
@@ -309,15 +350,17 @@ export const SummarySection: FC<SummarySectionProps> = ({
             animate={{ opacity: 1, y: 0 }}
             className="space-y-3.5"
           >
-            {!data.recent_alerts?.length ? (
+            {!(data.recent_alerts?.length) ? (
               <p className="text-gray-500 dark:text-zinc-400 text-sm italic py-6 text-center bg-muted/20 rounded-2xl border border-dashed">
                 {t("no_recent_alerts", "No recent alerts recorded.")}
               </p>
             ) : (
               <div className="space-y-3">
-                {data.recent_alerts.slice(0, layout === "full" ? 5 : undefined).map((alert) => (
+                {dedupeRecentAlerts(data.recent_alerts)
+                  .slice(0, layout === "full" ? 5 : undefined)
+                  .map((alert) => (
                   <div
-                    key={String(alert.id ?? alert.message)}
+                    key={String(alert.id ?? `${alert.alert_type}-${alert.time}-${alert.message}`)}
                     className="flex items-start gap-3 bg-amber-50/80 dark:bg-amber-950/10 border border-amber-200/50 dark:border-amber-900/30 rounded-2xl p-4 shadow-sm text-sm"
                   >
                     <div className="p-1.5 bg-amber-500/10 rounded-xl text-amber-600 dark:text-amber-400 flex-shrink-0">
@@ -471,21 +514,27 @@ const KpiItemCard = ({
   let TrendIcon = Minus;
   let trendTheme = "text-muted-foreground bg-muted/60";
 
-  const trendValue = typeof kpi.trend === "string" ? kpi.trend : null;
+  const rawTrend = typeof kpi.trend === "string" ? kpi.trend : null;
+  const trendKey = (rawTrend ?? "").toLowerCase().replace(/-/g, "_");
+  const isLimited =
+    trendKey === "not_enough_data" || trendKey === "insufficient_data";
+  const trendLabel = formatTrendLabel(rawTrend);
 
-  if (trendValue !== null) {
+  if (!isLimited && rawTrend) {
     if (
-      trendValue.toLowerCase().includes("increasing") ||
-      trendValue.toLowerCase().includes("rising")
+      trendKey.includes("increasing") ||
+      trendKey.includes("rising")
     ) {
       TrendIcon = TrendingUp;
       trendTheme = "text-rose-500 bg-rose-500/10";
     } else if (
-      trendValue.toLowerCase().includes("decreasing") ||
-      trendValue.toLowerCase().includes("falling")
+      trendKey.includes("decreasing") ||
+      trendKey.includes("falling")
     ) {
       TrendIcon = TrendingDown;
       trendTheme = "text-emerald-500 bg-emerald-500/10";
+    } else if (trendKey.includes("stable")) {
+      trendTheme = "text-sky-600 bg-sky-500/10 dark:text-sky-400";
     }
   }
 
@@ -505,6 +554,12 @@ const KpiItemCard = ({
     name === "blood_pressure" && kpi.average_last_7d
       ? `${Math.round((kpi.average_last_7d as { systolic?: number }).systolic ?? 0)} / ${Math.round((kpi.average_last_7d as { diastolic?: number }).diastolic ?? 0)}`
       : roundValue(kpi.average_last_7d as number);
+
+  // Prefer 24h; if missing, fall back to 7d so cards don't look broken.
+  const avg24hLabel =
+    displayAvg24h === "N/A" && displayAvg7d !== "N/A" ? displayAvg7d : displayAvg24h;
+  const avg24hHint =
+    displayAvg24h === "N/A" && displayAvg7d !== "N/A" ? " (7d)" : "";
 
   return (
     <div className="border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-4 bg-background dark:bg-zinc-900/60 shadow-sm flex flex-col transition-all duration-300 hover:shadow hover:-translate-y-0.5 group h-full">
@@ -530,27 +585,27 @@ const KpiItemCard = ({
       </div>
       <div className="mt-4 pt-3 border-t border-dashed border-zinc-100 dark:border-zinc-800 flex flex-col gap-2 text-xs text-muted-foreground font-semibold">
         <div className="flex justify-between items-center">
-          <span>24h Average:</span>
+          <span>24h Average{avg24hHint}:</span>
           <span className="text-gray-700 dark:text-zinc-300 ltr-nums">
-            {displayAvg24h ?? "N/A"}
+            {avg24hLabel}
           </span>
         </div>
         <div className="flex justify-between items-center">
           <span>7d Average:</span>
           <span className="text-gray-700 dark:text-zinc-300 ltr-nums">
-            {displayAvg7d ?? "N/A"}
+            {displayAvg7d}
           </span>
         </div>
         <div className="flex justify-between items-center mt-0.5">
           <span>Trend:</span>
           <div
             className={cn(
-              "flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide",
+              "flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide",
               trendTheme
             )}
           >
             <TrendIcon className="w-3 h-3" />
-            <span>{trendValue ?? "stable"}</span>
+            <span>{trendLabel}</span>
           </div>
         </div>
       </div>

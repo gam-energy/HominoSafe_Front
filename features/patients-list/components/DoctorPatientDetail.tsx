@@ -277,10 +277,14 @@ export default function DoctorPatientDetail() {
         />
 
         <div className="grid grid-cols-1 items-stretch gap-6 xl:grid-cols-12">
-          <div className="min-w-0 xl:col-span-4">
-            <ProfileCard viewedUser={patientInfo} />
+          {/* xl: absolute-fill so the profile card matches the overview height
+              and scrolls internally instead of stretching the row. */}
+          <div className="min-w-0 xl:col-span-4 xl:relative">
+            <div className="h-full xl:absolute xl:inset-0">
+              <ProfileCard viewedUser={patientInfo} />
+            </div>
           </div>
-          <div className="flex min-h-[320px] min-w-0 xl:col-span-8 xl:min-h-0">
+          <div className="flex min-h-[320px] min-w-0 xl:col-span-8 xl:h-[calc(100dvh-16rem)] xl:min-h-[520px]">
             <div className="w-full min-h-0">
               <Ovreview
                 userId={userId}

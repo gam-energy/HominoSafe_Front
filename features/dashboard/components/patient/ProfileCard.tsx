@@ -213,7 +213,14 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: 'easeOut' }}
-        className="relative overflow-hidden flex h-full flex-col gap-6 rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md group"
+        className={
+          'relative flex h-full min-h-0 flex-col gap-6 overflow-x-hidden overflow-y-auto rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md group ' +
+          '[scrollbar-width:thin] [&::-webkit-scrollbar]:w-1.5 ' +
+          '[&::-webkit-scrollbar-track]:bg-transparent ' +
+          '[&::-webkit-scrollbar-thumb]:rounded-full ' +
+          '[&::-webkit-scrollbar-thumb]:bg-zinc-300/70 ' +
+          'dark:[&::-webkit-scrollbar-thumb]:bg-zinc-600/70'
+        }
       >
         <div className="absolute top-0 left-0 right-0 h-28 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent -z-10 dark:from-blue-500/10 dark:via-blue-500/5" />
 
@@ -328,7 +335,7 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
           })}
         </div>
 
-        <div className="mt-auto pt-4 space-y-2">
+        <div className="pt-2 space-y-2">
           {user.uuid && (
             <div className="rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-muted/30 dark:bg-zinc-800/20 p-3 space-y-1">
               <div className="flex items-center justify-between gap-2">
