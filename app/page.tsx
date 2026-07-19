@@ -94,7 +94,7 @@ export default function LandingPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-100 via-white to-slate-50 dark:from-zinc-900 dark:via-zinc-950 dark:to-zinc-950">
+    <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
           <Link href="/" className="flex items-center gap-2">
@@ -124,14 +124,10 @@ export default function LandingPage() {
 
       <main>
         <section className="relative overflow-hidden">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-40 dark:opacity-20"
-            aria-hidden
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 20% 20%, hsl(221 83% 53% / 0.18), transparent 40%), radial-gradient(circle at 80% 10%, hsl(160 84% 39% / 0.12), transparent 35%)',
-            }}
-          />
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            <div className="absolute -top-32 start-[-10%] h-96 w-96 rounded-full bg-primary/15 blur-3xl dark:bg-primary/10" />
+            <div className="absolute -top-20 end-[-5%] h-80 w-80 rounded-full bg-emerald-400/10 blur-3xl dark:bg-emerald-500/[0.07]" />
+          </div>
           <div className="relative mx-auto grid max-w-6xl gap-10 px-4 pb-20 pt-14 md:grid-cols-[1.1fr_0.9fr] md:items-center md:pt-20">
             <div>
               <p className="mb-3 text-sm font-semibold uppercase tracking-[0.2em] text-primary">
@@ -168,8 +164,11 @@ export default function LandingPage() {
             </div>
 
             <div className="relative">
-              <div className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-primary/20 via-emerald-400/10 to-transparent blur-2xl" aria-hidden />
-              <div className="relative overflow-hidden rounded-[1.75rem] border bg-card/90 p-6 shadow-xl shadow-primary/5 backdrop-blur">
+              <div
+                className="absolute -inset-4 rounded-[2rem] bg-gradient-to-br from-primary/20 via-emerald-400/10 to-transparent blur-2xl dark:from-primary/10 dark:via-emerald-500/5"
+                aria-hidden
+              />
+              <div className="relative overflow-hidden rounded-[1.75rem] border bg-card p-6 shadow-xl shadow-primary/5">
                 <div className="flex items-center gap-3 border-b pb-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                     <HeartPulse className="h-6 w-6" />
@@ -198,7 +197,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="border-y bg-background/70 py-16">
+        <section className="border-y bg-muted/40 py-16 dark:bg-zinc-900/40">
           <div className="mx-auto max-w-6xl px-4">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-bold tracking-tight">
@@ -255,7 +254,7 @@ export default function LandingPage() {
 
         <section className="pb-20">
           <div className="mx-auto max-w-6xl px-4">
-            <div className="overflow-hidden rounded-[1.75rem] border bg-gradient-to-br from-primary to-blue-700 px-6 py-12 text-primary-foreground shadow-lg sm:px-12">
+            <div className="overflow-hidden rounded-[1.75rem] border border-primary/30 bg-gradient-to-br from-primary to-blue-700 px-6 py-12 text-primary-foreground shadow-lg dark:from-blue-600 dark:to-blue-900 sm:px-12">
               <h2 className="max-w-xl text-3xl font-bold tracking-tight">
                 {t('landing_cta_title', 'Ready to start your clinic application?')}
               </h2>

@@ -113,7 +113,6 @@ function PasswordField({
       <div className="relative">
         <Input
           id={id}
-          dir="ltr"
           type={show ? 'text' : 'password'}
           value={value}
           onChange={(e) => onChange(e.target.value)}
