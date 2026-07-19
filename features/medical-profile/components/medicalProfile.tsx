@@ -91,7 +91,7 @@ function AllergiesEditor({
         </div>
       )}
       {canSave && (
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2">
           <Input
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -99,11 +99,13 @@ function AllergiesEditor({
               "allergies_placeholder",
               "e.g. Penicillin, Peanut (comma-separated)"
             )}
-            className="flex-1"
+            className="h-9 w-full text-sm"
           />
           <Button
             type="button"
             size="sm"
+            variant="outline"
+            className="self-end"
             disabled={update.isPending}
             onClick={() =>
               update.mutate({
@@ -596,7 +598,7 @@ export function MedicalProfileView({
               iconBg="bg-rose-500/10"
               title={t("comorbidities", "Comorbidities")}
               description={t("comorbidities_desc", "Existing conditions")}
-              className="h-full"
+              className="flex-1"
             >
               {comorbidityEntries.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("no_comorbidities")}</p>
