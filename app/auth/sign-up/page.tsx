@@ -1,18 +1,38 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { SignUpForm } from "@/features/auth/components/SignupForm";
 import { SignUpFormValues } from "@/features/auth/types/auth";
 import { useSignup } from "@/features/auth/api/use-sign-up";
 import { LanguageToggle } from "@/components/layout/language-toggle";
 import { ModeToggle } from "@/components/layout/ThemeToggle/theme-toggle";
+import { Loader2 } from "lucide-react";
 
 const SignUpInner = () => {
   const signup = useSignup();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const code = (searchParams.get("code") || "").trim();
+
+  useEffect(() => {
+    // Prefer the public /apply journey unless a doctor referral code is present.
+    if (!code) {
+      router.replace("/apply");
+    }
+  }, [code, router]);
 
   const handleSubmit = (values: SignUpFormValues) => {
     signup.mutate(values);
   };
+
+  if (!code) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <section className="w-full min-h-screen flex flex-col justify-center items-center bg-secondary p-4 relative">
@@ -32,7 +52,13 @@ const SignUpInner = () => {
 };
 
 const Page = () => (
-  <Suspense fallback={<div className="p-8 text-center">Loading…</div>}>
+  <Suspense
+    fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }
+  >
     <SignUpInner />
   </Suspense>
 );

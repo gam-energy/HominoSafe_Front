@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useLogin } from "@/features/auth/api/use-sign-in";
 import { LoginForm } from "@/features/auth/components/LoginForm";
 import Image from "next/image";
@@ -8,8 +8,9 @@ import { LanguageToggle } from "@/components/layout/language-toggle";
 import { ModeToggle } from "@/components/layout/ThemeToggle/theme-toggle";
 import { useTranslation } from "react-i18next";
 import { clearAuthRedirectGuard } from "@/lib/auth-session";
+import { Loader2 } from "lucide-react";
 
-const Page = () => {
+const SignInInner = () => {
   const { t } = useTranslation();
   const loginMutation = useLogin();
 
@@ -18,14 +19,7 @@ const Page = () => {
   }, []);
 
   const handleSubmit = (values: { username: string; password: string }) => {
-    loginMutation.mutate(values, {
-      onSuccess: (data) => {
-        console.log("✅ Success", data);
-      },
-      onError: (error: any) => {
-        console.error("❌ Error", error);
-      },
-    });
+    loginMutation.mutate(values);
   };
 
   return (
@@ -79,5 +73,17 @@ const Page = () => {
     </section>
   );
 };
+
+const Page = () => (
+  <Suspense
+    fallback={
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    }
+  >
+    <SignInInner />
+  </Suspense>
+);
 
 export default Page;
