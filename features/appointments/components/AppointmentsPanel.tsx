@@ -48,10 +48,11 @@ import {
   type AppointmentSlot,
 } from '../api/use-appointments';
 import AppointmentsKanban from './AppointmentsKanban';
+import AppointmentsCalendar from './AppointmentsCalendar';
 import { cn } from '@/lib/utils';
 
 type Role = 'patient' | 'caregiver' | 'doctor' | 'clinic_admin' | 'admin';
-type ViewMode = 'list' | 'kanban';
+type ViewMode = 'list' | 'calendar' | 'kanban';
 
 interface AppointmentsPanelProps {
   role: Role;
@@ -94,8 +95,8 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
 
   const canManageBoard =
     role === 'doctor' || role === 'clinic_admin' || role === 'admin';
-  // Kanban needs completed / cancelled columns, so load the full board.
-  const myAppointments = useMyAppointments(viewMode !== 'kanban');
+  // Calendar / kanban need past appointments; list stays upcoming-only.
+  const myAppointments = useMyAppointments(viewMode === 'list');
   const slots = useSlots(user?.role === 'doctor' ? { doctor_id: user.id } : undefined);
   const createAppt = useCreateAppointment();
   const updateAppt = useUpdateAppointment();
@@ -110,6 +111,13 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
     updateAppt.mutate({ id, payload: { status } });
   };
 
+  const cardTitle =
+    viewMode === 'kanban'
+      ? t('appointment_board', 'Appointment board')
+      : viewMode === 'calendar'
+        ? t('appointment_calendar', 'Appointment calendar')
+        : t('upcoming_appointments', 'Upcoming appointments');
+
   return (
     <div className="space-y-6 p-4 md:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -120,21 +128,34 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {canManageBoard && (
-            <div className="flex rounded-full bg-muted p-1">
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={cn(
-                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
-                  viewMode === 'list'
-                    ? 'bg-background text-foreground shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <LayoutList className="h-3.5 w-3.5" />
-                {t('list_view', 'List')}
-              </button>
+          <div className="flex rounded-full bg-muted p-1">
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
+                viewMode === 'list'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <LayoutList className="h-3.5 w-3.5" />
+              {t('list_view', 'List')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('calendar')}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
+                viewMode === 'calendar'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <CalendarDays className="h-3.5 w-3.5" />
+              {t('calendar_view', 'Calendar')}
+            </button>
+            {canManageBoard && (
               <button
                 type="button"
                 onClick={() => setViewMode('kanban')}
@@ -148,8 +169,8 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
                 <Columns3 className="h-3.5 w-3.5" />
                 {t('kanban_view', 'Kanban')}
               </button>
-            </div>
-          )}
+            )}
+          </div>
           {canPublishSlots && (
             <Dialog open={slotOpen} onOpenChange={setSlotOpen}>
               <DialogTrigger asChild>
@@ -195,15 +216,21 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5" />
-            {viewMode === 'kanban'
-              ? t('appointment_board', 'Appointment board')
-              : t('upcoming_appointments', 'Upcoming appointments')}
+            {cardTitle}
           </CardTitle>
           {viewMode === 'kanban' && (
             <p className="text-sm font-normal text-muted-foreground">
               {t(
                 'kanban_hint',
                 'Drag cards between columns to update status, or use the quick actions on each card.',
+              )}
+            </p>
+          )}
+          {viewMode === 'calendar' && (
+            <p className="text-sm font-normal text-muted-foreground">
+              {t(
+                'calendar_hint',
+                'Select a day to see appointments. Status dots show where visits are scheduled.',
               )}
             </p>
           )}
@@ -220,11 +247,23 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
               <span>{t('failed_load_appointments', 'Failed to load appointments')}</span>
             </div>
           )}
-          {!myAppointments.isLoading && !myAppointments.isError && upcoming.length === 0 && (
-            <div className="py-8 text-center text-muted-foreground">
-              {t('no_appointments', 'No appointments scheduled')}
-            </div>
-          )}
+          {!myAppointments.isLoading &&
+            !myAppointments.isError &&
+            viewMode === 'calendar' && (
+              <AppointmentsCalendar
+                appointments={upcoming}
+                role={role}
+                onStatusChange={handleStatusChange}
+              />
+            )}
+          {!myAppointments.isLoading &&
+            !myAppointments.isError &&
+            upcoming.length === 0 &&
+            viewMode !== 'calendar' && (
+              <div className="py-8 text-center text-muted-foreground">
+                {t('no_appointments', 'No appointments scheduled')}
+              </div>
+            )}
           {!myAppointments.isLoading &&
             !myAppointments.isError &&
             upcoming.length > 0 &&
