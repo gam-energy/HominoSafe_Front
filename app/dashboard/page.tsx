@@ -27,7 +27,10 @@ export default function Page() {
         router.replace("/dashboard/doctor-overview");
         break;
       case "caregiver":
-        router.replace("/dashboard/my-patients");
+        router.replace("/dashboard/caregiver-overview");
+        break;
+      case "clinic_admin":
+        router.replace("/dashboard/clinics");
         break;
       default:
         router.replace("/dashboard/overview");

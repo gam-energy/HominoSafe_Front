@@ -9,7 +9,7 @@ export interface User {
   phone_number: string;
   role: 'patient' | 'caregiver' | string;
   status: string;
-  caregiver_id: number;
-  doctor_id?: number;
+  caregiver_id?: number | null;
+  doctor_id?: number | null;
   records_complete?: boolean;
 }

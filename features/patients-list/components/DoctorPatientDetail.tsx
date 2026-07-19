@@ -3,13 +3,19 @@
 import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { Activity, ArrowLeft, Brain, FileHeart, FileUp, Gauge, MessageCircle, FileDown } from "lucide-react";
+import { Activity, ArrowLeft, Brain, FileHeart, FileUp, Gauge, MessageCircle, FileDown, MoreHorizontal } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
 import { LoaderIcon } from "@/components/chat/icons";
 import PageContainer from "@/components/layout/page-container";
@@ -58,12 +64,12 @@ const SectionCard = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <Card className="border-muted-foreground/20 shadow-sm">
+  <Card className="rounded-3xl border border-zinc-200/80 bg-white/70 shadow-sm backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-900/60">
     <CardHeader>
       <CardTitle className="text-lg font-semibold">{title}</CardTitle>
       <Separator className="mt-2" />
     </CardHeader>
-    <CardContent className="pt-2 text-sm leading-relaxed space-y-2">
+    <CardContent className="space-y-2 pt-2 text-sm leading-relaxed">
       {children}
     </CardContent>
   </Card>
@@ -204,73 +210,71 @@ export default function DoctorPatientDetail() {
     <PageContainer scrollable>
       <div className="flex w-full flex-col gap-6">
         <PatientOnboardingBanner patientId={userId} />
-        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => router.push(patientsListRoute)}
             className="h-auto self-start px-2 text-muted-foreground"
           >
-            <ArrowLeft className="w-4 h-4 me-1 shrink-0" />
-            <span className="truncate">{t("back_to_patients", "Back to Patients")}</span>
+            <ArrowLeft className="me-1 h-4 w-4 shrink-0" />
+            <span className="truncate">
+              {t("back_to_patients", "Back to Patients")}
+            </span>
           </Button>
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">
-            <Button
-              variant="outline"
-              className="h-10 w-full sm:w-auto"
-              onClick={() => router.push(medicalProfileRoute)}
-            >
-              <FileHeart className="w-4 h-4 me-2 shrink-0" />
-              <span className="truncate">{t("medical_profile", "Medical Profile")}</span>
-            </Button>
-            <Button
-              variant="outline"
-              className="h-10 w-full sm:w-auto"
-              onClick={() => router.push(healthKpisRoute)}
-            >
-              <Gauge className="w-4 h-4 me-2 shrink-0" />
-              <span className="truncate">{t("health_kpis", "Health KPIs")}</span>
-            </Button>
-            {(isDoctor || isCaregiver) && (
-              <Button
-                variant="outline"
-                className="h-10 w-full sm:w-auto"
-                onClick={() => router.push(importRoute)}
-              >
-                <FileUp className="w-4 h-4 me-2 shrink-0" />
-                <span className="truncate">{t("import_records", "Import Records")}</span>
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              className="h-10 w-full sm:w-auto"
-              onClick={() => router.push(clinicalAgentRoute)}
-            >
-              <Brain className="w-4 h-4 me-2 shrink-0" />
-              <span className="truncate">{t("clinical_agent", "Clinical Agent")}</span>
-            </Button>
+          <div className="flex items-center gap-2">
             <EhrDownloadDialog
               patientId={userId}
               trigger={
-                <Button
-                  variant="outline"
-                  className="h-10 w-full sm:w-auto"
-                >
-                  <FileDown className="w-4 h-4 me-2 shrink-0" />
-                  <span className="truncate">{t("download_ehr", "Download medical record")}</span>
+                <Button variant="outline" className="h-10 rounded-full">
+                  <FileDown className="me-2 h-4 w-4 shrink-0" />
+                  <span className="truncate">
+                    {t("download_ehr", "Download medical record")}
+                  </span>
                 </Button>
               }
             />
             <Button
               onClick={handleMessagePatient}
               disabled={isCreatingRoom || !patientInfo}
-              className="h-10 w-full sm:w-auto"
+              className="h-10 rounded-full"
             >
-              <MessageCircle className="w-4 h-4 me-2 shrink-0" />
+              <MessageCircle className="me-2 h-4 w-4 shrink-0" />
               {isCreatingRoom
                 ? t("starting_chat", "Starting chat...")
                 : t("message_patient", "Message Patient")}
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-10 w-10 rounded-full"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-52">
+                <DropdownMenuItem onClick={() => router.push(medicalProfileRoute)}>
+                  <FileHeart className="me-2 h-4 w-4" />
+                  {t("medical_profile", "Medical Profile")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push(healthKpisRoute)}>
+                  <Gauge className="me-2 h-4 w-4" />
+                  {t("health_kpis", "Health KPIs")}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => router.push(clinicalAgentRoute)}>
+                  <Brain className="me-2 h-4 w-4" />
+                  {t("clinical_agent", "Clinical Agent")}
+                </DropdownMenuItem>
+                {(isDoctor || isCaregiver) && (
+                  <DropdownMenuItem onClick={() => router.push(importRoute)}>
+                    <FileUp className="me-2 h-4 w-4" />
+                    {t("import_records", "Import Records")}
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 

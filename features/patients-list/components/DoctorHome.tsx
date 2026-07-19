@@ -3,157 +3,49 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
-import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import {
-  Users,
-  UserCheck,
-  UserX,
   Activity,
-  MessageCircle,
+  AlertTriangle,
   ArrowRight,
-  Search,
-  Stethoscope,
-  Loader2,
-  ShieldAlert,
   Brain,
-  FileUp,
+  CalendarDays,
+  Camera,
+  ClipboardList,
+  HeartHandshake,
+  MessageCircle,
+  Search,
+  ShieldAlert,
+  Stethoscope,
+  UserCheck,
+  Users,
 } from "lucide-react";
 
 import PageContainer from "@/components/layout/page-container";
 import { Heading } from "@/components/ui/heading";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LoaderIcon } from "@/components/chat/icons";
+import { Badge } from "@/components/ui/badge";
 
 import { usePatients } from "@/features/patients-list/api/useGetPatients";
 import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { useUser } from "@/context/UserContext";
-import { User } from "@/features/dashboard/types/caregiver/user";
-import { cn } from "@/lib/utils";
+import { fetchAlertHistory } from "@/features/alert/api/alertApi";
+import type { User } from "@/features/dashboard/types/caregiver/user";
 import {
   AddPatientButton,
   InviteCaregiverButton,
 } from "./CareTeamActions";
 import StaffCaseloadInsights from "./StaffCaseloadInsights";
 import AppointmentsWidget from "@/features/appointments/components/AppointmentsWidget";
-
-const StatCard = ({
-  label,
-  value,
-  icon: Icon,
-  color,
-  bg,
-}: {
-  label: string;
-  value: number | string;
-  icon: any;
-  color: string;
-  bg: string;
-}) => (
-  <motion.div
-    initial={{ opacity: 0, y: 8 }}
-    animate={{ opacity: 1, y: 0 }}
-    className="flex items-center gap-4 rounded-2xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md"
-  >
-    <div className={cn("p-3 rounded-2xl", color, bg)}>
-      <Icon className="w-6 h-6" />
-    </div>
-    <div className="flex flex-col">
-      <span className="text-2xl font-black tracking-tight ltr-nums">{value}</span>
-      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        {label}
-      </span>
-    </div>
-  </motion.div>
-);
-
-const PatientRow = ({
-  patient,
-  onView,
-  onMessage,
-  onImport,
-  onClinicalAgent,
-  showImport,
-  isMessaging,
-}: {
-  patient: User;
-  onView: () => void;
-  onMessage: () => void;
-  onImport: () => void;
-  onClinicalAgent: () => void;
-  showImport: boolean;
-  isMessaging: boolean;
-}) => {
-  const isActive = patient.status === "active";
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-zinc-200/70 bg-background p-3 transition-all duration-300 hover:shadow-sm hover:border-primary/30 dark:border-zinc-800/70">
-      <div className="relative">
-        <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center text-sm font-bold uppercase">
-          {patient.first_name?.[0] ?? patient.username?.[0] ?? "?"}
-        </div>
-        <span
-          className={cn(
-            "absolute -bottom-0.5 -end-0.5 h-3 w-3 rounded-full border-2 border-background",
-            isActive ? "bg-emerald-500" : "bg-amber-500"
-          )}
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-sm truncate">
-          {patient.first_name} {patient.last_name}
-        </p>
-        <p className="text-xs text-muted-foreground truncate">@{patient.username}</p>
-      </div>
-      <div className="flex items-center gap-1.5">
-        {showImport && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 text-emerald-600"
-            onClick={onImport}
-            title="Import records"
-          >
-            <FileUp className="h-4 w-4" />
-          </Button>
-        )}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-violet-600"
-          onClick={onClinicalAgent}
-          title="Clinical agent"
-        >
-          <Brain className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-primary"
-          onClick={onMessage}
-          disabled={isMessaging}
-          title="Message"
-        >
-          {isMessaging ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <MessageCircle className="h-4 w-4" />
-          )}
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8 text-muted-foreground"
-          onClick={onView}
-          title="View profile"
-        >
-          <ArrowRight className="h-4 w-4 rtl:-scale-x-100" />
-        </Button>
-      </div>
-    </div>
-  );
-};
+import {
+  PatientCard,
+  StaffGlass,
+  StaffPanelSkeleton,
+  StaffQuickAction,
+  StaffStatCard,
+} from "./staff-ui";
 
 export default function DoctorHome() {
   const { t } = useTranslation();
@@ -164,26 +56,56 @@ export default function DoctorHome() {
   const [messagingId, setMessagingId] = useState<number | null>(null);
 
   const { data: patients, isLoading, error } = usePatients(true);
-
   const isCaregiver = user?.role === "caregiver";
   const patientsListRoute = isCaregiver
     ? "/dashboard/my-patients"
     : "/dashboard/patients";
-  const patientDetailBase = patientsListRoute;
-  const alertsRoute = '/dashboard/patient-alert';
+  const alertsRoute = "/dashboard/patient-alert";
+
+  const patientIds = useMemo(
+    () => new Set((patients ?? []).map((p) => p.id)),
+    [patients]
+  );
+
+  const { data: alerts = [] } = useQuery({
+    queryKey: ["staff-home-alerts"],
+    queryFn: () => fetchAlertHistory({ limit: 80 }),
+    staleTime: 60_000,
+    enabled: isCaregiver,
+  });
+
+  const recentAlerts = useMemo(() => {
+    return alerts
+      .filter((a) => patientIds.size === 0 || patientIds.has(a.user_id))
+      .slice(0, 5)
+      .map((a) => {
+        const p = (patients ?? []).find((x) => x.id === a.user_id);
+        return {
+          id: a.id ?? `${a.user_id}-${a.timestamp}`,
+          severity: String(a.severity || "medium").toLowerCase(),
+          message: a.message || a.alert_type || "Alert",
+          when: a.timestamp,
+          name: p
+            ? `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.username
+            : `#${a.user_id}`,
+        };
+      });
+  }, [alerts, patientIds, patients]);
 
   const stats = useMemo(() => {
     const list = patients ?? [];
-    const total = list.length;
-    const active = list.filter((p) => p.status === "active").length;
-    const inactive = list.filter((p) => p.status === "inactive").length;
-    const uncovered = list.filter((p) => !p.caregiver_id).length;
-    return { total, active, inactive, uncovered };
-  }, [patients]);
+    return {
+      total: list.length,
+      active: list.filter((p) => p.status === "active").length,
+      incomplete: list.filter((p) => p.records_complete === false).length,
+      uncovered: list.filter((p) => !p.caregiver_id).length,
+      openAlerts: recentAlerts.length,
+    };
+  }, [patients, recentAlerts.length]);
 
   const filteredPatients = useMemo(() => {
     const list = patients ?? [];
-    if (!search.trim()) return list.slice(0, 8);
+    if (!search.trim()) return list.slice(0, 6);
     const q = search.toLowerCase();
     return list
       .filter(
@@ -193,7 +115,7 @@ export default function DoctorHome() {
           p.last_name?.toLowerCase().includes(q) ||
           p.email?.toLowerCase().includes(q)
       )
-      .slice(0, 12);
+      .slice(0, 9);
   }, [patients, search]);
 
   const handleMessage = async (patient: User) => {
@@ -207,8 +129,6 @@ export default function DoctorHome() {
       if (response?.room_id) {
         router.push(`/dashboard/chat/${response.room_id}`);
       }
-    } catch (err) {
-      console.error("Failed to start chat:", err);
     } finally {
       setMessagingId(null);
     }
@@ -216,134 +136,239 @@ export default function DoctorHome() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="flex flex-col items-center">
-          <span className="animate-spin w-10 h-10 text-blue-500 mb-4 flex items-center justify-center">
-            <LoaderIcon size={40} />
-          </span>
-          <span className="text-lg text-muted-foreground">
-            {t("loading", "Loading...")}
-          </span>
-        </div>
-      </div>
+      <PageContainer scrollable>
+        <StaffPanelSkeleton />
+      </PageContainer>
     );
   }
 
   return (
     <PageContainer scrollable>
       <div className="flex w-full flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <Heading
-            title={
-              isCaregiver
-                ? t("caregiver_dashboard", "Caregiver Dashboard")
-                : t("doctor_dashboard", "Doctor Dashboard")
-            }
-            description={t("hi_welcome_back", {
-              name: user?.first_name || (isCaregiver ? "Caregiver" : "Doctor"),
-            })}
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <InviteCaregiverButton />
-            <AddPatientButton />
-            <Button variant="outline" onClick={() => router.push("/dashboard/chat")}>
-              <MessageCircle className="w-4 h-4 me-2" />
-              {t("chat", "Chat")}
-            </Button>
-            <Button onClick={() => router.push(patientsListRoute)}>
-              <Users className="w-4 h-4 me-2" />
-              {t("all_patients", "All Patients")}
-            </Button>
+        {/* Hero */}
+        <StaffGlass className="relative overflow-hidden p-5 sm:p-6">
+          <div className="pointer-events-none absolute -end-10 -top-10 h-40 w-40 rounded-full bg-primary/10 blur-3xl" />
+          <div className="pointer-events-none absolute -bottom-16 -start-8 h-40 w-40 rounded-full bg-emerald-500/10 blur-3xl" />
+          <div className="relative flex flex-wrap items-start justify-between gap-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                {isCaregiver ? (
+                  <HeartHandshake className="h-3.5 w-3.5" />
+                ) : (
+                  <Stethoscope className="h-3.5 w-3.5" />
+                )}
+                {isCaregiver
+                  ? t("care_home", "Care home")
+                  : t("clinic_floor", "Clinic floor")}
+              </div>
+              <Heading
+                title={
+                  isCaregiver
+                    ? t("caregiver_dashboard", "Caregiver Dashboard")
+                    : t("doctor_dashboard", "Doctor Dashboard")
+                }
+                description={t("hi_welcome_back", {
+                  name:
+                    user?.first_name ||
+                    (isCaregiver ? "Caregiver" : "Doctor"),
+                })}
+              />
+              <p className="max-w-xl text-sm text-muted-foreground">
+                {isCaregiver
+                  ? t(
+                      "caregiver_home_blurb",
+                      "Keep an eye on your household — open anyone to check vitals, records, and recent alerts."
+                    )
+                  : t(
+                      "doctor_home_blurb",
+                      "Your caseload at a glance — appointments, alerts, and patients who need follow-up."
+                    )}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {!isCaregiver && <InviteCaregiverButton />}
+              <AddPatientButton />
+              <Button
+                variant="outline"
+                className="rounded-full"
+                onClick={() => router.push("/dashboard/chat")}
+              >
+                <MessageCircle className="me-2 h-4 w-4" />
+                {t("chat", "Chat")}
+              </Button>
+              <Button
+                className="rounded-full"
+                onClick={() => router.push(patientsListRoute)}
+              >
+                <Users className="me-2 h-4 w-4" />
+                {isCaregiver
+                  ? t("my_household", "My Household")
+                  : t("all_patients", "All Patients")}
+              </Button>
+            </div>
           </div>
-        </div>
+        </StaffGlass>
 
-        {/* Stat cards */}
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <StatCard
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <StaffStatCard
             label={t("total_patients", "Total Patients")}
             value={stats.total}
             icon={Users}
             color="text-blue-500"
             bg="bg-blue-500/10"
           />
-          <StatCard
+          <StaffStatCard
             label={t("active_patients", "Active")}
             value={stats.active}
             icon={UserCheck}
             color="text-emerald-500"
             bg="bg-emerald-500/10"
           />
-          <StatCard
-            label={t("inactive_patients", "Inactive")}
-            value={stats.inactive}
-            icon={UserX}
+          <StaffStatCard
+            label={t("records_incomplete", "Incomplete")}
+            value={stats.incomplete}
+            icon={ClipboardList}
             color="text-amber-500"
             bg="bg-amber-500/10"
           />
-          <StatCard
-            label={t("uncovered_patients", "Uncovered")}
-            value={stats.uncovered}
-            icon={ShieldAlert}
-            color="text-rose-500"
-            bg="bg-rose-500/10"
-          />
+          {isCaregiver ? (
+            <StaffStatCard
+              label={t("recent_alerts", "Recent alerts")}
+              value={stats.openAlerts}
+              icon={AlertTriangle}
+              color="text-rose-500"
+              bg="bg-rose-500/10"
+              onClick={() => router.push(alertsRoute)}
+            />
+          ) : (
+            <StaffStatCard
+              label={t("uncovered_patients", "Uncovered")}
+              value={stats.uncovered}
+              icon={ShieldAlert}
+              color="text-rose-500"
+              bg="bg-rose-500/10"
+            />
+          )}
         </div>
 
         {!isCaregiver && <AppointmentsWidget />}
+        {!isCaregiver && (
+          <StaffCaseloadInsights patients={patients ?? []} />
+        )}
 
-        {!isCaregiver && <StaffCaseloadInsights patients={patients ?? []} />}
+        {/* Caregiver alert strip */}
+        {isCaregiver && (
+          <StaffGlass className="p-5">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-bold tracking-tight">
+                  {t("household_alerts", "Household alerts")}
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  {t(
+                    "household_alerts_desc",
+                    "Latest signals from people in your care"
+                  )}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="rounded-full"
+                onClick={() => router.push(alertsRoute)}
+              >
+                {t("view_all", "View all")}
+                <ArrowRight className="ms-1 h-3.5 w-3.5 rtl:-scale-x-100" />
+              </Button>
+            </div>
+            {recentAlerts.length === 0 ? (
+              <p className="rounded-2xl border border-dashed py-8 text-center text-sm text-muted-foreground">
+                {t("no_recent_alerts", "No recent alerts")}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {recentAlerts.map((a) => (
+                  <div
+                    key={a.id}
+                    className="flex items-center gap-3 rounded-2xl border border-border/70 bg-background/60 px-3 py-2.5"
+                  >
+                    <Badge
+                      variant="secondary"
+                      className={`rounded-full text-[10px] uppercase ${
+                        a.severity === "critical" || a.severity === "high"
+                          ? "bg-rose-500/10 text-rose-700 dark:text-rose-300"
+                          : "bg-amber-500/10 text-amber-700 dark:text-amber-300"
+                      }`}
+                    >
+                      {a.severity}
+                    </Badge>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{a.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {a.message}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </StaffGlass>
+        )}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-          {/* Patients quick list */}
-          <Card className="xl:col-span-8 flex flex-col gap-4 rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
+          <StaffGlass className="flex flex-col gap-4 p-5 xl:col-span-8">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Stethoscope className="w-5 h-5 text-primary" />
+                {isCaregiver ? (
+                  <HeartHandshake className="h-5 w-5 text-primary" />
+                ) : (
+                  <Stethoscope className="h-5 w-5 text-primary" />
+                )}
                 <h3 className="text-lg font-bold tracking-tight">
-                  {t("my_patients", "My Patients")}
+                  {isCaregiver
+                    ? t("my_household", "My Household")
+                    : t("my_patients", "My Patients")}
                 </h3>
               </div>
               <div className="relative w-full max-w-xs">
-                <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder={t("search_patients", "Search patients...")}
-                  className="ps-9"
+                  className="rounded-full ps-9"
                 />
               </div>
             </div>
 
             {error ? (
-              <p className="text-sm text-rose-500 py-6 text-center">
+              <p className="py-6 text-center text-sm text-rose-500">
                 {error.message}
               </p>
             ) : filteredPatients.length === 0 ? (
-              <p className="text-sm text-muted-foreground py-10 text-center bg-muted/20 rounded-2xl border border-dashed">
+              <p className="rounded-2xl border border-dashed bg-muted/20 py-10 text-center text-sm text-muted-foreground">
                 {t("no_patients_found", "No patients found.")}
               </p>
             ) : (
-              <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2">
-                {filteredPatients.map((patient) => (
-                  <PatientRow
-                    key={patient.id}
-                    patient={patient}
-                    isMessaging={messagingId === patient.id}
-                    showImport
-                    onView={() => router.push(`${patientDetailBase}/${patient.id}`)}
-                    onImport={() =>
-                      router.push(staffPatientRoutes(user?.role, patient.id).importRoute)
-                    }
-                    onClinicalAgent={() =>
-                      router.push(
-                        isCaregiver
-                          ? `/dashboard/my-patients/${patient.id}/clinical-agent`
-                          : `/dashboard/patients/${patient.id}/clinical-agent`
-                      )
-                    }
-                    onMessage={() => handleMessage(patient)}
-                  />
-                ))}
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                {filteredPatients.map((patient) => {
+                  const routes = staffPatientRoutes(user?.role, patient.id);
+                  return (
+                    <PatientCard
+                      key={patient.id}
+                      patient={patient}
+                      messaging={messagingId === patient.id}
+                      showImport
+                      onOpen={() => router.push(routes.detailRoute)}
+                      onImport={() => router.push(routes.importRoute)}
+                      onClinicalAgent={() =>
+                        router.push(routes.clinicalAgentRoute)
+                      }
+                      onMessage={() => handleMessage(patient)}
+                    />
+                  );
+                })}
               </div>
             )}
 
@@ -353,72 +378,79 @@ export default function DoctorHome() {
               onClick={() => router.push(patientsListRoute)}
             >
               {t("view_all_patients", "View all patients")}
-              <ArrowRight className="w-4 h-4 ms-1 rtl:-scale-x-100" />
+              <ArrowRight className="ms-1 h-4 w-4 rtl:-scale-x-100" />
             </Button>
-          </Card>
+          </StaffGlass>
 
-          {/* Quick actions / shortcuts */}
-          <Card className="xl:col-span-4 flex flex-col gap-3 rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
-            <div className="flex items-center gap-2 mb-1">
-              <Activity className="w-5 h-5 text-primary" />
+          <StaffGlass className="flex flex-col gap-3 p-5 xl:col-span-4">
+            <div className="mb-1 flex items-center gap-2">
+              <Activity className="h-5 w-5 text-primary" />
               <h3 className="text-lg font-bold tracking-tight">
                 {t("quick_actions", "Quick Actions")}
               </h3>
             </div>
 
-            <QuickAction
-              label={isCaregiver ? t("my_patients", "My Patients") : t("patients", "Patients")}
-              description={t("manage_patient_records", "View and manage patient records")}
+            <StaffQuickAction
+              label={
+                isCaregiver
+                  ? t("my_household", "My Household")
+                  : t("patients", "Patients")
+              }
+              description={t(
+                "manage_patient_records",
+                "View and manage patient records"
+              )}
               icon={Users}
               onClick={() => router.push(patientsListRoute)}
             />
-            <QuickAction
+            <StaffQuickAction
               label={t("patient_alerts", "Patient Alerts")}
-              description={t("review_clinical_alerts", "Review clinical alerts")}
+              description={t(
+                "review_clinical_alerts",
+                "Review clinical alerts"
+              )}
               icon={ShieldAlert}
               onClick={() => router.push(alertsRoute)}
             />
-            <QuickAction
+            <StaffQuickAction
+              label={t("appointments", "Appointments")}
+              description={t(
+                "manage_schedule",
+                "Manage visits and availability"
+              )}
+              icon={CalendarDays}
+              onClick={() => router.push("/dashboard/appointments")}
+            />
+            <StaffQuickAction
+              label={t("fall_camera_logs", "Fall Camera Logs")}
+              description={t(
+                "review_fall_events",
+                "Review fall detection events"
+              )}
+              icon={Camera}
+              onClick={() => router.push("/dashboard/fall-reports")}
+            />
+            <StaffQuickAction
               label={t("ai_chat", "AI Chat")}
-              description={t("ai_assistant_description", "Ask the AI health assistant")}
+              description={t(
+                "ai_assistant_description",
+                "Ask the AI health assistant"
+              )}
               icon={Brain}
               onClick={() => router.push("/dashboard/ai")}
             />
-            <QuickAction
+            <StaffQuickAction
               label={t("chat", "Chat")}
-              description={t("contact_patients", "Contact and message patients")}
+              description={t(
+                "contact_patients",
+                "Contact and message patients"
+              )}
               icon={MessageCircle}
               onClick={() => router.push("/dashboard/chat")}
             />
-          </Card>
+          </StaffGlass>
         </div>
       </div>
     </PageContainer>
   );
 }
-
-const QuickAction = ({
-  label,
-  description,
-  icon: Icon,
-  onClick,
-}: {
-  label: string;
-  description: string;
-  icon: any;
-  onClick: () => void;
-}) => (
-  <button
-    onClick={onClick}
-    className="group flex items-center gap-3 rounded-2xl border border-zinc-200/70 bg-background p-3.5 text-start transition-all duration-300 hover:border-primary/40 hover:shadow-sm dark:border-zinc-800/70"
-  >
-    <div className="p-2.5 rounded-xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
-      <Icon className="w-5 h-5" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="font-semibold text-sm">{label}</p>
-      <p className="text-xs text-muted-foreground truncate">{description}</p>
-    </div>
-    <ArrowRight className="w-4 h-4 text-muted-foreground rtl:-scale-x-100 transition-transform duration-300 group-hover:translate-x-1" />
-  </button>
-);
