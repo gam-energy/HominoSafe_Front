@@ -216,7 +216,7 @@ export default function ProfileViewPage() {
 
   return (
     <>
-      <div className="w-full py-8 px-4 min-h-screen">
+      <div className="w-full px-4 pt-24 pb-8 min-h-screen">
         <Card className="max-w-3xl mx-auto rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md relative">
           <div className="absolute -top-16 left-1/2 -translate-x-1/2">
             <div className="relative rounded-full p-1 bg-white dark:bg-zinc-900 shadow-xl ring-4 ring-zinc-100 dark:ring-zinc-800">
@@ -279,7 +279,7 @@ export default function ProfileViewPage() {
                           return (
                             <Select
                               onValueChange={field.onChange}
-                              defaultValue={field.value as string}
+                              value={(field.value as string) || undefined}
                               disabled={!isEditing}
                             >
                               <SelectTrigger
@@ -293,6 +293,7 @@ export default function ProfileViewPage() {
                               <SelectContent className="rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
                                 <SelectItem value="Male">{t("male", "Male")}</SelectItem>
                                 <SelectItem value="Female">{t("female", "Female")}</SelectItem>
+                                <SelectItem value="Other">{t("other", "Other")}</SelectItem>
                               </SelectContent>
                             </Select>
                           );
