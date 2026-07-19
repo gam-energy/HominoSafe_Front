@@ -32,6 +32,8 @@ import {
   AlertTriangle,
   Loader2,
   Calendar,
+  LayoutList,
+  Columns3,
 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import {
@@ -45,8 +47,11 @@ import {
   type AppointmentSummary,
   type AppointmentSlot,
 } from '../api/use-appointments';
+import AppointmentsKanban from './AppointmentsKanban';
+import { cn } from '@/lib/utils';
 
 type Role = 'patient' | 'caregiver' | 'doctor' | 'clinic_admin' | 'admin';
+type ViewMode = 'list' | 'kanban';
 
 interface AppointmentsPanelProps {
   role: Role;
@@ -85,8 +90,12 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
   const { user } = useUser();
   const [bookingOpen, setBookingOpen] = useState(false);
   const [slotOpen, setSlotOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
 
-  const myAppointments = useMyAppointments(true);
+  const canManageBoard =
+    role === 'doctor' || role === 'clinic_admin' || role === 'admin';
+  // Kanban needs completed / cancelled columns, so load the full board.
+  const myAppointments = useMyAppointments(viewMode !== 'kanban');
   const slots = useSlots(user?.role === 'doctor' ? { doctor_id: user.id } : undefined);
   const createAppt = useCreateAppointment();
   const updateAppt = useUpdateAppointment();
@@ -94,7 +103,6 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
   const cancelSlot = useCancelSlot();
 
   const canPublishSlots = role === 'doctor' || role === 'clinic_admin' || role === 'admin';
-  const canBookForOthers = role === 'caregiver' || role === 'doctor' || role === 'clinic_admin' || role === 'admin';
 
   const upcoming = useMemo(() => myAppointments.data || [], [myAppointments.data]);
 
@@ -104,14 +112,44 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
 
   return (
     <div className="space-y-6 p-4 md:p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">{t('appointments', 'Appointments')}</h1>
           <p className="text-sm text-muted-foreground">
             {t('book_appointment', 'Book and manage your appointments')}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          {canManageBoard && (
+            <div className="flex rounded-full bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
+                  viewMode === 'list'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+                {t('list_view', 'List')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
+                  viewMode === 'kanban'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Columns3 className="h-3.5 w-3.5" />
+                {t('kanban_view', 'Kanban')}
+              </button>
+            </div>
+          )}
           {canPublishSlots && (
             <Dialog open={slotOpen} onOpenChange={setSlotOpen}>
               <DialogTrigger asChild>
@@ -157,8 +195,18 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5" />
-            {t('upcoming_appointments', 'Upcoming appointments')}
+            {viewMode === 'kanban'
+              ? t('appointment_board', 'Appointment board')
+              : t('upcoming_appointments', 'Upcoming appointments')}
           </CardTitle>
+          {viewMode === 'kanban' && (
+            <p className="text-sm font-normal text-muted-foreground">
+              {t(
+                'kanban_hint',
+                'Drag cards between columns to update status, or use the quick actions on each card.',
+              )}
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           {myAppointments.isLoading && (
@@ -177,18 +225,32 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
               {t('no_appointments', 'No appointments scheduled')}
             </div>
           )}
-          {upcoming.length > 0 && (
-            <div className="space-y-3">
-              {upcoming.map((appt) => (
-                <AppointmentRow
-                  key={appt.id}
-                  appt={appt}
-                  role={role}
-                  onStatusChange={handleStatusChange}
-                />
-              ))}
-            </div>
-          )}
+          {!myAppointments.isLoading &&
+            !myAppointments.isError &&
+            upcoming.length > 0 &&
+            viewMode === 'kanban' &&
+            canManageBoard && (
+              <AppointmentsKanban
+                appointments={upcoming}
+                onStatusChange={handleStatusChange}
+                pending={updateAppt.isPending}
+              />
+            )}
+          {!myAppointments.isLoading &&
+            !myAppointments.isError &&
+            upcoming.length > 0 &&
+            viewMode === 'list' && (
+              <div className="space-y-3">
+                {upcoming.map((appt) => (
+                  <AppointmentRow
+                    key={appt.id}
+                    appt={appt}
+                    role={role}
+                    onStatusChange={handleStatusChange}
+                  />
+                ))}
+              </div>
+            )}
         </CardContent>
       </Card>
 
@@ -253,10 +315,15 @@ const AppointmentRow: FC<AppointmentRowProps> = ({ appt, role, onStatusChange })
           </Button>
         )}
         {canManage && appt.status === 'confirmed' && (
-          <Button size="sm" variant="outline" onClick={() => onStatusChange(appt.id, 'completed')}>
-            <CheckCircle className="me-1 h-4 w-4" />
-            {t('complete', 'Complete')}
-          </Button>
+          <>
+            <Button size="sm" variant="outline" onClick={() => onStatusChange(appt.id, 'completed')}>
+              <CheckCircle className="me-1 h-4 w-4" />
+              {t('complete', 'Complete')}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => onStatusChange(appt.id, 'no_show')}>
+              {t('no_show', 'No-show')}
+            </Button>
+          </>
         )}
         {(canManage || role === 'patient' || role === 'caregiver') && appt.status !== 'cancelled' && appt.status !== 'completed' && (
           <Button
