@@ -50,21 +50,32 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === '/') {
-    if (hasFreshAccess) {
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+  if (pathname.startsWith('/application-status')) {
+    if (!accessToken) {
+      return NextResponse.redirect(new URL('/auth/sign-in', request.url));
     }
+    return NextResponse.next();
+  }
+
+  // Public landing — do not redirect authenticated users away from '/'.
+  if (pathname === '/') {
     if (accessToken && tokenExpired) {
-      const res = NextResponse.redirect(new URL('/auth/sign-in', request.url));
+      const res = NextResponse.next();
       clearAuthCookies(res);
       return res;
     }
-    return NextResponse.redirect(new URL('/auth/sign-in', request.url));
+    return NextResponse.next();
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/', '/auth/:path*', '/dashboard/:path*'],
+  matcher: [
+    '/',
+    '/auth/:path*',
+    '/dashboard/:path*',
+    '/application-status',
+    '/application-status/:path*',
+  ],
 };

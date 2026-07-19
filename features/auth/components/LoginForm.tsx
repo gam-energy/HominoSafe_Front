@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 import {
@@ -23,6 +23,8 @@ import { useTranslation } from "react-i18next";
 export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const message = searchParams.get("message");
   const [isLoading, setIsLoading] = useState(false);
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -50,6 +52,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
         <p className="text-muted-foreground mt-2 font-medium">
           {t('enter_credentials')}
         </p>
+        {message === "application_submitted" && (
+          <p
+            role="status"
+            className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+          >
+            {t(
+              "app_submitted_signin_message",
+              "Your application was submitted. Sign in with your caregiver account to track status."
+            )}
+          </p>
+        )}
       </div>
 
       <Form {...form}>
@@ -61,12 +74,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
               <FormItem className="space-y-1.5">
                 <FormLabel className="text-zinc-700 dark:text-zinc-300 font-semibold">{t('username')}</FormLabel>
                 <FormControl>
-                  <Input 
-                    className="h-12 rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50 focus:ring-2 focus:ring-blue-500/20 transition-all" 
-                    dir="ltr" 
-                    type="text" 
-                    placeholder={t('username_placeholder')} 
-                    {...field} 
+                  <Input
+                    className="h-12 rounded-xl border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                    dir="ltr"
+                    type="text"
+                    placeholder={t('username_placeholder')}
+                    {...field}
                   />
                 </FormControl>
                 <FormMessage />
@@ -112,9 +125,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
             )}
           />
 
-          <Button 
+          <Button
             disabled={isLoading}
-            type="submit" 
+            type="submit"
             className="w-full h-12 mt-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-lg shadow-blue-200 dark:shadow-none transition-all active:scale-[0.98]"
           >
             {isLoading ? (
@@ -138,9 +151,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
             type="button"
             variant="outline"
             className="w-full h-12 rounded-xl border-gray-200 dark:border-zinc-800 font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all"
-            onClick={() => router.push("/auth/sign-up")}
+            onClick={() => router.push("/apply")}
           >
-            {t('create_account')}
+            {t('apply_now', 'Apply now')}
           </Button>
         </form>
       </Form>

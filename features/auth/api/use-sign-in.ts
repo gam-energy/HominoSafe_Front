@@ -1,12 +1,15 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import Cookies from 'js-cookie';
 import { toast } from 'sonner';
+import { AxiosError } from 'axios';
 import axiosInstance from '@/api/axiosInstance';
 import { LoginFormValues, LoginResponse } from '../types/auth';
 import {
   AUTH_COOKIE_OPTS,
   clearAuthRedirectGuard,
 } from '@/lib/auth-session';
+import { fetchMyApplication } from '@/features/applications/api/use-applications';
+import type { ApplicationSummary } from '@/features/applications/types/applications';
 
 const loginUser = async (credentials: LoginFormValues): Promise<LoginResponse> => {
   const formData = new URLSearchParams();
@@ -21,6 +24,22 @@ const loginUser = async (credentials: LoginFormValues): Promise<LoginResponse> =
   if (response.status !== 200) throw new Error('Login failed');
   return response.data;
 };
+
+async function resolvePostLoginPath(): Promise<string> {
+  try {
+    const application: ApplicationSummary | null = await fetchMyApplication();
+    if (application && application.status !== 'approved') {
+      return '/application-status';
+    }
+  } catch (err) {
+    const status = (err as AxiosError)?.response?.status;
+    // Unexpected errors: fall through to dashboard rather than blocking login.
+    if (status && status !== 404) {
+      console.warn('Post-login application check failed:', status);
+    }
+  }
+  return '/dashboard';
+}
 
 export const useLogin = () => {
   const queryClient = useQueryClient();
@@ -45,7 +64,9 @@ export const useLogin = () => {
       clearAuthRedirectGuard();
       toast.success('Logged in successfully');
       queryClient.invalidateQueries({ queryKey: ['user-profile'] });
-      window.location.assign('/dashboard');
+
+      const path = await resolvePostLoginPath();
+      window.location.assign(path);
     },
     onError: (error) => {
       toast.error(error.message || 'خطا در ورود!');
