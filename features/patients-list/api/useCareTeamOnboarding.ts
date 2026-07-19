@@ -26,9 +26,10 @@ export type PatientOnboarding = {
   missing: string[];
 };
 
-export function useReferrals() {
+export function useReferrals(enabled = true) {
   return useQuery({
     queryKey: ['referrals'],
+    enabled,
     queryFn: async () => {
       const { data } = await axiosInstance.get<ReferralCode[]>('/referrals');
       return data;

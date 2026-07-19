@@ -63,7 +63,7 @@ const DoctorDashboard = () => {
       total: list.length,
       active: list.filter((p) => p.status === "active").length,
       inactive: list.filter((p) => p.status === "inactive").length,
-      uncovered: list.filter((p) => p.caregiver_id === 0).length,
+      uncovered: list.filter((p) => !p.caregiver_id).length,
     };
   }, [patients]);
 
@@ -75,7 +75,7 @@ const DoctorDashboard = () => {
       case "inactive":
         return list.filter((p) => p.status === "inactive");
       case "non_covered":
-        return list.filter((p) => p.caregiver_id === 0);
+        return list.filter((p) => !p.caregiver_id);
       default:
         return list;
     }

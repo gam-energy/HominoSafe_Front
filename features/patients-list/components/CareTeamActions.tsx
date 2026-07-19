@@ -21,12 +21,13 @@ import { useUser } from "@/context/UserContext";
 
 export function InviteCaregiverButton() {
   const { user } = useUser();
+  const isAllowed = user?.role === "doctor" || user?.role === "admin";
   const createReferral = useCreateCaregiverReferral();
-  const { data: referrals } = useReferrals();
+  const { data: referrals } = useReferrals(isAllowed);
   const [open, setOpen] = useState(false);
   const [lastCode, setLastCode] = useState<string | null>(null);
 
-  if (user?.role !== "doctor" && user?.role !== "admin") return null;
+  if (!isAllowed) return null;
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>

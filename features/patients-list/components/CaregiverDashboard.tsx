@@ -9,7 +9,6 @@ import { Heading } from "@/components/ui/heading";
 import { useTranslation } from "react-i18next";
 import { Users, UserCheck, UserX, ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
-import StaffCaseloadInsights from "./StaffCaseloadInsights";
 
 type FilterOption = "all_users" | "active" | "inactive" | "non_covered";
 
@@ -63,7 +62,7 @@ const CaregiverDashboard = () => {
       total: list.length,
       active: list.filter((p) => p.status === "active").length,
       inactive: list.filter((p) => p.status === "inactive").length,
-      uncovered: list.filter((p) => p.caregiver_id === 0).length,
+      uncovered: list.filter((p) => !p.caregiver_id).length,
     };
   }, [patients]);
 
@@ -75,7 +74,7 @@ const CaregiverDashboard = () => {
       case "inactive":
         return list.filter((p) => p.status === "inactive");
       case "non_covered":
-        return list.filter((p) => p.caregiver_id === 0);
+        return list.filter((p) => !p.caregiver_id);
       default:
         return list;
     }
@@ -151,8 +150,6 @@ const CaregiverDashboard = () => {
             onClick={() => setFilterOption("non_covered")}
           />
         </div>
-
-        <StaffCaseloadInsights patients={patients ?? []} />
 
         <DataTable columns={userColumns} data={filteredData} />
       </div>

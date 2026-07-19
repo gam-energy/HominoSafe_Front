@@ -177,7 +177,7 @@ export default function DoctorHome() {
     const total = list.length;
     const active = list.filter((p) => p.status === "active").length;
     const inactive = list.filter((p) => p.status === "inactive").length;
-    const uncovered = list.filter((p) => p.caregiver_id === 0).length;
+    const uncovered = list.filter((p) => !p.caregiver_id).length;
     return { total, active, inactive, uncovered };
   }, [patients]);
 
@@ -289,9 +289,9 @@ export default function DoctorHome() {
           />
         </div>
 
-        <AppointmentsWidget />
+        {!isCaregiver && <AppointmentsWidget />}
 
-        <StaffCaseloadInsights patients={patients ?? []} />
+        {!isCaregiver && <StaffCaseloadInsights patients={patients ?? []} />}
 
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
           {/* Patients quick list */}
