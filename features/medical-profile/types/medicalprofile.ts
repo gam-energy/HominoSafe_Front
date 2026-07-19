@@ -22,6 +22,7 @@ export type ProfileData = {
   ehr_id: number;
   demographics: string;
   comorbidities: Record<string, string | unknown> | string[];
+  allergies?: string[] | null;
   diagnosis: string;
   physician_notes: string;
   timestamp: string;

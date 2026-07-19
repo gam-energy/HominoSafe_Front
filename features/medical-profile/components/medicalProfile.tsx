@@ -1,7 +1,8 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useProfile } from "@/features/medical-profile/api/useGetMedicalProfile";
+import { useUpdateAllergies } from "@/features/medical-profile/api/useUpdateAllergies";
 import { normalizeComorbidities } from "@/features/medical-profile/utils/profile";
 import type { Symptom } from "@/features/medical-profile/types/medicalprofile";
 import Link from "next/link";
@@ -12,6 +13,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslation } from "react-i18next";
 import { useUser } from "@/context/UserContext";
@@ -29,6 +32,7 @@ import {
   Clock,
   ClipboardList,
   FileHeart,
+  ShieldAlert,
 } from "lucide-react";
 import { LoaderIcon } from "@/components/chat/icons";
 import { MedicationsList } from "./MedicationsList";
@@ -43,6 +47,79 @@ const fadeUp = {
 
 function formatLabel(key: string): string {
   return key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function parseAllergyInput(value: string): string[] {
+  return value
+    .split(/[,،;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+function AllergiesEditor({
+  allergies,
+  userId,
+}: {
+  allergies: string[];
+  userId?: number;
+}) {
+  const { t } = useTranslation();
+  const update = useUpdateAllergies();
+  const [draft, setDraft] = useState(allergies.join(", "));
+
+  useEffect(() => {
+    setDraft(allergies.join(", "));
+  }, [allergies]);
+
+  const canSave = typeof userId === "number" && userId > 0;
+
+  return (
+    <div className="space-y-3">
+      {allergies.length === 0 ? (
+        <p className="text-sm text-muted-foreground">{t("no_allergies")}</p>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {allergies.map((name) => (
+            <Badge
+              key={name}
+              variant="outline"
+              className="rounded-full border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+            >
+              {name}
+            </Badge>
+          ))}
+        </div>
+      )}
+      {canSave && (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder={t(
+              "allergies_placeholder",
+              "e.g. Penicillin, Peanut (comma-separated)"
+            )}
+            className="flex-1"
+          />
+          <Button
+            type="button"
+            size="sm"
+            disabled={update.isPending}
+            onClick={() =>
+              update.mutate({
+                userId: userId!,
+                allergies: parseAllergyInput(draft),
+              })
+            }
+          >
+            {update.isPending
+              ? t("saving", "Saving…")
+              : t("save_allergies", "Save allergies")}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function severityStyle(severity: string): string {
@@ -172,6 +249,7 @@ function buildMedicalProfileReport(
   const comorbidityEntries = normalizeComorbidities(data.comorbidities);
   const medications = data.medications ?? [];
   const symptoms = data.symptoms ?? [];
+  const allergies = data.allergies ?? [];
 
   return {
     pageTitle,
@@ -189,6 +267,7 @@ function buildMedicalProfileReport(
       label: formatLabel(key),
       value: value || "—",
     })),
+    allergies,
     medications: medications.map((med) => ({
       name: med.name,
       dosage: med.dosage,
@@ -206,6 +285,7 @@ function buildMedicalProfileReport(
     })),
     stats: {
       conditions: comorbidityEntries.length,
+      allergies: allergies.length,
       medications: medications.length,
       symptoms: symptoms.length,
     },
@@ -357,6 +437,7 @@ export function MedicalProfileView({
   const comorbidityEntries = normalizeComorbidities(data.comorbidities);
   const medications = data.medications ?? [];
   const symptoms = data.symptoms ?? [];
+  const allergies = data.allergies ?? [];
 
   const stats = [
     {
@@ -365,6 +446,13 @@ export function MedicalProfileView({
       icon: HeartPulse,
       color: "text-rose-500",
       bg: "bg-rose-500/10",
+    },
+    {
+      label: t("allergies", "Allergies"),
+      value: allergies.length,
+      icon: ShieldAlert,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
     },
     {
       label: t("medicine", "Medications"),
@@ -500,8 +588,8 @@ export function MedicalProfileView({
             </SectionShell>
           </motion.div>
 
-          {/* Comorbidities sidebar */}
-          <motion.div variants={fadeUp}>
+          {/* Comorbidities + Allergies sidebar */}
+          <motion.div variants={fadeUp} className="flex flex-col gap-6">
             <SectionShell
               icon={HeartPulse}
               iconClass="text-rose-500"
@@ -529,6 +617,19 @@ export function MedicalProfileView({
                   ))}
                 </div>
               )}
+            </SectionShell>
+
+            <SectionShell
+              icon={ShieldAlert}
+              iconClass="text-amber-500"
+              iconBg="bg-amber-500/10"
+              title={t("allergies", "Allergies")}
+              description={t(
+                "allergies_desc",
+                "Known allergies and intolerances"
+              )}
+            >
+              <AllergiesEditor allergies={allergies} userId={user?.id} />
             </SectionShell>
           </motion.div>
         </div>

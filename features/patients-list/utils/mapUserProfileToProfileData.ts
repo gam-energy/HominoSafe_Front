@@ -9,6 +9,7 @@ export function mapUserProfileToProfileData(
     ehr_id: profile.ehr_id,
     demographics: profile.demographics ?? '',
     comorbidities: profile.comorbidities ?? {},
+    allergies: profile.allergies ?? [],
     diagnosis: profile.diagnosis ?? '',
     physician_notes: profile.physician_notes ?? '',
     timestamp: profile.timestamp,

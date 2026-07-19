@@ -27,6 +27,7 @@ export interface UserProfile {
     hypertension?: string;
     [key: string]: string | undefined;
   };
+  allergies?: string[] | null;
   diagnosis: string;
   physician_notes: string;
   timestamp: string;

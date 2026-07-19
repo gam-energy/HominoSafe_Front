@@ -33,10 +33,12 @@ export type MedicalProfileReportData = {
   diagnosis: string;
   physicianNotes: string;
   comorbidities: MedicalProfileReportComorbidity[];
+  allergies?: string[];
   medications: MedicalProfileReportMedication[];
   symptoms: MedicalProfileReportSymptom[];
   stats: {
     conditions: number;
+    allergies?: number;
     medications: number;
     symptoms: number;
   };
@@ -71,6 +73,19 @@ export function buildMedicalProfileReportHtml(data: MedicalProfileReportData): s
         <div class="chip">
           <span class="chip-label">${escapeHtml(c.label)}</span>
           <span class="chip-value">${escapeHtml(c.value || '—')}</span>
+        </div>`
+          )
+          .join('')}</div>`;
+
+  const allergies = data.allergies ?? [];
+  const allergiesHtml =
+    allergies.length === 0
+      ? '<p class="empty">No known allergies recorded.</p>'
+      : `<div class="chip-grid">${allergies
+          .map(
+            (a) => `
+        <div class="chip">
+          <span class="chip-value">${escapeHtml(a)}</span>
         </div>`
           )
           .join('')}</div>`;
@@ -288,6 +303,7 @@ export function buildMedicalProfileReportHtml(data: MedicalProfileReportData): s
       </div>
       <div class="stats">
         <div class="stat"><div class="stat-num">${escapeHtml(data.stats.conditions)}</div><div class="stat-label">Conditions</div></div>
+        <div class="stat"><div class="stat-num">${escapeHtml(data.stats.allergies ?? allergies.length)}</div><div class="stat-label">Allergies</div></div>
         <div class="stat"><div class="stat-num">${escapeHtml(data.stats.medications)}</div><div class="stat-label">Medications</div></div>
         <div class="stat"><div class="stat-num">${escapeHtml(data.stats.symptoms)}</div><div class="stat-label">Symptoms</div></div>
       </div>
@@ -312,6 +328,10 @@ export function buildMedicalProfileReportHtml(data: MedicalProfileReportData): s
     <section class="section">
       <h2 class="section-title rose">Comorbidities</h2>
       ${comorbidityHtml}
+    </section>
+    <section class="section">
+      <h2 class="section-title amber">Allergies</h2>
+      ${allergiesHtml}
     </section>
 
     <section class="section">
