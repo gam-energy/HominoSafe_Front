@@ -69,6 +69,7 @@ export type PaymentReceiptMeta = {
 
 export type ApplicationSummary = {
   id: number;
+  public_id?: string;
   status: ApplicationStatus;
   clinic?: PublicClinic | null;
   clinic_id?: number | null;
@@ -79,7 +80,10 @@ export type ApplicationSummary = {
   payment_instructions?: string | null;
   receipt?: PaymentReceiptMeta | null;
   has_receipt?: boolean;
+  receipt_name?: string | null;
+  receipt_submitted_at?: string | null;
   review_note?: string | null;
+  rejection_reason?: string | null;
   rejection_note?: string | null;
   note?: string | null;
   created_at?: string | null;
@@ -104,6 +108,8 @@ export type PatchApplicationPayload = {
   currency?: string;
   payment_instructions?: string;
   note?: string;
+  /** Required by backend when action is reject. */
+  reason?: string;
 };
 
 export const APPLICATION_STATUSES: ApplicationStatus[] = [
@@ -126,4 +132,4 @@ export const APPLICATION_TIMELINE: ApplicationStatus[] = [
 export const GENDERS: Gender[] = ['Male', 'Female', 'Other'];
 
 export const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
-export const RECEIPT_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,application/pdf';
+export const RECEIPT_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf';

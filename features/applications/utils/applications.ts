@@ -55,7 +55,6 @@ export function isReceiptFileValid(file: File): { ok: true } | { ok: false; reas
     'image/jpeg',
     'image/png',
     'image/webp',
-    'image/gif',
     'application/pdf',
   ];
   if (file.type && !allowed.includes(file.type)) {

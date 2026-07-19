@@ -160,7 +160,11 @@ export function ApplicationsReviewPanel() {
     try {
       await patch.mutateAsync({
         id: selected.id,
-        payload: { action: 'reject', note: rejectNote.trim() },
+        payload: {
+          action: 'reject',
+          reason: rejectNote.trim(),
+          note: rejectNote.trim(),
+        },
       });
       closeDialog();
       refetch();
@@ -191,7 +195,8 @@ export function ApplicationsReviewPanel() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = app.receipt?.filename || `receipt-${app.id}`;
+      a.download =
+        app.receipt_name || app.receipt?.filename || `receipt-${app.id}`;
       a.click();
       URL.revokeObjectURL(url);
     } catch {

@@ -181,6 +181,13 @@ export function ApplyForm() {
     else if (c.password.length < 8) e.cg_password = t('err_password_min');
     if (c.password !== c.confirmPassword) e.cg_confirm = t('err_password_mismatch');
     if (!c.relationship_to_patient) e.cg_rel = t('err_relationship_required');
+    if (!c.email.trim()) e.cg_email = t('err_email_required', 'Email is required');
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.email.trim())) {
+      e.cg_email = t('err_email_invalid', 'Enter a valid email');
+    }
+    if (!c.phone_number.trim() || c.phone_number.trim().length < 5) {
+      e.cg_phone = t('err_phone_required', 'Phone number is required');
+    }
     setFieldErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -233,12 +240,8 @@ export function ApplyForm() {
         first_name: form.caregiver.first_name.trim(),
         last_name: form.caregiver.last_name.trim(),
         relationship_to_patient: form.caregiver.relationship_to_patient,
-        ...(form.caregiver.email.trim()
-          ? { email: form.caregiver.email.trim() }
-          : {}),
-        ...(form.caregiver.phone_number.trim()
-          ? { phone_number: form.caregiver.phone_number.trim() }
-          : {}),
+        email: form.caregiver.email.trim(),
+        phone_number: form.caregiver.phone_number.trim(),
       },
       patient: {
         username: form.patient.username.trim(),
@@ -358,23 +361,31 @@ export function ApplyForm() {
               )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cg_email">{t('email')} ({t('optional', 'optional')})</Label>
+              <Label htmlFor="cg_email">{t('email')}</Label>
               <Input
                 id="cg_email"
                 dir="ltr"
                 type="email"
                 value={form.caregiver.email}
                 onChange={(e) => setCaregiver('email', e.target.value)}
+                required
               />
+              {fieldErrors.cg_email && (
+                <p className="text-xs text-destructive">{fieldErrors.cg_email}</p>
+              )}
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="cg_phone">{t('phone_number')} ({t('optional', 'optional')})</Label>
+              <Label htmlFor="cg_phone">{t('phone_number')}</Label>
               <Input
                 id="cg_phone"
                 dir="ltr"
                 value={form.caregiver.phone_number}
                 onChange={(e) => setCaregiver('phone_number', e.target.value)}
+                required
               />
+              {fieldErrors.cg_phone && (
+                <p className="text-xs text-destructive">{fieldErrors.cg_phone}</p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>{t('relationship_to_patient')}</Label>

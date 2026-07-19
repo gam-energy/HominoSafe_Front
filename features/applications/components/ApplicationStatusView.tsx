@@ -270,9 +270,10 @@ export function ApplicationStatusView() {
                         'Your receipt was received. The clinic will verify payment shortly.'
                       )}
                     </p>
-                    {data.receipt?.filename && (
+                    {(data.receipt_name || data.receipt?.filename) && (
                       <p className="mt-2 text-sm">
-                        {t('receipt_file', 'Receipt')}: {data.receipt.filename}
+                        {t('receipt_file', 'Receipt')}:{' '}
+                        {data.receipt_name || data.receipt?.filename}
                       </p>
                     )}
                   </div>
@@ -286,7 +287,8 @@ export function ApplicationStatusView() {
                   {t('app_rejected_title', 'Application rejected')}
                 </h2>
                 <p className="mt-2 whitespace-pre-wrap text-sm">
-                  {data.rejection_note ||
+                  {data.rejection_reason ||
+                    data.rejection_note ||
                     data.review_note ||
                     data.note ||
                     t('app_rejected_no_reason', 'No reason provided.')}
