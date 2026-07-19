@@ -47,6 +47,14 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
+      title: 'Fall Reports',
+      url: '/dashboard/fall-reports',
+      icon: 'camera',
+      shortcut: ['f', 'r'],
+      isActive: false,
+      items: [],
+    },
+    {
       title: 'medicine',
       url: '/dashboard/medicine',
       icon: 'drugs',

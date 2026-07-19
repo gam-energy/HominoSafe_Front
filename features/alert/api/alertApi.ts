@@ -6,11 +6,13 @@ export interface FallReportSummary {
   patient_id: number;
   patient_name?: string | null;
   source: string;
+  device_id?: string | null;
   confidence?: number | null;
   fall_detected: boolean;
   posture?: string | null;
   frame_url?: string | null;
   has_inline_frame?: boolean;
+  metadata?: Record<string, unknown> | null;
   timestamp: string;
   alert_id?: number | null;
   severity?: string | null;
