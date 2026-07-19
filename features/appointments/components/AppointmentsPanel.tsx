@@ -230,7 +230,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
             <p className="text-sm font-normal text-muted-foreground">
               {t(
                 'calendar_hint',
-                'Select a day to see appointments. Status dots show where visits are scheduled.',
+                'Use Day or Week to see hours on a timeline. Month shows status dots; double-click a day to open Day view.',
               )}
             </p>
           )}
