@@ -586,7 +586,7 @@
   "upcoming_appointments": "Upcoming appointments",
   "appointment_history": "Appointment history",
   "history_view": "History",
-  "history_hint": "Past appointments, newest first. Filter by status to narrow the list.",
+  "history_hint": "Completed, cancelled, and no-show appointments only — newest first.",
   "no_past_appointments": "No past appointments yet",
   "filter_by_status": "Filter by status",
   "all_statuses": "All statuses",

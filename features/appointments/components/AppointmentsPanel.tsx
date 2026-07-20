@@ -74,8 +74,6 @@ const HISTORY_STATUSES: StatusFilter[] = [
   'completed',
   'cancelled',
   'no_show',
-  'confirmed',
-  'requested',
 ];
 
 function formatDateTime(iso: string): string {
@@ -279,7 +277,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
                 <p className="mt-1 text-sm font-normal text-muted-foreground">
                   {t(
                     'history_hint',
-                    'Past appointments, newest first. Filter by status to narrow the list.',
+                    'Completed, cancelled, and no-show appointments only — newest first.',
                   )}
                 </p>
               )}
