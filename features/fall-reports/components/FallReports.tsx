@@ -20,6 +20,7 @@ import {
 
 import PageContainer from '@/components/layout/page-container';
 import { AuthImage } from '@/components/auth-image';
+import { FallFrameImage, bboxFromMetadata } from '@/components/fall-frame-image';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -143,10 +144,12 @@ function FallDetail({
           <div className="grid grid-cols-1 lg:grid-cols-5">
             <div className="flex min-h-72 items-center justify-center overflow-hidden bg-zinc-950 lg:col-span-3">
               {src ? (
-                <AuthImage
+                <FallFrameImage
                   url={src}
                   alt={t('fall_event_frame', 'Fall event frame')}
-                  className="max-h-[74vh] w-full object-contain"
+                  className="max-h-[74vh] w-full"
+                  bbox={bboxFromMetadata(detail.metadata)}
+                  confidence={detail.confidence}
                   fallback={
                     <div className="flex flex-col items-center gap-4 p-12 text-center text-zinc-400">
                       <ImageOff className="h-16 w-16" />
