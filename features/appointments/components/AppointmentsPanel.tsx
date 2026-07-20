@@ -34,6 +34,7 @@ import {
   Calendar,
   LayoutList,
   Columns3,
+  History,
 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import {
@@ -52,7 +53,8 @@ import AppointmentsCalendar from './AppointmentsCalendar';
 import { cn } from '@/lib/utils';
 
 type Role = 'patient' | 'caregiver' | 'doctor' | 'clinic_admin' | 'admin';
-type ViewMode = 'list' | 'calendar' | 'kanban';
+type ViewMode = 'list' | 'history' | 'calendar' | 'kanban';
+type StatusFilter = AppointmentStatus | 'all';
 
 interface AppointmentsPanelProps {
   role: Role;
@@ -65,6 +67,15 @@ const STATUS_COLORS: Record<AppointmentStatus, string> = {
   cancelled: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
   no_show: 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-300',
 };
+
+const HISTORY_STATUSES: StatusFilter[] = [
+  'all',
+  'completed',
+  'cancelled',
+  'no_show',
+  'confirmed',
+  'requested',
+];
 
 function formatDateTime(iso: string): string {
   try {
@@ -92,11 +103,22 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [slotOpen, setSlotOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [historyStatus, setHistoryStatus] = useState<StatusFilter>('all');
 
   const canManageBoard =
     role === 'doctor' || role === 'clinic_admin' || role === 'admin';
-  // Calendar / kanban need past appointments; list stays upcoming-only.
-  const myAppointments = useMyAppointments(viewMode === 'list');
+
+  const myAppointments = useMyAppointments(
+    viewMode === 'list'
+      ? { upcomingOnly: true }
+      : viewMode === 'history'
+        ? {
+            pastOnly: true,
+            status: historyStatus,
+            limit: 200,
+          }
+        : {},
+  );
   const slots = useSlots(user?.role === 'doctor' ? { doctor_id: user.id } : undefined);
   const createAppt = useCreateAppointment();
   const updateAppt = useUpdateAppointment();
@@ -105,7 +127,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
 
   const canPublishSlots = role === 'doctor' || role === 'clinic_admin' || role === 'admin';
 
-  const upcoming = useMemo(() => myAppointments.data || [], [myAppointments.data]);
+  const appointments = useMemo(() => myAppointments.data || [], [myAppointments.data]);
 
   const handleStatusChange = (id: number, status: AppointmentStatus) => {
     updateAppt.mutate({ id, payload: { status } });
@@ -116,7 +138,9 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
       ? t('appointment_board', 'Appointment board')
       : viewMode === 'calendar'
         ? t('appointment_calendar', 'Appointment calendar')
-        : t('upcoming_appointments', 'Upcoming appointments');
+        : viewMode === 'history'
+          ? t('appointment_history', 'Appointment history')
+          : t('upcoming_appointments', 'Upcoming appointments');
 
   return (
     <div className="space-y-6 p-4 md:p-6">
@@ -141,6 +165,19 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
             >
               <LayoutList className="h-3.5 w-3.5" />
               {t('list_view', 'List')}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('history')}
+              className={cn(
+                'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
+                viewMode === 'history'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground',
+              )}
+            >
+              <History className="h-3.5 w-3.5" />
+              {t('history_view', 'History')}
             </button>
             <button
               type="button"
@@ -214,26 +251,66 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5" />
-            {cardTitle}
-          </CardTitle>
-          {viewMode === 'kanban' && (
-            <p className="text-sm font-normal text-muted-foreground">
-              {t(
-                'kanban_hint',
-                'Drag cards between columns to update status, or use the quick actions on each card.',
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                {viewMode === 'history' ? (
+                  <History className="h-5 w-5" />
+                ) : (
+                  <CalendarDays className="h-5 w-5" />
+                )}
+                {cardTitle}
+              </CardTitle>
+              {viewMode === 'kanban' && (
+                <p className="mt-1 text-sm font-normal text-muted-foreground">
+                  {t(
+                    'kanban_hint',
+                    'Drag cards between columns to update status, or use the quick actions on each card.',
+                  )}
+                </p>
               )}
-            </p>
-          )}
-          {viewMode === 'calendar' && (
-            <p className="text-sm font-normal text-muted-foreground">
-              {t(
-                'calendar_hint',
-                'Use Day or Week to see hours on a timeline. Month shows status dots; double-click a day to open Day view.',
+              {viewMode === 'calendar' && (
+                <p className="mt-1 text-sm font-normal text-muted-foreground">
+                  {t(
+                    'calendar_hint',
+                    'Use Day or Week to see hours on a timeline. Month shows status dots; double-click a day to open Day view.',
+                  )}
+                </p>
               )}
-            </p>
-          )}
+              {viewMode === 'history' && (
+                <p className="mt-1 text-sm font-normal text-muted-foreground">
+                  {t(
+                    'history_hint',
+                    'Past appointments, newest first. Filter by status to narrow the list.',
+                  )}
+                </p>
+              )}
+            </div>
+            {viewMode === 'history' && (
+              <div className="w-full sm:w-48">
+                <Label htmlFor="history-status" className="sr-only">
+                  {t('filter_by_status', 'Filter by status')}
+                </Label>
+                <Select
+                  value={historyStatus}
+                  onValueChange={(v) => setHistoryStatus(v as StatusFilter)}
+                >
+                  <SelectTrigger id="history-status">
+                    <SelectValue placeholder={t('filter_by_status', 'Filter by status')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HISTORY_STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status === 'all'
+                          ? t('all_statuses', 'All statuses')
+                          : t(`appointment_status_${status}`, status)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {myAppointments.isLoading && (
@@ -251,41 +328,44 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
             !myAppointments.isError &&
             viewMode === 'calendar' && (
               <AppointmentsCalendar
-                appointments={upcoming}
+                appointments={appointments}
                 role={role}
                 onStatusChange={handleStatusChange}
               />
             )}
           {!myAppointments.isLoading &&
             !myAppointments.isError &&
-            upcoming.length === 0 &&
+            appointments.length === 0 &&
             viewMode !== 'calendar' && (
               <div className="py-8 text-center text-muted-foreground">
-                {t('no_appointments', 'No appointments scheduled')}
+                {viewMode === 'history'
+                  ? t('no_past_appointments', 'No past appointments yet')
+                  : t('no_appointments', 'No appointments scheduled')}
               </div>
             )}
           {!myAppointments.isLoading &&
             !myAppointments.isError &&
-            upcoming.length > 0 &&
+            appointments.length > 0 &&
             viewMode === 'kanban' &&
             canManageBoard && (
               <AppointmentsKanban
-                appointments={upcoming}
+                appointments={appointments}
                 onStatusChange={handleStatusChange}
                 pending={updateAppt.isPending}
               />
             )}
           {!myAppointments.isLoading &&
             !myAppointments.isError &&
-            upcoming.length > 0 &&
-            viewMode === 'list' && (
+            appointments.length > 0 &&
+            (viewMode === 'list' || viewMode === 'history') && (
               <div className="space-y-3">
-                {upcoming.map((appt) => (
+                {appointments.map((appt) => (
                   <AppointmentRow
                     key={appt.id}
                     appt={appt}
                     role={role}
                     onStatusChange={handleStatusChange}
+                    historyMode={viewMode === 'history'}
                   />
                 ))}
               </div>
@@ -325,11 +405,27 @@ interface AppointmentRowProps {
   appt: AppointmentSummary;
   role: Role;
   onStatusChange: (id: number, status: AppointmentStatus) => void;
+  historyMode?: boolean;
 }
 
-const AppointmentRow: FC<AppointmentRowProps> = ({ appt, role, onStatusChange }) => {
+const AppointmentRow: FC<AppointmentRowProps> = ({
+  appt,
+  role,
+  onStatusChange,
+  historyMode = false,
+}) => {
   const { t } = useTranslation();
   const canManage = role === 'doctor' || role === 'clinic_admin' || role === 'admin';
+  const isTerminal =
+    appt.status === 'cancelled' ||
+    appt.status === 'completed' ||
+    appt.status === 'no_show';
+  // In history, staff can still close overdue open appointments; patients cannot cancel past ones.
+  const showCancel =
+    !isTerminal &&
+    !historyMode &&
+    (canManage || role === 'patient' || role === 'caregiver');
+
   return (
     <div className="flex items-center justify-between rounded-lg border p-3">
       <div className="flex items-center gap-3">
@@ -353,7 +449,7 @@ const AppointmentRow: FC<AppointmentRowProps> = ({ appt, role, onStatusChange })
             {t('confirm', 'Confirm')}
           </Button>
         )}
-        {canManage && appt.status === 'confirmed' && (
+        {canManage && (appt.status === 'confirmed' || (historyMode && appt.status === 'requested')) && (
           <>
             <Button size="sm" variant="outline" onClick={() => onStatusChange(appt.id, 'completed')}>
               <CheckCircle className="me-1 h-4 w-4" />
@@ -364,7 +460,7 @@ const AppointmentRow: FC<AppointmentRowProps> = ({ appt, role, onStatusChange })
             </Button>
           </>
         )}
-        {(canManage || role === 'patient' || role === 'caregiver') && appt.status !== 'cancelled' && appt.status !== 'completed' && (
+        {showCancel && (
           <Button
             size="sm"
             variant="ghost"

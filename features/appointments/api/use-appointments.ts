@@ -208,13 +208,39 @@ export function useUpdateAppointment() {
 
 // ---------------- Me ---------------- //
 
-export function useMyAppointments(upcomingOnly = false) {
+export interface MyAppointmentsParams {
+  upcomingOnly?: boolean;
+  pastOnly?: boolean;
+  status?: AppointmentStatus | 'all';
+  from_time?: string;
+  to_time?: string;
+  limit?: number;
+}
+
+export function useMyAppointments(params: MyAppointmentsParams | boolean = {}) {
+  // Back-compat: older callers passed a bare `upcomingOnly` boolean.
+  const normalized: MyAppointmentsParams =
+    typeof params === 'boolean' ? { upcomingOnly: params } : params;
+
+  const queryParams = {
+    upcoming_only: Boolean(normalized.upcomingOnly),
+    past_only: Boolean(normalized.pastOnly),
+    status:
+      normalized.status && normalized.status !== 'all'
+        ? normalized.status
+        : undefined,
+    from_time: normalized.from_time,
+    to_time: normalized.to_time,
+    limit: normalized.limit,
+  };
+
   return useQuery({
-    queryKey: ['my-appointments', upcomingOnly],
+    queryKey: ['my-appointments', queryParams],
     queryFn: async () => {
-      const { data } = await axiosInstance.get<AppointmentSummary[]>('/appointments/me', {
-        params: { upcoming_only: upcomingOnly },
-      });
+      const { data } = await axiosInstance.get<AppointmentSummary[]>(
+        '/appointments/me',
+        { params: queryParams },
+      );
       return data;
     },
   });
