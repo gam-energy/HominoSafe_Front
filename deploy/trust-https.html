@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Trust SenioSentry HTTPS (Web Push)</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        max-width: 40rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        line-height: 1.5;
+        color: #111;
+      }
+      a.btn {
+        display: inline-block;
+        margin: 0.75rem 0;
+        padding: 0.65rem 1rem;
+        background: #0b5fff;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 0.5rem;
+      }
+      code {
+        background: #f2f2f2;
+        padding: 0.1rem 0.35rem;
+        border-radius: 0.25rem;
+      }
+      li {
+        margin: 0.35rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Make HTTPS trusted (required for Web Push)</h1>
+    <p>
+      TLS is already running. Chrome still shows <strong>Not Secure</strong> because the
+      certificate is signed by SenioSentry’s private CA — not a public CA. Web Push and
+      service workers need the browser to <em>trust</em> that CA.
+    </p>
+    <p>
+      <a class="btn" href="/seniosentry-ca.crt" download="seniosentry-ca.crt"
+        >Download SenioSentry CA</a
+      >
+    </p>
+    <h2>Desktop (Chrome / Edge)</h2>
+    <ol>
+      <li>Open the downloaded <code>seniosentry-ca.crt</code>.</li>
+      <li>
+        Install it into <strong>Trusted Root Certification Authorities</strong> (Windows) or
+        the system keychain and mark it trusted for SSL (macOS / Linux).
+      </li>
+      <li>Fully quit the browser, reopen it.</li>
+      <li>
+        Visit <code>https://93.118.120.215:3000</code> — the padlock should no longer say Not
+        Secure.
+      </li>
+      <li>Settings → enable Browser Web Push.</li>
+    </ol>
+    <h2>Android Chrome</h2>
+    <ol>
+      <li>Download <code>seniosentry-ca.crt</code> on the phone.</li>
+      <li>Settings → Security → Encryption &amp; credentials → Install a certificate → CA certificate.</li>
+      <li>Reopen Chrome and visit the HTTPS URL above, then enable Web Push.</li>
+    </ol>
+    <p>
+      <a href="/dashboard/settings">Back to Settings</a>
+    </p>
+  </body>
+</html>

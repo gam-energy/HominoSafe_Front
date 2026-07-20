@@ -47,37 +47,51 @@ export default function SettingsViewPage() {
   const handleEnablePush = async () => {
     setPushBusy(true);
     try {
-      const result = await enableWebPush();
-      if (result === 'ok') {
+      const { status, detail } = await enableWebPush();
+      if (status === 'ok') {
         setPushStatus(t('web_push_enabled', 'Browser push enabled'));
-      } else if (result === 'denied') {
+      } else if (status === 'denied') {
         setPushStatus(t('web_push_denied', 'Notification permission denied'));
-      } else if (result === 'disabled') {
+      } else if (status === 'disabled') {
         setPushStatus(
           t(
             'web_push_not_configured',
             'Web Push is not configured on the server yet (VAPID keys). In-app alerts still work.',
           ),
         );
-      } else if (result === 'insecure') {
+      } else if (status === 'insecure') {
         setPushStatus(
           t(
             'web_push_needs_https',
-            'Web Push needs HTTPS (or an installed PWA from HTTPS). Plain http://IP:3000 cannot enable push.',
+            'Open https://…:3000 (not http). Web Push requires a secure page.',
           ),
         );
-      } else if (result === 'no_service_worker') {
+      } else if (status === 'untrusted_cert') {
+        setPushStatus(
+          t(
+            'web_push_untrusted_cert',
+            'TLS is on, but this browser does not trust the certificate (address bar “Not Secure”). Install the SenioSentry CA, reopen the site, then Enable again.',
+          ),
+        );
+      } else if (status === 'no_service_worker') {
         setPushStatus(
           t(
             'web_push_no_sw',
-            'No service worker available. Open the site over HTTPS and try again (PWA install helps).',
+            'No service worker available. Trust the HTTPS certificate, then try again.',
           ),
+        );
+      } else if (status === 'error') {
+        setPushStatus(
+          `${t('web_push_failed', 'Failed to enable Web Push')}${detail ? `: ${detail}` : ''}`,
         );
       } else {
         setPushStatus(t('web_push_unsupported', 'Web Push not supported in this browser'));
       }
-    } catch {
-      setPushStatus(t('web_push_failed', 'Failed to enable Web Push'));
+    } catch (err) {
+      const detail = err instanceof Error ? err.message : '';
+      setPushStatus(
+        `${t('web_push_failed', 'Failed to enable Web Push')}${detail ? `: ${detail}` : ''}`,
+      );
     } finally {
       setPushBusy(false);
     }
@@ -262,6 +276,19 @@ export default function SettingsViewPage() {
                               'browser_web_push_desc',
                               'Receive Critical/High alerts even when the tab is in the background (no SMS required).',
                             )}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {t(
+                              'web_push_trust_hint',
+                              'If the padlock says “Not Secure”, download and install the CA first, then reopen this page.',
+                            )}{' '}
+                            <a
+                              className="underline underline-offset-2 hover:text-foreground"
+                              href="/seniosentry-ca.crt"
+                              download="seniosentry-ca.crt"
+                            >
+                              {t('web_push_download_ca', 'Download SenioSentry CA')}
+                            </a>
                           </p>
                           {pushStatus && (
                             <p className="mt-1 text-xs text-muted-foreground">{pushStatus}</p>

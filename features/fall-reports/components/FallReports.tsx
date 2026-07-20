@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 
 import PageContainer from '@/components/layout/page-container';
+import { AuthImage } from '@/components/auth-image';
 import { Heading } from '@/components/ui/heading';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -142,11 +143,16 @@ function FallDetail({
           <div className="grid grid-cols-1 lg:grid-cols-5">
             <div className="flex min-h-72 items-center justify-center overflow-hidden bg-zinc-950 lg:col-span-3">
               {src ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={src}
+                <AuthImage
+                  url={src}
                   alt={t('fall_event_frame', 'Fall event frame')}
                   className="max-h-[74vh] w-full object-contain"
+                  fallback={
+                    <div className="flex flex-col items-center gap-4 p-12 text-center text-zinc-400">
+                      <ImageOff className="h-16 w-16" />
+                      <p className="text-sm">{t('no_frame', 'No frame available.')}</p>
+                    </div>
+                  }
                 />
               ) : (
                 <div className="flex flex-col items-center gap-4 p-12 text-center text-zinc-400">
@@ -659,11 +665,15 @@ export default function FallReports() {
                 >
                   <div className="relative aspect-[16/9] overflow-hidden bg-zinc-950">
                     {src ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={src}
+                      <AuthImage
+                        url={src}
                         alt={t('fall_event_frame', 'Fall event frame')}
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        fallback={
+                          <div className="flex h-full items-center justify-center text-zinc-500">
+                            <ImageOff className="h-10 w-10" />
+                          </div>
+                        }
                       />
                     ) : (
                       <div

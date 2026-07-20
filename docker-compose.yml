@@ -8,7 +8,8 @@ services:
         NEXT_PUBLIC_API_URL: ""
         API_PROXY_TARGET: http://homino_app:8888
     ports:
-      - "3000:3000"
+      # HTTP only on loopback — public :3000 is HTTPS via senio_tls_proxy
+      - "127.0.0.1:13000:3000"
     environment:
       NODE_ENV: production
       NEXT_PUBLIC_API_URL: ""

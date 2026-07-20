@@ -9,6 +9,7 @@ import { mapBackendAlert, compareAlertsBySeverityThenTime } from "../lib/alertTy
 import { useRespondToDoseByAlert } from "@/features/medicine/api/useDoseRespond";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "@/components/layout/page-container";
+import { AuthImage } from "@/components/auth-image";
 import { Heading } from "@/components/ui/heading";
 import { cn } from "@/lib/utils";
 import {
@@ -423,9 +424,8 @@ export const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: Ale
                     <AlertTriangle className="h-4 w-4 text-rose-500" />
                     {t('fall_frame', 'Fall Frame')} ({alert.vision.source})
                   </h4>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={alert.vision.frameUrl}
+                  <AuthImage
+                    url={alert.vision.frameUrl}
                     alt="fall frame"
                     className="w-full max-h-64 object-contain rounded-lg border"
                   />
