@@ -1,7 +1,7 @@
 "use client";
 
-import DoctorHome from "@/features/patients-list/components/DoctorHome";
+import CaregiverHome from "@/features/patients-list/components/CaregiverHome";
 
 export default function CaregiverOverviewPage() {
-  return <DoctorHome />;
+  return <CaregiverHome />;
 }
