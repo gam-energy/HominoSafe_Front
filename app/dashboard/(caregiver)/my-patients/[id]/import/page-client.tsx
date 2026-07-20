@@ -1,26 +1,32 @@
-'use client';
+"use client";
 
-import { useParams } from 'next/navigation';
+import { PatientImportPage } from "@/features/patient-knowledge/components/PatientImportPage";
+import { StaffPatientNav } from "@/features/patients-list/components/StaffPatientNav";
+import { useStaffPatientRoute } from "@/features/patients-list/hooks/useStaffPatientRoute";
+import { useUser } from "@/context/UserContext";
+import { LoaderIcon } from "@/components/chat/icons";
 
-import { PatientImportPage } from '@/features/patient-knowledge/components/PatientImportPage';
-import { StaffPatientNav } from '@/features/patients-list/components/StaffPatientNav';
-import { useGetPatientProfile } from '@/features/patients-list/api/use-get-patient-profile';
-import { useUser } from '@/context/UserContext';
-
-export default function CaregiverPatientImportPageClient() {
-  const params = useParams<{ id: string }>();
+export default function CaregiverImportPageClient() {
   const { user } = useUser();
-  const patientId = Number(Array.isArray(params.id) ? params.id[0] : params.id);
-  const { data: patient } = useGetPatientProfile(patientId);
+  const { patient, userId, publicRef, isLoading } = useStaffPatientRoute();
+
+  if (isLoading || !userId) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <LoaderIcon size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <StaffPatientNav
         role={user?.role}
-        patientId={patientId}
+        patientRef={publicRef}
+        patientId={userId}
         patientUuid={patient?.uuid}
       />
-      <PatientImportPage />
+      <PatientImportPage patientId={userId} />
     </div>
   );
 }

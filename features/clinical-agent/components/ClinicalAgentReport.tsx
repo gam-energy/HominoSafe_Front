@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { useUser } from "@/context/UserContext";
 import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patient-profile";
 import { useKnowledgeStatus } from "@/features/patient-knowledge/api/useKnowledgeStatus";
-import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
+import { staffPatientRoutes, patientPublicRef } from "@/features/patient-knowledge/utils/staffRoutes";
 import { useCdsReport } from "../api/useCdsReport";
 import { useCdsAnalyze } from "../api/useCdsAnalyze";
 import { AnalyzeLoadingOverlay } from "./AnalyzeLoadingOverlay";
@@ -34,30 +34,37 @@ import { DecisionGraphPanel } from "./DecisionGraphPanel.lazy";
 import { ScheduledReportsPanel } from '@/features/clinical-reports/components/ScheduledReportsPanel';
 import { CnnResultsCard } from '@/features/predictions/components/CnnResultsCard';
 
-export function ClinicalAgentReport() {
+export function ClinicalAgentReport({
+  patientId: patientIdProp,
+}: {
+  patientId?: number;
+}) {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { user } = useUser();
-  const patientId = Number(Array.isArray(params.id) ? params.id[0] : params.id);
+  const routeRef = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { data: patientInfoData, isLoading: patientLoading } =
+    useGetPatientProfile(patientIdProp ?? routeRef);
+  const patientInfo = useMemo(() => {
+    if (!patientInfoData) return undefined;
+    if (Array.isArray(patientInfoData)) return patientInfoData[0];
+    return patientInfoData;
+  }, [patientInfoData]);
+  const patientId = patientIdProp ?? patientInfo?.id;
   const isDoctor = user?.role === "doctor";
   const isCaregiver = user?.role === "caregiver";
-  const routes = staffPatientRoutes(user?.role, patientId);
+  const routes = staffPatientRoutes(
+    user?.role,
+    patientInfo ? patientPublicRef(patientInfo) : routeRef || "",
+  );
   const backHref = routes.detailRoute;
   const importHref =
     isDoctor || isCaregiver ? routes.importRoute : undefined;
 
-  const { data: patientInfoData, isLoading: patientLoading } =
-    useGetPatientProfile(patientId);
   const { data: knowledgeStatus } = useKnowledgeStatus(patientId);
   const { data: report, isLoading: reportLoading, refetch } = useCdsReport(patientId);
   const analyzeMutation = useCdsAnalyze();
-
-  const patientInfo = useMemo(() => {
-    if (!patientInfoData) return undefined;
-    if (Array.isArray(patientInfoData)) return patientInfoData[0];
-    return patientInfoData as { first_name?: string; last_name?: string };
-  }, [patientInfoData]);
 
   const knowledgeReady = knowledgeStatus?.refresh_status === "ready";
 
@@ -74,7 +81,7 @@ export function ClinicalAgentReport() {
     }
   };
 
-  if (patientLoading) {
+  if (patientLoading || !patientId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center">

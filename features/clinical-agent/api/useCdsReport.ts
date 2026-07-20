@@ -180,10 +180,10 @@ const fetchCdsReport = async (patientId: number): Promise<CdsReport | null> => {
   }
 };
 
-export const useCdsReport = (patientId: number, enabled = true) => {
+export const useCdsReport = (patientId?: number, enabled = true) => {
   return useQuery<CdsReport | null, AxiosError>({
     queryKey: ["cds-report", patientId],
-    queryFn: () => fetchCdsReport(patientId),
+    queryFn: () => fetchCdsReport(patientId as number),
     enabled: !!patientId && enabled,
     staleTime: 1000 * 60,
   });

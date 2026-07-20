@@ -667,7 +667,7 @@ function MemberCard({
                                 </Link>
                               </Button>
                               <Button variant="ghost" size="sm" asChild>
-                                <Link href={`/dashboard/patients/${m.id}/clinical-agent`}>
+                                <Link href={`/dashboard/patients/${m.uuid || m.id}/clinical-agent`}>
                                   Agent
                                 </Link>
                               </Button>

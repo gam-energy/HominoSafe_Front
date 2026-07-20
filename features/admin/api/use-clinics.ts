@@ -34,6 +34,7 @@ export interface ClinicSummary extends Clinic {
 
 export interface ClinicMember {
   id: number;
+  uuid?: string;
   username: string;
   first_name: string;
   last_name: string;
