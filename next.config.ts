@@ -12,6 +12,8 @@ const withPWA = withPWAInit({
   // bundled into the APK) and next-pwa has limited static-export support.
   disable: process.env.NODE_ENV === "development" || isMobileBuild,
   register: !isMobileBuild,
+  // Merge Web Push handlers into the generated service worker.
+  customWorkerSrc: "worker",
 });
 
 // Server-side upstream for same-origin API proxy (browser → :3000 → FastAPI).
@@ -83,6 +85,8 @@ const nextConfig: NextConfig = {
       { source: "/synapse/:path*", destination: `${t}/synapse/:path*` },
       { source: "/support", destination: `${t}/support` },
       { source: "/support/:path*", destination: `${t}/support/:path*` },
+      { source: "/notifications", destination: `${t}/notifications` },
+      { source: "/notifications/:path*", destination: `${t}/notifications/:path*` },
       { source: "/api/:path*", destination: `${t}/api/:path*` },
       { source: "/health", destination: `${t}/health` },
       { source: "/health/:path*", destination: `${t}/health/:path*` },

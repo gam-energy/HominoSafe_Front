@@ -59,6 +59,20 @@ export default function SettingsViewPage() {
             'Web Push is not configured on the server yet (VAPID keys). In-app alerts still work.',
           ),
         );
+      } else if (result === 'insecure') {
+        setPushStatus(
+          t(
+            'web_push_needs_https',
+            'Web Push needs HTTPS (or an installed PWA from HTTPS). Plain http://IP:3000 cannot enable push.',
+          ),
+        );
+      } else if (result === 'no_service_worker') {
+        setPushStatus(
+          t(
+            'web_push_no_sw',
+            'No service worker available. Open the site over HTTPS and try again (PWA install helps).',
+          ),
+        );
       } else {
         setPushStatus(t('web_push_unsupported', 'Web Push not supported in this browser'));
       }

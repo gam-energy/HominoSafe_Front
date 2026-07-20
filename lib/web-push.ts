@@ -11,6 +11,22 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
   return output;
 }
 
+export type WebPushSupport =
+  | 'ok'
+  | 'insecure'
+  | 'unsupported'
+  | 'denied'
+  | 'disabled'
+  | 'no_service_worker';
+
+export function getWebPushBlocker(): Exclude<WebPushSupport, 'ok' | 'denied' | 'disabled'> | null {
+  if (typeof window === 'undefined') return 'unsupported';
+  if (!window.isSecureContext) return 'insecure';
+  if (!('serviceWorker' in navigator)) return 'no_service_worker';
+  if (!('PushManager' in window) || !('Notification' in window)) return 'unsupported';
+  return null;
+}
+
 export async function fetchVapidPublicKey(): Promise<string | null> {
   const { data } = await axiosInstance.get<{ public_key: string | null; enabled: boolean }>(
     '/notifications/push/vapid-public-key',
@@ -18,18 +34,29 @@ export async function fetchVapidPublicKey(): Promise<string | null> {
   return data.enabled && data.public_key ? data.public_key : null;
 }
 
-/** Opt into browser Web Push (non-Synapse). No-op if VAPID not configured. */
-export async function enableWebPush(): Promise<'ok' | 'unsupported' | 'denied' | 'disabled'> {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-    return 'unsupported';
+async function ensureServiceWorker(): Promise<ServiceWorkerRegistration> {
+  const existing = await navigator.serviceWorker.getRegistration();
+  if (existing) {
+    await navigator.serviceWorker.ready;
+    return existing;
   }
+  const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+  await navigator.serviceWorker.ready;
+  return reg;
+}
+
+/** Opt into browser/PWA Web Push (non-Synapse). */
+export async function enableWebPush(): Promise<WebPushSupport> {
+  const blocker = getWebPushBlocker();
+  if (blocker) return blocker;
+
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') return 'denied';
 
   const publicKey = await fetchVapidPublicKey();
   if (!publicKey) return 'disabled';
 
-  const reg = await navigator.serviceWorker.ready;
+  const reg = await ensureServiceWorker();
   let sub = await reg.pushManager.getSubscription();
   if (!sub) {
     sub = await reg.pushManager.subscribe({
@@ -48,7 +75,8 @@ export async function enableWebPush(): Promise<'ok' | 'unsupported' | 'denied' |
 
 export async function disableWebPush(): Promise<void> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
-  const reg = await navigator.serviceWorker.ready;
+  const reg = await navigator.serviceWorker.getRegistration();
+  if (!reg) return;
   const sub = await reg.pushManager.getSubscription();
   if (!sub) return;
   await axiosInstance.post('/notifications/push/unsubscribe', { endpoint: sub.endpoint });
