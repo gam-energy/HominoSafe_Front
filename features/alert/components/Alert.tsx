@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { AlertType } from "../types/AlertSchema";
 import { useAlertWebSocket } from "../hooks/useAlertWebSocket";
 import { actOnAlert } from "../api/alertApi";
-import { mapBackendAlert } from "../lib/alertTypeMap";
+import { mapBackendAlert, compareAlertsBySeverityThenTime } from "../lib/alertTypeMap";
 import { useRespondToDoseByAlert } from "@/features/medicine/api/useDoseRespond";
 import { motion, AnimatePresence } from "framer-motion";
 import PageContainer from "@/components/layout/page-container";
@@ -635,10 +635,7 @@ const AlertList: React.FC = () => {
 
         return matchesSeverity && matchesAck && matchesSearch;
       })
-      .sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+      .sort(compareAlertsBySeverityThenTime);
   }, [filter, ackFilter, searchQuery, isRtl, alerts]);
 
   return (

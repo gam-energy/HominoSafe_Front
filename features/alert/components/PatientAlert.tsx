@@ -19,6 +19,7 @@ import { usePatients } from '@/features/patients-list/api/useGetPatients';
 
 import { AlertType } from '../types/AlertSchema';
 import { useAlertWebSocket } from '../hooks/useAlertWebSocket';
+import { compareAlertsBySeverityThenTime } from '../lib/alertTypeMap';
 import { AlertCard } from './Alert';
 
 type AckFilter = 'all' | 'pending' | 'acknowledged';
@@ -152,10 +153,7 @@ const DoctorAlertList: React.FC = () => {
           (alert.sensorData?.activity || '').toLowerCase().includes(q);
         return matchesSeverity && matchesAck && matchesSearch;
       })
-      .sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      );
+      .sort(compareAlertsBySeverityThenTime);
   }, [patientScoped, filter, ackFilter, searchQuery]);
 
   const selectedPatientLabel =

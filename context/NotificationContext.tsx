@@ -50,7 +50,19 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({
             sensor_icon: undefined,
           };
         });
-        setNotifications(mapped);
+        setNotifications(
+          mapped.sort((a, b) => {
+            const rank: Record<string, number> = {
+              CRITICAL: 4,
+              HIGH: 3,
+              MEDIUM: 2,
+              LOW: 1,
+            };
+            const d = (rank[b.severity] || 0) - (rank[a.severity] || 0);
+            if (d !== 0) return d;
+            return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+          }),
+        );
       } catch {
         // leave empty — header bell will show 0
       }

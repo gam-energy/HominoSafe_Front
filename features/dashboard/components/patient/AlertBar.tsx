@@ -36,12 +36,14 @@ import { cn } from "@/lib/utils";
 const SETTINGS_NOTIFICATIONS_HREF = "/dashboard/settings#notifications";
 
 const severityIcons: Record<string, typeof AlertCircle> = {
+  CRITICAL: AlertCircle,
   HIGH: AlertCircle,
   MEDIUM: AlertTriangle,
   LOW: Info,
 };
 
 const severityStyles: Record<string, string> = {
+  CRITICAL: "text-rose-700 dark:text-rose-300 bg-rose-600/15 ring-1 ring-rose-500/40",
   HIGH: "text-rose-600 dark:text-rose-400 bg-rose-500/10",
   MEDIUM: "text-amber-600 dark:text-amber-400 bg-amber-500/10",
   LOW: "text-sky-600 dark:text-sky-400 bg-sky-500/10",
@@ -74,6 +76,7 @@ export function AlertBar() {
 
   const count = {
     ALL: notifications.length,
+    CRITICAL: notifications.filter((n) => n.severity === "CRITICAL").length,
     HIGH: notifications.filter((n) => n.severity === "HIGH").length,
     MEDIUM: notifications.filter((n) => n.severity === "MEDIUM").length,
     LOW: notifications.filter((n) => n.severity === "LOW").length,
@@ -133,15 +136,19 @@ export function AlertBar() {
 
         <div className="shrink-0 px-3 pt-3">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid h-auto w-full grid-cols-4 gap-0.5 overflow-hidden p-1">
-              {(["ALL", "HIGH", "MEDIUM", "LOW"] as const).map((severity) => (
+            <TabsList className="grid h-auto w-full grid-cols-5 gap-0.5 overflow-hidden p-1">
+              {(["ALL", "CRITICAL", "HIGH", "MEDIUM", "LOW"] as const).map((severity) => (
                 <TabsTrigger
                   key={severity}
                   value={severity}
                   className="min-w-0 truncate rounded-md px-1 py-1.5 text-[10px] font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   <span className="truncate">
-                    {severity === "ALL" ? t("all", "All") : severity.slice(0, 3)}{" "}
+                    {severity === "ALL"
+                      ? t("all", "All")
+                      : severity === "CRITICAL"
+                        ? t("crit_short", "Crit")
+                        : severity.slice(0, 3)}{" "}
                     ({count[severity]})
                   </span>
                 </TabsTrigger>

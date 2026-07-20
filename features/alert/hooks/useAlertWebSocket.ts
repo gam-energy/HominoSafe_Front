@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Cookies from 'js-cookie';
 import { getWsBaseUrl } from '@/lib/api-utils';
 import { AlertType, BackendAlert, BackendAlertPayload } from '../types/AlertSchema';
-import { mapBackendAlert, mapBackendPayload } from '../lib/alertTypeMap';
+import { mapBackendAlert, mapBackendPayload, compareAlertsBySeverityThenTime } from '../lib/alertTypeMap';
 import { fetchAlertHistory } from '../api/alertApi';
 
 export type AlertConnectionStatus =
@@ -39,10 +39,7 @@ export function useAlertWebSocket(): UseAlertWebSocketResult {
     setAlerts((prev) => {
       const idx = prev.findIndex((a) => a.alertId === alert.alertId);
       if (idx === -1) {
-        return [alert, ...prev].sort(
-          (a, b) =>
-            new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
+        return [alert, ...prev].sort(compareAlertsBySeverityThenTime);
       }
       const next = [...prev];
       const existing = next[idx];
@@ -52,10 +49,7 @@ export function useAlertWebSocket(): UseAlertWebSocketResult {
         // Keep previously known vitals if this update omitted them.
         sensorData: alert.sensorData ?? existing.sensorData,
       };
-      return next.sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+      return next.sort(compareAlertsBySeverityThenTime);
     });
   }, []);
 
@@ -70,10 +64,7 @@ export function useAlertWebSocket(): UseAlertWebSocketResult {
           sensorData: a.sensorData ?? existing?.sensorData,
         });
       }
-      return Array.from(byId.values()).sort(
-        (a, b) =>
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-      );
+      return Array.from(byId.values()).sort(compareAlertsBySeverityThenTime);
     });
   }, []);
 

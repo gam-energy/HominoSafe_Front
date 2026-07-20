@@ -10,7 +10,7 @@ export type SmartSensorType =
 
 
 // شدت هشدار
-export type AlertSeverity = 'HIGH' | 'MEDIUM' | 'LOW';
+export type AlertSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
 
 
 // داده‌ی مرتبط با سنسور

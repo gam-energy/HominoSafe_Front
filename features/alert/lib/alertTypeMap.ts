@@ -5,6 +5,13 @@ import {
   SensorData,
 } from '../types/AlertSchema';
 
+const SEVERITY_RANK: Record<AlertType['severity'], number> = {
+  critical: 4,
+  high: 3,
+  medium: 2,
+  low: 1,
+};
+
 /** Map a backend severity string ("Critical"/"High"/...) to the UI enum. */
 export function mapSeverity(raw?: string | null): AlertType['severity'] {
   switch ((raw || '').toLowerCase()) {
@@ -41,6 +48,37 @@ export function mapAlertType(raw?: string | null): AlertType['alertType'] {
   return 'OTHER';
 }
 
+/** Promote falls and high-risk vital / CNN types so they surface as Critical. */
+export function elevateCriticalSeverity(
+  alertType: AlertType['alertType'],
+  severity: AlertType['severity'],
+): AlertType['severity'] {
+  if (alertType === 'FALL_DETECTED') return 'critical';
+  if (
+    alertType === 'OXYGEN_LOW' ||
+    alertType === 'CARDIAC_RISK' ||
+    alertType === 'STROKE_RISK'
+  ) {
+    return 'critical';
+  }
+  // High vital spikes (HR / BP) from backend High → Critical in the UI.
+  if (
+    (alertType === 'HR_SPIKE' || alertType === 'BP_DROP') &&
+    (severity === 'high' || severity === 'critical')
+  ) {
+    return 'critical';
+  }
+  return severity;
+}
+
+/** Critical first, then by newest timestamp. */
+export function compareAlertsBySeverityThenTime(a: AlertType, b: AlertType): number {
+  const rankDiff =
+    (SEVERITY_RANK[b.severity] || 0) - (SEVERITY_RANK[a.severity] || 0);
+  if (rankDiff !== 0) return rankDiff;
+  return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+}
+
 function mapVitals(vitals?: BackendAlert['vitals'] | BackendAlertPayload['vitals']): SensorData | undefined {
   if (!vitals) return undefined;
   const bpSys = vitals.bp_systolic ?? undefined;
@@ -63,11 +101,7 @@ function mapVitals(vitals?: BackendAlert['vitals'] | BackendAlertPayload['vitals
 export function mapBackendAlert(a: BackendAlert): AlertType {
   const status = a.status || 'Active';
   const alertType = mapAlertType(a.alert_type);
-  let severity = mapSeverity(a.severity);
-  // Falls are always high-priority on the alerts panel.
-  if (alertType === 'FALL_DETECTED' && (severity === 'low' || severity === 'medium')) {
-    severity = 'high';
-  }
+  const severity = elevateCriticalSeverity(alertType, mapSeverity(a.severity));
   const mapped: AlertType = {
     alertId: String(a.id),
     userId: String(a.user_id),
@@ -92,10 +126,7 @@ export function mapBackendAlert(a: BackendAlert): AlertType {
 export function mapBackendPayload(p: BackendAlertPayload): AlertType {
   const status = p.status || 'Active';
   const alertType = mapAlertType(p.alert_type);
-  let severity = mapSeverity(p.severity);
-  if (alertType === 'FALL_DETECTED' && (severity === 'low' || severity === 'medium')) {
-    severity = 'high';
-  }
+  const severity = elevateCriticalSeverity(alertType, mapSeverity(p.severity));
   const mapped: AlertType = {
     alertId: String(p.alert_id),
     userId: String(p.patient_id),
