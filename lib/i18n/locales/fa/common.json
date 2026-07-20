@@ -630,6 +630,7 @@
   "appointment_status_cancelled": "لغو شده",
   "appointment_status_no_show": "عدم حضور",
   "list_view": "فهرست",
+  "gallery_view": "گالری",
   "calendar_view": "تقویم",
   "kanban_view": "کانبان",
   "appointment_board": "تابلوی نوبت‌ها",
@@ -831,5 +832,6 @@
   "support_chat_admin_title": "درخواست پشتیبانی",
   "support_chat_admin_subtitle": "پشتیبانی کاربر ↔ ادمین",
   "support_inbox": "صندوق پشتیبانی",
-  "support_inbox_empty": "هنوز گفتگوی پشتیبانی نیست"
+  "support_inbox_empty": "هنوز گفتگوی پشتیبانی نیست",
+  "source": "منبع"
 }

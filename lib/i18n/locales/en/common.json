@@ -628,6 +628,7 @@
   "appointment_status_cancelled": "Cancelled",
   "appointment_status_no_show": "No-show",
   "list_view": "List",
+  "gallery_view": "Gallery",
   "calendar_view": "Calendar",
   "kanban_view": "Kanban",
   "appointment_board": "Appointment board",
@@ -829,5 +830,6 @@
   "support_chat_admin_title": "Support request",
   "support_chat_admin_subtitle": "User ↔ admin support",
   "support_inbox": "Support inbox",
-  "support_inbox_empty": "No support chats yet"
+  "support_inbox_empty": "No support chats yet",
+  "source": "Source"
 }

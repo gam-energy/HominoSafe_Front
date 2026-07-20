@@ -103,7 +103,7 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
-      title: 'Fall Camera Logs',
+      title: 'Fall Reports',
       url: '/dashboard/fall-reports',
       icon: 'camera',
       shortcut: ['f', 'r'],
@@ -161,7 +161,7 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
-      title: 'Fall Camera Logs',
+      title: 'Fall Reports',
       url: '/dashboard/fall-reports',
       icon: 'camera',
       shortcut: ['f', 'r'],

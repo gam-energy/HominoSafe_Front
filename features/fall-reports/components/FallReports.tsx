@@ -10,6 +10,8 @@ import {
   CheckCircle2,
   Clock3,
   ImageOff,
+  LayoutGrid,
+  LayoutList,
   Radio,
   ShieldCheck,
   Smartphone,
@@ -39,6 +41,7 @@ import { useUser } from '@/context/UserContext';
 
 const ALL = 'all';
 type SourceFilter = 'all' | 'vision_module' | 'watch';
+type ViewMode = 'gallery' | 'list';
 
 function frameSrc(report: {
   frame_url?: string | null;
@@ -51,8 +54,13 @@ function frameSrc(report: {
   return null;
 }
 
+function isWatchSource(source: string) {
+  const s = (source || '').toLowerCase();
+  return s === 'watch' || s.includes('watch');
+}
+
 function sourceLabel(source: string) {
-  return source === 'watch' ? 'Watch' : 'Camera';
+  return isWatchSource(source) ? 'Watch' : 'Camera';
 }
 
 function metadataNumber(
@@ -83,7 +91,7 @@ function FallDetail({
   }, [id]);
 
   const src = detail ? frameSrc(detail) : null;
-  const isWatch = detail?.source === 'watch';
+  const isWatch = isWatchSource(detail?.source || '');
   const analysis =
     typeof detail?.metadata?.analysis === 'string'
       ? detail.metadata.analysis
@@ -353,6 +361,7 @@ export default function FallReports() {
   const [loading, setLoading] = useState(true);
   const [source, setSource] = useState<SourceFilter>('all');
   const [patient, setPatient] = useState(ALL);
+  const [viewMode, setViewMode] = useState<ViewMode>('gallery');
   const [selected, setSelected] = useState<number | null>(null);
   const { data: patients = [] } = usePatients(true, isStaff);
 
@@ -368,17 +377,20 @@ export default function FallReports() {
     () =>
       reports.filter(
         (report) =>
-          (source === 'all' || report.source === source) &&
+          (source === 'all' ||
+            (source === 'watch'
+              ? isWatchSource(report.source)
+              : !isWatchSource(report.source))) &&
           (patient === ALL || String(report.patient_id) === patient),
       ),
     [reports, source, patient],
   );
 
   const cameraCount = reports.filter(
-    (report) => report.source !== 'watch',
+    (report) => !isWatchSource(report.source),
   ).length;
-  const watchCount = reports.filter(
-    (report) => report.source === 'watch',
+  const watchCount = reports.filter((report) =>
+    isWatchSource(report.source),
   ).length;
   const openCount = reports.filter(
     (report) =>
@@ -469,36 +481,78 @@ export default function FallReports() {
             ))}
           </div>
 
-          {isStaff && (
-            <Select value={patient} onValueChange={setPatient}>
-              <SelectTrigger className="w-full rounded-full sm:w-72">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={ALL}>
-                  {t('all_patients', 'All patients')}
-                </SelectItem>
-                {patients.map((item) => (
-                  <SelectItem key={item.id} value={String(item.id)}>
-                    {[item.first_name, item.last_name]
-                      .filter(Boolean)
-                      .join(' ')
-                      .trim() || item.username}
+          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+            <div className="flex rounded-full bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => setViewMode('gallery')}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
+                  viewMode === 'gallery'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+                {t('gallery_view', 'Gallery')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('list')}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
+                  viewMode === 'list'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <LayoutList className="h-3.5 w-3.5" />
+                {t('list_view', 'List')}
+              </button>
+            </div>
+
+            {isStaff && (
+              <Select value={patient} onValueChange={setPatient}>
+                <SelectTrigger className="w-full rounded-full sm:w-72">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL}>
+                    {t('all_patients', 'All patients')}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
+                  {patients.map((item) => (
+                    <SelectItem key={item.id} value={String(item.id)}>
+                      {[item.first_name, item.last_name]
+                        .filter(Boolean)
+                        .join(' ')
+                        .trim() || item.username}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div
-                key={index}
-                className="h-64 animate-pulse rounded-3xl border bg-muted/40"
-              />
-            ))}
+          <div
+            className={cn(
+              viewMode === 'list'
+                ? 'space-y-2'
+                : 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3',
+            )}
+          >
+            {Array.from({ length: viewMode === 'list' ? 8 : 6 }).map(
+              (_, index) => (
+                <div
+                  key={index}
+                  className={cn(
+                    'animate-pulse rounded-3xl border bg-muted/40',
+                    viewMode === 'list' ? 'h-16' : 'h-64',
+                  )}
+                />
+              ),
+            )}
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center gap-3 rounded-3xl border border-dashed py-16 text-center">
@@ -513,10 +567,80 @@ export default function FallReports() {
               )}
             </p>
           </div>
+        ) : viewMode === 'list' ? (
+          <div className="overflow-hidden rounded-3xl border border-zinc-200/80 bg-white/70 shadow-sm backdrop-blur-md dark:border-zinc-800/80 dark:bg-zinc-900/60">
+            <div className="hidden grid-cols-[minmax(0,1.4fr)_auto_minmax(0,1fr)_auto_auto] gap-3 border-b px-4 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground sm:grid">
+              <span>{t('patient', 'Patient')}</span>
+              <span>{t('source', 'Source')}</span>
+              <span>{t('recorded', 'Recorded')}</span>
+              <span>{t('confidence', 'Confidence')}</span>
+              <span>{t('alert_status', 'Alert status')}</span>
+            </div>
+            <div className="divide-y">
+              {filtered.map((report) => {
+                const isWatch = isWatchSource(report.source);
+                return (
+                  <button
+                    key={report.vision_data_id}
+                    type="button"
+                    onClick={() => setSelected(report.vision_data_id)}
+                    className="grid w-full grid-cols-1 gap-2 px-4 py-3 text-start transition hover:bg-muted/40 sm:grid-cols-[minmax(0,1.4fr)_auto_minmax(0,1fr)_auto_auto] sm:items-center sm:gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold">
+                        {report.patient_name ||
+                          `${t('patient', 'Patient')} #${report.patient_id}`}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground capitalize">
+                        {t('posture', 'Posture')}: {report.posture || '—'}
+                      </p>
+                    </div>
+                    <Badge
+                      className={cn(
+                        'w-fit rounded-full border-0',
+                        isWatch
+                          ? 'bg-violet-600/85 text-white'
+                          : 'bg-sky-600/85 text-white',
+                      )}
+                    >
+                      {isWatch ? (
+                        <Smartphone className="me-1 h-3 w-3" />
+                      ) : (
+                        <Camera className="me-1 h-3 w-3" />
+                      )}
+                      {t(
+                        isWatch ? 'watch' : 'camera',
+                        sourceLabel(report.source),
+                      )}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground ltr-nums">
+                      {new Date(report.timestamp).toLocaleString(i18n.language)}
+                    </span>
+                    <span className="text-xs font-semibold ltr-nums">
+                      {report.confidence != null
+                        ? `${Math.round(report.confidence * 100)}%`
+                        : '—'}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        'w-fit rounded-full capitalize',
+                        String(report.status || '').toLowerCase() === 'resolved'
+                          ? 'bg-emerald-500/10 text-emerald-700'
+                          : 'bg-amber-500/10 text-amber-700',
+                      )}
+                    >
+                      {report.status || t('recorded', 'Recorded')}
+                    </Badge>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((report) => {
-              const isWatch = report.source === 'watch';
+              const isWatch = isWatchSource(report.source);
               const src = frameSrc(report);
               const analysis =
                 typeof report.metadata?.analysis === 'string'
