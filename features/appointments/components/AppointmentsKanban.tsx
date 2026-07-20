@@ -80,12 +80,14 @@ function isAllowedMove(from: AppointmentStatus, to: AppointmentStatus): boolean 
 type Props = {
   appointments: AppointmentSummary[];
   onStatusChange: (id: number, status: AppointmentStatus) => void;
+  onRequestComplete?: (appt: AppointmentSummary) => void;
   pending?: boolean;
 };
 
 const AppointmentsKanban: FC<Props> = ({
   appointments,
   onStatusChange,
+  onRequestComplete,
   pending,
 }) => {
   const { t } = useTranslation();
@@ -138,6 +140,10 @@ const AppointmentsKanban: FC<Props> = ({
     ) as AppointmentStatus | undefined;
 
     if (!nextStatus || !isAllowedMove(appt.status, nextStatus)) return;
+    if (nextStatus === 'completed' && onRequestComplete) {
+      onRequestComplete(appt);
+      return;
+    }
     onStatusChange(apptId, nextStatus);
   };
 
@@ -158,6 +164,7 @@ const AppointmentsKanban: FC<Props> = ({
             title={t(`appointment_status_${status}`, status)}
             pending={pending}
             onQuickAction={onStatusChange}
+            onRequestComplete={onRequestComplete}
           />
         ))}
       </div>
@@ -177,12 +184,14 @@ function KanbanColumn({
   title,
   pending,
   onQuickAction,
+  onRequestComplete,
 }: {
   status: AppointmentStatus;
   items: AppointmentSummary[];
   title: string;
   pending?: boolean;
   onQuickAction: (id: number, status: AppointmentStatus) => void;
+  onRequestComplete?: (appt: AppointmentSummary) => void;
 }) {
   const { t } = useTranslation();
   const { setNodeRef, isOver } = useDroppable({ id: status });
@@ -218,6 +227,7 @@ function KanbanColumn({
               appt={appt}
               disabled={pending}
               onQuickAction={onQuickAction}
+              onRequestComplete={onRequestComplete}
             />
           ))
         )}
@@ -232,12 +242,14 @@ function KanbanCard({
   overlay,
   disabled,
   onQuickAction,
+  onRequestComplete,
 }: {
   appt: AppointmentSummary;
   dragging?: boolean;
   overlay?: boolean;
   disabled?: boolean;
   onQuickAction?: (id: number, status: AppointmentStatus) => void;
+  onRequestComplete?: (appt: AppointmentSummary) => void;
 }) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, isDragging } =
@@ -322,7 +334,11 @@ function KanbanCard({
               variant="outline"
               className="h-7 rounded-full px-2 text-[11px]"
               disabled={disabled}
-              onClick={() => onQuickAction(appt.id, 'completed')}
+              onClick={() =>
+                onRequestComplete
+                  ? onRequestComplete(appt)
+                  : onQuickAction?.(appt.id, 'completed')
+              }
             >
               <CheckCircle className="me-1 h-3 w-3" />
               {t('complete', 'Complete')}

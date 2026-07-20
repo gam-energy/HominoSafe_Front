@@ -148,12 +148,14 @@ type Props = {
   appointments: AppointmentSummary[];
   role: string;
   onStatusChange?: (id: number, status: AppointmentStatus) => void;
+  onRequestComplete?: (appt: AppointmentSummary) => void;
 };
 
 const AppointmentsCalendar: FC<Props> = ({
   appointments,
   role,
   onStatusChange,
+  onRequestComplete,
 }) => {
   const { t, i18n } = useTranslation();
   const [range, setRange] = useState<CalendarRange>('week');
@@ -706,7 +708,11 @@ const AppointmentsCalendar: FC<Props> = ({
                           size="sm"
                           variant="outline"
                           className="h-7 rounded-full px-2 text-[11px]"
-                          onClick={() => onStatusChange(appt.id, 'completed')}
+                          onClick={() =>
+                            onRequestComplete
+                              ? onRequestComplete(appt)
+                              : onStatusChange?.(appt.id, 'completed')
+                          }
                         >
                           {t('complete', 'Complete')}
                         </Button>
@@ -714,7 +720,7 @@ const AppointmentsCalendar: FC<Props> = ({
                           size="sm"
                           variant="ghost"
                           className="h-7 rounded-full px-2 text-[11px]"
-                          onClick={() => onStatusChange(appt.id, 'no_show')}
+                          onClick={() => onStatusChange?.(appt.id, 'no_show')}
                         >
                           {t('no_show', 'No-show')}
                         </Button>

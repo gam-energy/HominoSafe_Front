@@ -51,6 +51,7 @@ import {
 } from '../api/use-appointments';
 import AppointmentsKanban from './AppointmentsKanban';
 import AppointmentsCalendar from './AppointmentsCalendar';
+import VisitReportDialog from './VisitReportDialog';
 import { cn } from '@/lib/utils';
 
 type Role = 'patient' | 'caregiver' | 'doctor' | 'clinic_admin' | 'admin';
@@ -103,6 +104,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
   const [slotOpen, setSlotOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [historyStatus, setHistoryStatus] = useState<StatusFilter>('all');
+  const [completeTarget, setCompleteTarget] = useState<AppointmentSummary | null>(null);
 
   const canManageBoard =
     role === 'doctor' || role === 'clinic_admin' || role === 'admin';
@@ -130,6 +132,10 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
 
   const handleStatusChange = (id: number, status: AppointmentStatus) => {
     updateAppt.mutate({ id, payload: { status } });
+  };
+
+  const handleRequestComplete = (appt: AppointmentSummary) => {
+    setCompleteTarget(appt);
   };
 
   const cardTitle =
@@ -327,6 +333,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
                 appointments={appointments}
                 role={role}
                 onStatusChange={handleStatusChange}
+                onRequestComplete={handleRequestComplete}
               />
             )}
           {!myAppointments.isLoading &&
@@ -347,6 +354,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
               <AppointmentsKanban
                 appointments={appointments}
                 onStatusChange={handleStatusChange}
+                onRequestComplete={handleRequestComplete}
                 pending={updateAppt.isPending}
               />
             )}
@@ -361,6 +369,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
                     appt={appt}
                     role={role}
                     onStatusChange={handleStatusChange}
+                    onRequestComplete={handleRequestComplete}
                     historyMode={viewMode === 'history'}
                   />
                 ))}
@@ -391,6 +400,12 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
           </CardContent>
         </Card>
       )}
+
+      <VisitReportDialog
+        open={completeTarget !== null}
+        appt={completeTarget}
+        onClose={() => setCompleteTarget(null)}
+      />
     </div>
   );
 };
@@ -401,6 +416,7 @@ interface AppointmentRowProps {
   appt: AppointmentSummary;
   role: Role;
   onStatusChange: (id: number, status: AppointmentStatus) => void;
+  onRequestComplete?: (appt: AppointmentSummary) => void;
   historyMode?: boolean;
 }
 
@@ -408,6 +424,7 @@ const AppointmentRow: FC<AppointmentRowProps> = ({
   appt,
   role,
   onStatusChange,
+  onRequestComplete,
   historyMode = false,
 }) => {
   const { t } = useTranslation();
@@ -519,7 +536,15 @@ const AppointmentRow: FC<AppointmentRowProps> = ({
         )}
         {canManage && (appt.status === 'confirmed' || (historyMode && appt.status === 'requested')) && (
           <>
-            <Button size="sm" variant="outline" onClick={() => onStatusChange(appt.id, 'completed')}>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() =>
+                onRequestComplete
+                  ? onRequestComplete(appt)
+                  : onStatusChange(appt.id, 'completed')
+              }
+            >
               <CheckCircle className="me-1 h-4 w-4" />
               {t('complete', 'Complete')}
             </Button>

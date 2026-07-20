@@ -257,3 +257,102 @@ export function useDoctorWidget() {
     refetchInterval: 60_000,
   });
 }
+
+// ---------------- Visit reports ---------------- //
+
+export interface VisitMedicationEntry {
+  name: string;
+  dosage: string;
+  frequency: string;
+  start_date: string;
+  end_date?: string | null;
+  notes?: string | null;
+}
+
+export interface VisitProfileUpdate {
+  comorbidities?: Record<string, unknown> | null;
+  diagnosis?: string | null;
+  physician_notes?: string | null;
+  demographics?: string | null;
+}
+
+export interface VisitReportCreatePayload {
+  clinical_note: string;
+  profile_updates?: VisitProfileUpdate | null;
+  medications?: VisitMedicationEntry[] | null;
+}
+
+export interface VisitReport {
+  id: number;
+  appointment_id: number;
+  doctor_id?: number | null;
+  patient_id: number;
+  clinical_note: string;
+  structured_profile?: Record<string, unknown> | null;
+  structured_medications?: Record<string, unknown>[] | null;
+  created_at: string;
+}
+
+export type VisitChangeJobStatus =
+  | 'pending'
+  | 'processing'
+  | 'applied'
+  | 'failed'
+  | 'skipped';
+export type VisitChangeJobType = 'profile' | 'medication' | 'extract';
+export type VisitChangeJobSource = 'structured' | 'extracted';
+
+export interface VisitChangeJob {
+  id: number;
+  report_id: number;
+  patient_id: number;
+  change_type: VisitChangeJobType;
+  source: VisitChangeJobSource;
+  status: VisitChangeJobStatus;
+  error?: string | null;
+  attempts: number;
+  processed_at?: string | null;
+  created_at: string;
+}
+
+export interface VisitReportDetail extends VisitReport {
+  change_jobs: VisitChangeJob[];
+}
+
+export function useCompleteAppointmentWithReport() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: number;
+      payload: VisitReportCreatePayload;
+    }) => {
+      const { data } = await axiosInstance.post<VisitReport>(
+        `/appointments/${id}/complete-report`,
+        payload,
+        { headers: { 'Content-Type': 'application/json' } },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['appointments'] });
+      qc.invalidateQueries({ queryKey: ['my-appointments'] });
+      qc.invalidateQueries({ queryKey: ['doctor-widget'] });
+    },
+  });
+}
+
+export function useVisitReport(appointmentId?: number) {
+  return useQuery({
+    queryKey: ['visit-report', appointmentId],
+    enabled: typeof appointmentId === 'number',
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<VisitReportDetail>(
+        `/appointments/${appointmentId}/report`,
+      );
+      return data;
+    },
+  });
+}
