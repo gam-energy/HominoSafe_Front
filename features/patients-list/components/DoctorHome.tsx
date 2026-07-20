@@ -176,7 +176,6 @@ export default function DoctorHome() {
           <p className="text-sm text-destructive">{error.message}</p>
         ) : null}
 
-        {/* Metrics overview */}
         <section>
           <SectionTitle
             title={t('caseload_overview', 'Caseload overview')}
@@ -223,25 +222,13 @@ export default function DoctorHome() {
           </div>
         </section>
 
-        {/* Charts */}
-        <section>
-          <SectionTitle
-            title={t('patient_insights', 'Patient insights')}
-            description={t(
-              'patient_insights_desc',
-              'Alert trend, severity mix, and caseload status.',
-            )}
-          />
-          <StaffCaseloadInsights patients={patients ?? []} />
-        </section>
-
-        {/* Appointments + attention + fast access */}
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-12">
-          <div className="space-y-6 xl:col-span-4">
+        {/* Equal panels: appointments · attention · fast access */}
+        <section className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
+          <div className="flex h-full min-h-[28rem] flex-col [&_>_*]:h-full">
             <AppointmentsWidget />
           </div>
 
-          <StaffSurface className="flex flex-col gap-3 p-5 xl:col-span-5">
+          <StaffSurface className="flex h-full min-h-[28rem] flex-col gap-3 overflow-hidden p-5">
             <SectionTitle
               title={t('caseload_risk', 'Needs attention')}
               description={t(
@@ -261,11 +248,11 @@ export default function DoctorHome() {
               }
             />
             {attentionPatients.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-border py-10 text-center text-sm text-muted-foreground">
+              <p className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-border text-center text-sm text-muted-foreground">
                 {t('caseload_clear', 'Caseload looks clear right now.')}
               </p>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pe-1">
                 {attentionPatients.map(({ patient, status }) => {
                   const routes = staffPatientRoutes(user?.role, patient.id);
                   return (
@@ -292,7 +279,7 @@ export default function DoctorHome() {
             )}
           </StaffSurface>
 
-          <StaffSurface className="flex flex-col gap-2 p-5 xl:col-span-3">
+          <StaffSurface className="flex h-full min-h-[28rem] flex-col gap-2 overflow-hidden p-5">
             <SectionTitle
               title={t('fast_access', 'Fast access')}
               description={t(
@@ -300,62 +287,75 @@ export default function DoctorHome() {
                 'Jump to the tools you use every day.',
               )}
             />
-            <StaffQuickAction
-              label={t('patients', 'Patients')}
-              description={t(
-                'manage_patient_records',
-                'View and manage patient records',
-              )}
-              icon={Users}
-              onClick={() => router.push('/dashboard/patients')}
-            />
-            <StaffQuickAction
-              label={t('patient_alerts', 'Patient Alerts')}
-              description={t(
-                'review_clinical_alerts',
-                'Review clinical alerts',
-              )}
-              icon={ShieldAlert}
-              onClick={() => router.push('/dashboard/patient-alert')}
-            />
-            <StaffQuickAction
-              label={t('appointments', 'Appointments')}
-              description={t(
-                'manage_schedule',
-                'Manage visits and availability',
-              )}
-              icon={CalendarDays}
-              onClick={() => router.push('/dashboard/appointments')}
-            />
-            <StaffQuickAction
-              label={t('fall_reports', 'Fall reports')}
-              description={t(
-                'review_fall_events',
-                'Review fall detection events',
-              )}
-              icon={Camera}
-              onClick={() => router.push('/dashboard/fall-reports')}
-            />
-            <StaffQuickAction
-              label={t('ai_chat', 'AI Chat')}
-              description={t(
-                'ai_assistant_description',
-                'Ask the AI health assistant',
-              )}
-              icon={Brain}
-              onClick={() => router.push('/dashboard/ai')}
-            />
-            <StaffQuickAction
-              label={t('chat', 'Chat')}
-              description={t(
-                'contact_patients',
-                'Contact and message patients',
-              )}
-              icon={MessageCircle}
-              onClick={() => router.push('/dashboard/chat')}
-            />
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pe-1">
+              <StaffQuickAction
+                label={t('patients', 'Patients')}
+                description={t(
+                  'manage_patient_records',
+                  'View and manage patient records',
+                )}
+                icon={Users}
+                onClick={() => router.push('/dashboard/patients')}
+              />
+              <StaffQuickAction
+                label={t('patient_alerts', 'Patient Alerts')}
+                description={t(
+                  'review_clinical_alerts',
+                  'Review clinical alerts',
+                )}
+                icon={ShieldAlert}
+                onClick={() => router.push('/dashboard/patient-alert')}
+              />
+              <StaffQuickAction
+                label={t('appointments', 'Appointments')}
+                description={t(
+                  'manage_schedule',
+                  'Manage visits and availability',
+                )}
+                icon={CalendarDays}
+                onClick={() => router.push('/dashboard/appointments')}
+              />
+              <StaffQuickAction
+                label={t('fall_reports', 'Fall reports')}
+                description={t(
+                  'review_fall_events',
+                  'Review fall detection events',
+                )}
+                icon={Camera}
+                onClick={() => router.push('/dashboard/fall-reports')}
+              />
+              <StaffQuickAction
+                label={t('ai_chat', 'AI Chat')}
+                description={t(
+                  'ai_assistant_description',
+                  'Ask the AI health assistant',
+                )}
+                icon={Brain}
+                onClick={() => router.push('/dashboard/ai')}
+              />
+              <StaffQuickAction
+                label={t('chat', 'Chat')}
+                description={t(
+                  'contact_patients',
+                  'Contact and message patients',
+                )}
+                icon={MessageCircle}
+                onClick={() => router.push('/dashboard/chat')}
+              />
+            </div>
           </StaffSurface>
-        </div>
+        </section>
+
+        <section>
+          <SectionTitle
+            title={t('patient_insights', 'Patient insights')}
+            description={t(
+              'patient_insights_desc',
+              'Alert trends, coverage, severity mix, and caseload health.',
+            )}
+          />
+          <StaffCaseloadInsights patients={patients ?? []} />
+        </section>
       </div>
     </PageContainer>
   );

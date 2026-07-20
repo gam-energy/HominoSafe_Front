@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "react-i18next";
 import { Activity, ArrowLeft, Brain, FileHeart, FileUp, Gauge, MessageCircle, FileDown, MoreHorizontal } from "lucide-react";
 
@@ -28,13 +28,13 @@ import { HistoryChart, HistoryPeriodSelect, ALL_HISTORY_METRICS, Metric, TimePer
 import { useDashboardPrefs } from "@/features/settings/hooks/useDashboardPrefs";
 import { EditThresholdsModal } from "@/features/patients-list/components/user/EditThresholdsModal";
 import { useUserProfiles } from "@/features/patients-list/api/useUserProfiles";
-import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patient-profile";
 import { useGetOVerview } from "@/features/dashboard/api/patient/useGetOverview";
 import { useHistory } from "@/features/dashboard/api/patient/useGetHistory";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
-import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 import { StaffPatientNav } from "@/features/patients-list/components/StaffPatientNav";
 import { PatientOnboardingBanner } from "@/features/patients-list/components/PatientOnboardingBanner";
+import PatientAppointmentHistory from "@/features/patients-list/components/PatientAppointmentHistory";
+import { useStaffPatientRoute } from "@/features/patients-list/hooks/useStaffPatientRoute";
 import { useUser } from "@/context/UserContext";
 import EhrDownloadDialog from "@/features/ehr/components/EhrDownloadDialog";
 
@@ -78,34 +78,24 @@ const SectionCard = ({
 export default function DoctorPatientDetail() {
   const { t } = useTranslation();
   const router = useRouter();
-  const params = useParams<{ id: string }>();
-  const userId = Number(
-    Array.isArray(params.id) ? params.id[0] : params.id
-  );
+  const {
+    patient: patientInfo,
+    userId,
+    publicRef,
+    routes,
+    isLoading: infoLoading,
+  } = useStaffPatientRoute();
   const { user: currentUser } = useUser();
   const createRoomMutation = useCreateRoom();
   const [isCreatingRoom, setIsCreatingRoom] = useState(false);
 
-  const patientsListRoute =
-    currentUser?.role === "caregiver"
-      ? "/dashboard/my-patients"
-      : "/dashboard/patients";
+  const patientsListRoute = routes.listRoute;
   const isDoctor = currentUser?.role === "doctor";
   const isCaregiver = currentUser?.role === "caregiver";
-  const routes = staffPatientRoutes(currentUser?.role, userId);
   const clinicalAgentRoute = routes.clinicalAgentRoute;
   const importRoute = routes.importRoute;
   const medicalProfileRoute = routes.medicalProfileRoute;
   const healthKpisRoute = routes.healthKpisRoute;
-
-  // Patient user info (username, email, phone, status, etc.)
-  const { data: patientInfoData, isLoading: infoLoading } =
-    useGetPatientProfile(userId);
-  const patientInfo = useMemo(() => {
-    if (!patientInfoData) return undefined;
-    if (Array.isArray(patientInfoData)) return patientInfoData[0];
-    return patientInfoData as any;
-  }, [patientInfoData]);
 
   // EHR / medical profiles
   const { data: profilesData, isLoading: profilesLoading, error: profilesError } =
@@ -189,7 +179,7 @@ export default function DoctorPatientDetail() {
     }
   };
 
-  if (infoLoading) {
+  if (infoLoading || !userId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center">
@@ -289,6 +279,7 @@ export default function DoctorPatientDetail() {
 
         <StaffPatientNav
           role={currentUser?.role}
+          patientRef={publicRef}
           patientId={userId}
           patientUuid={patientInfo?.uuid}
         />
@@ -402,6 +393,8 @@ export default function DoctorPatientDetail() {
             </div>
           </Card>
         </div>
+
+        <PatientAppointmentHistory patientId={userId} />
 
         {/* Medical Records (EHR) */}
         <div className="flex flex-col gap-3">

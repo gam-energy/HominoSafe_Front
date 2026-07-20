@@ -18,16 +18,19 @@ import { staffPatientRoutes } from '@/features/patient-knowledge/utils/staffRout
 
 export function StaffPatientNav({
   role,
+  patientRef,
   patientId,
   patientUuid,
 }: {
   role: string | undefined;
-  patientId: number;
+  /** UUID (preferred) or numeric id used in the URL */
+  patientRef: string | number;
+  patientId?: number;
   patientUuid?: string | null;
 }) {
   const { t } = useTranslation();
   const pathname = usePathname();
-  const routes = staffPatientRoutes(role, patientId);
+  const routes = staffPatientRoutes(role, patientRef);
 
   const items = [
     {
@@ -57,7 +60,7 @@ export function StaffPatientNav({
     },
   ];
 
-  const copyValue = patientUuid || String(patientId);
+  const copyValue = patientUuid || String(patientRef);
 
   return (
     <nav className="flex flex-wrap gap-2 rounded-2xl border border-border bg-muted/30 p-2">
@@ -74,7 +77,7 @@ export function StaffPatientNav({
               'inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
               active
                 ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:bg-background hover:text-foreground'
+                : 'text-muted-foreground hover:bg-background hover:text-foreground',
             )}
           >
             <Icon className="h-4 w-4 shrink-0" />
@@ -87,7 +90,7 @@ export function StaffPatientNav({
         <span className="truncate font-mono" title={copyValue}>
           {patientUuid
             ? `${t('patient_uuid', 'UUID')}: ${patientUuid}`
-            : `${t('patient_id', 'Patient ID')}: ${patientId}`}
+            : `${t('patient_id', 'Patient ID')}: ${patientId ?? patientRef}`}
         </span>
         <CopyButton
           content={copyValue}

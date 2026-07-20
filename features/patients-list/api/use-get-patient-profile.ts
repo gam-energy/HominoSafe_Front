@@ -3,8 +3,8 @@ import axiosInstance from '@/api/axiosInstance';
 import { User } from '@/features/dashboard/types/caregiver/user';
 import { AxiosError } from 'axios';
 
-const fetchPatientUser = async (userId: number): Promise<User> => {
-  const response = await axiosInstance.get<User>(`/user/${userId}`);
+const fetchPatientUser = async (ref: string | number): Promise<User> => {
+  const response = await axiosInstance.get<User>(`/user/${ref}`);
 
   if (response.status !== 200) {
     throw new Error('Failed to fetch patient');
@@ -13,11 +13,12 @@ const fetchPatientUser = async (userId: number): Promise<User> => {
   return response.data;
 };
 
-export const useGetPatientProfile = (userId: number) => {
+/** Fetch patient by numeric id or public UUID. */
+export const useGetPatientProfile = (ref?: string | number) => {
   return useQuery<User, AxiosError>({
-    queryKey: ['patient-user', userId],
-    queryFn: () => fetchPatientUser(userId),
-    enabled: !!userId,
+    queryKey: ['patient-user', ref],
+    queryFn: () => fetchPatientUser(ref as string | number),
+    enabled: ref !== undefined && ref !== null && String(ref).length > 0,
     staleTime: 1000 * 60 * 10,
   });
 };

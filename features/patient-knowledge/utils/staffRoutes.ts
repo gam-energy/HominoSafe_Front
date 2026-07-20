@@ -1,7 +1,27 @@
-export function staffPatientRoutes(role: string | undefined, patientId: number) {
-  const isCaregiver = role === "caregiver";
-  const listRoute = isCaregiver ? "/dashboard/my-patients" : "/dashboard/patients";
-  const base = `${listRoute}/${patientId}`;
+export function isUuidLike(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    value.trim(),
+  );
+}
+
+/** Prefer stable public UUID for patient URLs; fall back to numeric id. */
+export function patientPublicRef(patient: {
+  id: number;
+  uuid?: string | null;
+}): string {
+  const uuid = patient.uuid?.trim();
+  return uuid || String(patient.id);
+}
+
+export function staffPatientRoutes(
+  role: string | undefined,
+  patientRef: string | number,
+) {
+  const isCaregiver = role === 'caregiver';
+  const listRoute = isCaregiver
+    ? '/dashboard/my-patients'
+    : '/dashboard/patients';
+  const base = `${listRoute}/${patientRef}`;
 
   return {
     listRoute,
@@ -14,5 +34,5 @@ export function staffPatientRoutes(role: string | undefined, patientId: number) 
 }
 
 export function isStaffRole(role?: string): boolean {
-  return role === "doctor" || role === "caregiver";
+  return role === 'doctor' || role === 'caregiver';
 }
