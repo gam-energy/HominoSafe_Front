@@ -820,5 +820,16 @@
   "landing_panel_item1": "درخواست مراقب با بررسی کلینیک",
   "landing_panel_item2": "تأیید امن رسید پرداخت",
   "landing_panel_item3": "دید مشترک از وضعیت بیمار",
-  "step": "گام"
+  "step": "گام",
+  "support_chat_with_admin": "گفتگو با ادمین",
+  "support_chat_pin_hint": "پیام به مدیر سیستم",
+  "support_chat_opening": "در حال باز کردن…",
+  "support_chat_empty": "هنوز پیامی نیست — سلام کنید",
+  "support_chat_placeholder": "پیام بنویسید…",
+  "support_chat_send": "ارسال",
+  "support_chat_user_subtitle": "پشتیبانی سیستم",
+  "support_chat_admin_title": "درخواست پشتیبانی",
+  "support_chat_admin_subtitle": "پشتیبانی کاربر ↔ ادمین",
+  "support_inbox": "صندوق پشتیبانی",
+  "support_inbox_empty": "هنوز گفتگوی پشتیبانی نیست"
 }

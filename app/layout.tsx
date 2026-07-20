@@ -5,9 +5,9 @@ import ThemeProvider from '@/components/layout/ThemeToggle/theme-provider';
 import { QueryProvider } from "@/providers/query-provider";
 import { cn } from '@/lib/utils';
 import type { Metadata, Viewport } from 'next';
-import NextTopLoader from 'nextjs-toploader';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { UserProvider } from "@/context/UserContext";
+import AppTopLoader from '@/components/layout/app-top-loader';
 import './globals.css';
 import './theme.css';
 
@@ -88,7 +88,7 @@ export default async function RootLayout({
           fontVariables
         )}
       >
-        <NextTopLoader showSpinner={false} />
+        <AppTopLoader />
         <NuqsAdapter>
           <ThemeProvider
             attribute='class'
