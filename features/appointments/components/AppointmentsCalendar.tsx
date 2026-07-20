@@ -572,7 +572,9 @@ const AppointmentsCalendar: FC<Props> = ({
                             {height >= 40 && (
                               <p className="mt-0.5 truncate text-[10px] leading-tight opacity-90">
                                 {appt.reason ||
-                                  `${t('patient_id', 'Patient')} #${appt.patient_id}`}
+                                  (canManage
+                                    ? `${t('patient_id', 'Patient')} #${appt.patient_id}`
+                                    : t('appointment', 'Appointment'))}
                               </p>
                             )}
                             {height >= 56 && range === 'day' && (
@@ -662,9 +664,21 @@ const AppointmentsCalendar: FC<Props> = ({
                       {appt.duration_minutes} min
                       {appt.reason ? ` · ${appt.reason}` : ''}
                     </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground ltr-nums">
-                      {t('patient_id', 'Patient')} #{appt.patient_id}
-                    </p>
+                    {canManage && (
+                      <p className="mt-1 text-[11px] text-muted-foreground ltr-nums">
+                        {t('patient_id', 'Patient')} #{appt.patient_id}
+                      </p>
+                    )}
+                    {appt.status === 'confirmed' && appt.video_room_url && (
+                      <a
+                        href={appt.video_room_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-2 inline-flex text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                      >
+                        {t('join_visit', 'Join visit')}
+                      </a>
+                    )}
                   </div>
                   <Badge
                     variant="secondary"

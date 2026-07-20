@@ -413,19 +413,29 @@ const AppointmentRow: FC<AppointmentRowProps> = ({
   historyMode = false,
 }) => {
   const { t } = useTranslation();
+  const [videoOpen, setVideoOpen] = useState(false);
   const canManage = role === 'doctor' || role === 'clinic_admin' || role === 'admin';
   const isTerminal =
     appt.status === 'cancelled' ||
     appt.status === 'completed' ||
     appt.status === 'no_show';
-  // In history, staff can still close overdue open appointments; patients cannot cancel past ones.
   const showCancel =
     !isTerminal &&
     !historyMode &&
     (canManage || role === 'patient' || role === 'caregiver');
+  const showPatientLabel = canManage || role === 'caregiver';
+
+  const copyVideoLink = async () => {
+    if (!appt.video_room_url) return;
+    try {
+      await navigator.clipboard.writeText(appt.video_room_url);
+    } catch {
+      // ignore
+    }
+  };
 
   return (
-    <div className="flex items-center justify-between rounded-lg border p-3">
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
           <Calendar className="h-5 w-5 text-primary" />
@@ -434,20 +444,74 @@ const AppointmentRow: FC<AppointmentRowProps> = ({
           <p className="font-medium">{formatDateTime(appt.scheduled_at)}</p>
           <p className="text-sm text-muted-foreground">
             {appt.duration_minutes} min{appt.reason ? ` — ${appt.reason}` : ''}
+            {showPatientLabel ? ` · ${t('patient_id', 'Patient')} #${appt.patient_id}` : ''}
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Badge className={STATUS_COLORS[appt.status]} variant="secondary">
           {t(`appointment_status_${appt.status}`, appt.status)}
         </Badge>
+        {appt.status === 'requested' && (role === 'patient' || role === 'caregiver') && (
+          <span className="text-xs text-muted-foreground">
+            {t(
+              'video_after_confirm',
+              'Online visit link appears after the doctor confirms.',
+            )}
+          </span>
+        )}
         {appt.status === 'confirmed' && appt.video_room_url && (
-          <Button size="sm" variant="secondary" asChild>
-            <a href={appt.video_room_url} target="_blank" rel="noopener noreferrer">
+          <>
+            <Button size="sm" variant="secondary" onClick={() => setVideoOpen(true)}>
               <Video className="me-1 h-4 w-4" />
               {t('join_visit', 'Join visit')}
-            </a>
-          </Button>
+            </Button>
+            <Dialog open={videoOpen} onOpenChange={setVideoOpen}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{t('online_visit', 'Online visit')}</DialogTitle>
+                </DialogHeader>
+                <ol className="list-decimal space-y-2 ps-5 text-sm text-muted-foreground">
+                  <li>
+                    {t(
+                      'online_visit_step1',
+                      'Join at the appointment time (or a few minutes early).',
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'online_visit_step2',
+                      'Click “Open video room”. Allow camera and microphone when the browser asks.',
+                    )}
+                  </li>
+                  <li>
+                    {t(
+                      'online_visit_step3',
+                      'Your doctor joins the same room with the same link — no app install needed.',
+                    )}
+                  </li>
+                </ol>
+                <p className="break-all rounded-md border bg-muted/40 p-2 text-xs">
+                  {appt.video_room_url}
+                </p>
+                <DialogFooter className="flex-wrap gap-2 sm:justify-between">
+                  <Button type="button" variant="outline" onClick={copyVideoLink}>
+                    {t('copy_link', 'Copy link')}
+                  </Button>
+                  <Button asChild>
+                    <a
+                      href={appt.video_room_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Video className="me-1 h-4 w-4" />
+                      {t('open_video_room', 'Open video room')}
+                    </a>
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
         {canManage && appt.status === 'requested' && (
           <Button size="sm" variant="outline" onClick={() => onStatusChange(appt.id, 'confirmed')}>
@@ -498,7 +562,12 @@ const SlotRow: FC<SlotRowProps> = ({ slot, onCancel, loading }) => {
         <div>
           <p className="font-medium">{formatDateTime(slot.start_time)}</p>
           <p className="text-sm text-muted-foreground">
-            {slot.booked_count}/{slot.capacity} booked · {slot.recurrence}
+            {t('slot_staff_occupancy', '{{booked}}/{{capacity}} booked', {
+              booked: slot.booked_count,
+              capacity: slot.capacity,
+            })}
+            {' · '}
+            {slot.recurrence}
           </p>
         </div>
       </div>
