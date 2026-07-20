@@ -20,11 +20,11 @@ import {
 } from "recharts";
 import { AlertTriangle, Brain, ShieldAlert } from "lucide-react";
 
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { fetchAlertHistory } from "@/features/alert/api/alertApi";
 import type { User } from "@/features/dashboard/types/caregiver/user";
 import { cn } from "@/lib/utils";
+import { StaffSurface } from "./staff-ui";
 
 const SEVERITY_COLORS: Record<string, string> = {
   critical: "#e11d48",
@@ -153,10 +153,10 @@ export default function StaffCaseloadInsights({
 
   return (
     <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-      <Card className="xl:col-span-5 rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
+      <StaffSurface className="xl:col-span-5 p-5">
         <div className="mb-3 flex items-center justify-between gap-2">
           <div>
-            <h3 className="text-base font-bold tracking-tight">
+            <h3 className="text-base font-semibold tracking-tight">
               {t("alerts_last_7_days", "Alerts — last 7 days")}
             </h3>
             <p className="text-xs text-muted-foreground">
@@ -177,28 +177,28 @@ export default function StaffCaseloadInsights({
             <AreaChart data={last7Days} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
               <defs>
                 <linearGradient id="alertFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0.02} />
+                  <stop offset="0%" stopColor="hsl(221 83% 53%)" stopOpacity={0.35} />
+                  <stop offset="100%" stopColor="hsl(221 83% 53%)" stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
               <XAxis dataKey="label" tick={{ fontSize: 11 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} />
               <Tooltip />
               <Area
                 type="monotone"
                 dataKey="count"
-                stroke="#0284c7"
+                stroke="hsl(221 83% 53%)"
                 fill="url(#alertFill)"
                 strokeWidth={2}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </Card>
+      </StaffSurface>
 
-      <Card className="xl:col-span-3 rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
-        <h3 className="mb-1 text-base font-bold tracking-tight">
+      <StaffSurface className="xl:col-span-3 p-5">
+        <h3 className="mb-1 text-base font-semibold tracking-tight">
           {t("severity_mix", "Severity mix")}
         </h3>
         <p className="mb-3 text-xs text-muted-foreground">
@@ -232,10 +232,10 @@ export default function StaffCaseloadInsights({
             </ResponsiveContainer>
           )}
         </div>
-      </Card>
+      </StaffSurface>
 
-      <Card className="xl:col-span-4 rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
-        <h3 className="mb-1 text-base font-bold tracking-tight">
+      <StaffSurface className="xl:col-span-4 p-5">
+        <h3 className="mb-1 text-base font-semibold tracking-tight">
           {t("caseload_status", "Caseload status")}
         </h3>
         <p className="mb-3 text-xs text-muted-foreground">
@@ -249,7 +249,7 @@ export default function StaffCaseloadInsights({
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={statusBreakdown} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={28} />
                 <Tooltip />
@@ -262,17 +262,17 @@ export default function StaffCaseloadInsights({
             </ResponsiveContainer>
           )}
         </div>
-      </Card>
+      </StaffSurface>
 
-      <Card className="xl:col-span-8 rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
+      <StaffSurface className="xl:col-span-8 p-5">
         <div className="mb-3 flex items-center gap-2">
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
-          <h3 className="text-base font-bold tracking-tight">
+          <AlertTriangle className="h-4 w-4 text-primary" />
+          <h3 className="text-base font-semibold tracking-tight">
             {t("patients_needing_attention", "Patients needing attention")}
           </h3>
         </div>
         {hotPatients.length === 0 ? (
-          <p className="rounded-2xl border border-dashed py-8 text-center text-sm text-muted-foreground">
+          <p className="rounded-xl border border-dashed border-border py-8 text-center text-sm text-muted-foreground">
             {t("no_open_alert_patients", "No patients with open alerts right now.")}
           </p>
         ) : (
@@ -281,7 +281,7 @@ export default function StaffCaseloadInsights({
               <div
                 key={p.id}
                 className={cn(
-                  "flex items-center justify-between gap-3 rounded-2xl border border-zinc-200/70 bg-background px-3 py-2.5 dark:border-zinc-800/70"
+                  "flex items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2.5"
                 )}
               >
                 <div className="min-w-0">
@@ -302,11 +302,11 @@ export default function StaffCaseloadInsights({
             ))}
           </div>
         )}
-      </Card>
+      </StaffSurface>
 
-      <Card className="xl:col-span-4 flex flex-col justify-between rounded-3xl border border-zinc-200/80 bg-white/70 p-5 shadow-sm dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
+      <StaffSurface className="xl:col-span-4 flex flex-col justify-between p-5">
         <div>
-          <h3 className="text-base font-bold tracking-tight">
+          <h3 className="text-base font-semibold tracking-tight">
             {t("ai_clinical_assist", "AI clinical assist")}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -320,7 +320,7 @@ export default function StaffCaseloadInsights({
           <Brain className="me-2 h-4 w-4" />
           {t("open_ai_chat", "Open AI chat")}
         </Button>
-      </Card>
+      </StaffSurface>
     </div>
   );
 }
