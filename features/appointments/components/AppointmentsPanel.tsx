@@ -35,6 +35,7 @@ import {
   LayoutList,
   Columns3,
   History,
+  Video,
 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import {
@@ -168,19 +169,6 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
             </button>
             <button
               type="button"
-              onClick={() => setViewMode('history')}
-              className={cn(
-                'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
-                viewMode === 'history'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground',
-              )}
-            >
-              <History className="h-3.5 w-3.5" />
-              {t('history_view', 'History')}
-            </button>
-            <button
-              type="button"
               onClick={() => setViewMode('calendar')}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition',
@@ -208,6 +196,16 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
               </button>
             )}
           </div>
+          <Button
+            type="button"
+            variant={viewMode === 'history' ? 'default' : 'outline'}
+            onClick={() =>
+              setViewMode((prev) => (prev === 'history' ? 'list' : 'history'))
+            }
+          >
+            <History className="me-2 h-4 w-4" />
+            {t('history_view', 'History')}
+          </Button>
           {canPublishSlots && (
             <Dialog open={slotOpen} onOpenChange={setSlotOpen}>
               <DialogTrigger asChild>
@@ -443,6 +441,14 @@ const AppointmentRow: FC<AppointmentRowProps> = ({
         <Badge className={STATUS_COLORS[appt.status]} variant="secondary">
           {t(`appointment_status_${appt.status}`, appt.status)}
         </Badge>
+        {appt.status === 'confirmed' && appt.video_room_url && (
+          <Button size="sm" variant="secondary" asChild>
+            <a href={appt.video_room_url} target="_blank" rel="noopener noreferrer">
+              <Video className="me-1 h-4 w-4" />
+              {t('join_visit', 'Join visit')}
+            </a>
+          </Button>
+        )}
         {canManage && appt.status === 'requested' && (
           <Button size="sm" variant="outline" onClick={() => onStatusChange(appt.id, 'confirmed')}>
             <CheckCircle className="me-1 h-4 w-4" />

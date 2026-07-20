@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Card,
   CardHeader,
@@ -10,12 +10,14 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
 import { useTranslation } from 'react-i18next';
 import { Bell, Shield, Eye, LineChart } from 'lucide-react';
 import {
   useDashboardPrefs,
   type DashboardPrefs,
 } from '@/features/settings/hooks/useDashboardPrefs';
+import { disableWebPush, enableWebPush } from '@/lib/web-push';
 
 type ToggleSetting = {
   id: string;
@@ -28,6 +30,8 @@ type ToggleSetting = {
 export default function SettingsViewPage() {
   const { t } = useTranslation();
   const { prefs, setPref, ready } = useDashboardPrefs();
+  const [pushStatus, setPushStatus] = useState<string>('');
+  const [pushBusy, setPushBusy] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -39,6 +43,43 @@ export default function SettingsViewPage() {
       });
     }
   }, []);
+
+  const handleEnablePush = async () => {
+    setPushBusy(true);
+    try {
+      const result = await enableWebPush();
+      if (result === 'ok') {
+        setPushStatus(t('web_push_enabled', 'Browser push enabled'));
+      } else if (result === 'denied') {
+        setPushStatus(t('web_push_denied', 'Notification permission denied'));
+      } else if (result === 'disabled') {
+        setPushStatus(
+          t(
+            'web_push_not_configured',
+            'Web Push is not configured on the server yet (VAPID keys). In-app alerts still work.',
+          ),
+        );
+      } else {
+        setPushStatus(t('web_push_unsupported', 'Web Push not supported in this browser'));
+      }
+    } catch {
+      setPushStatus(t('web_push_failed', 'Failed to enable Web Push'));
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    setPushBusy(true);
+    try {
+      await disableWebPush();
+      setPushStatus(t('web_push_disabled', 'Browser push disabled'));
+    } catch {
+      setPushStatus(t('web_push_failed', 'Failed to disable Web Push'));
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   const settingSections: {
     id: string;
@@ -53,22 +94,19 @@ export default function SettingsViewPage() {
       icon: Bell,
       description: t(
         'notifications_desc',
-        'Manage how you receive alerts and updates'
+        'Manage how you receive alerts and updates. Critical alerts also go to system admins in-app (no SMS/email required).',
       ),
       settings: [
         {
           id: 'email_alerts',
-          label: t('email_alerts', 'Email Alerts'),
-          default: true,
-        },
-        {
-          id: 'push_notifications',
-          label: t('push_notifications', 'Push Notifications'),
-          default: true,
+          label: t('email_alerts', 'Email Alerts (unavailable)'),
+          description: t('email_unavailable', 'No email service configured yet.'),
+          default: false,
         },
         {
           id: 'sms_alerts',
-          label: t('sms_alerts', 'SMS Alerts'),
+          label: t('sms_alerts', 'SMS Alerts (unavailable)'),
+          description: t('sms_unavailable', 'No SMS service configured yet.'),
           default: false,
         },
       ],
@@ -79,7 +117,7 @@ export default function SettingsViewPage() {
       icon: LineChart,
       description: t(
         'reports_charts_desc',
-        'Customize how dashboard overview KPIs and history charts appear'
+        'Customize how dashboard overview KPIs and history charts appear',
       ),
       settings: [
         {
@@ -87,11 +125,11 @@ export default function SettingsViewPage() {
           prefKey: 'showAllCharts',
           label: t(
             'show_all_charts',
-            'Show all overview KPIs on one page (no vitals/environment filter)'
+            'Show all overview KPIs on one page (no vitals/environment filter)',
           ),
           description: t(
             'show_all_charts_desc',
-            'Display wearable and environment cards together on the overview.'
+            'Display wearable and environment cards together on the overview.',
           ),
           default: false,
         },
@@ -100,11 +138,11 @@ export default function SettingsViewPage() {
           prefKey: 'showAllHistoryCharts',
           label: t(
             'show_all_history_charts',
-            'Show all history charts at once (no metric filter)'
+            'Show all history charts at once (no metric filter)',
           ),
           description: t(
             'show_all_history_charts_desc',
-            'Stack every metric chart on the overview instead of picking one series.'
+            'Stack every metric chart on the overview instead of picking one series.',
           ),
           default: false,
         },
@@ -114,7 +152,7 @@ export default function SettingsViewPage() {
           label: t('compact_charts', 'Compact charts on mobile'),
           description: t(
             'compact_charts_desc',
-            'Smaller KPI cards and chart heights for phones and narrow screens.'
+            'Smaller KPI cards and chart heights for phones and narrow screens.',
           ),
           default: true,
         },
@@ -168,7 +206,7 @@ export default function SettingsViewPage() {
           <p className="font-medium text-muted-foreground">
             {t(
               'settings_subtitle',
-              'Manage your application preferences and account security'
+              'Manage your application preferences and account security',
             )}
           </p>
         </div>
@@ -199,6 +237,37 @@ export default function SettingsViewPage() {
                 </CardHeader>
                 <CardContent className="p-6">
                   <div className="space-y-6">
+                    {section.id === 'notifications' && (
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-muted/20 p-4">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {t('browser_web_push', 'Browser Web Push')}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {t(
+                              'browser_web_push_desc',
+                              'Receive Critical/High alerts even when the tab is in the background (no SMS required).',
+                            )}
+                          </p>
+                          {pushStatus && (
+                            <p className="mt-1 text-xs text-muted-foreground">{pushStatus}</p>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={handleEnablePush} disabled={pushBusy}>
+                            {t('enable', 'Enable')}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleDisablePush}
+                            disabled={pushBusy}
+                          >
+                            {t('disable', 'Disable')}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
                     {section.settings.map((setting) => {
                       const isPersisted = !!setting.prefKey;
                       const checked = isPersisted
@@ -226,7 +295,11 @@ export default function SettingsViewPage() {
                           <Checkbox
                             id={setting.id}
                             checked={ready || !isPersisted ? checked : false}
-                            disabled={isPersisted && !ready}
+                            disabled={
+                              (isPersisted && !ready) ||
+                              setting.id === 'email_alerts' ||
+                              setting.id === 'sms_alerts'
+                            }
                             onCheckedChange={(v) => {
                               if (!setting.prefKey) return;
                               setPref(setting.prefKey, v === true);

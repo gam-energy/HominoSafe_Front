@@ -34,6 +34,7 @@ export interface AppointmentSummary {
   duration_minutes: number;
   status: AppointmentStatus;
   reason?: string | null;
+  video_room_url?: string | null;
 }
 
 export interface Appointment extends AppointmentSummary {
