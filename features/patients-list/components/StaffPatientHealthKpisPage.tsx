@@ -1,35 +1,38 @@
 'use client';
 
-import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
 
 import { HealthKpisPanel } from '@/features/dashboard/components/patient/HealthKpisPanel';
 import { StaffPatientNav } from '@/features/patients-list/components/StaffPatientNav';
-import { useGetPatientProfile } from '@/features/patients-list/api/use-get-patient-profile';
+import { useStaffPatientRoute } from '@/features/patients-list/hooks/useStaffPatientRoute';
 import { useUser } from '@/context/UserContext';
-import { staffPatientRoutes } from '@/features/patient-knowledge/utils/staffRoutes';
+import { LoaderIcon } from '@/components/chat/icons';
 
 export default function StaffPatientHealthKpisPage() {
-  const params = useParams<{ id: string }>();
   const { user } = useUser();
-  const userId = Number(Array.isArray(params.id) ? params.id[0] : params.id);
-  const routes = staffPatientRoutes(user?.role, userId);
+  const { patient, userId, publicRef, routes, isLoading } =
+    useStaffPatientRoute();
 
-  const { data: patientInfoData } = useGetPatientProfile(userId);
-  const patientInfo = useMemo(() => {
-    if (!patientInfoData) return undefined;
-    return Array.isArray(patientInfoData) ? patientInfoData[0] : patientInfoData;
-  }, [patientInfoData]);
-  const patientName = patientInfo
-    ? `${patientInfo.first_name ?? ''} ${patientInfo.last_name ?? ''}`.trim()
-    : undefined;
+  const patientName = useMemo(() => {
+    if (!patient) return undefined;
+    return `${patient.first_name ?? ''} ${patient.last_name ?? ''}`.trim();
+  }, [patient]);
+
+  if (isLoading || !userId) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <LoaderIcon size={32} />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-4">
       <StaffPatientNav
         role={user?.role}
+        patientRef={publicRef}
         patientId={userId}
-        patientUuid={patientInfo?.uuid}
+        patientUuid={patient?.uuid}
       />
       <HealthKpisPanel
         patientName={patientName}

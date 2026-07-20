@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { usePatients } from "@/features/patients-list/api/useGetPatients";
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { useUser } from "@/context/UserContext";
-import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
+import { staffPatientRoutes, patientPublicRef } from "@/features/patient-knowledge/utils/staffRoutes";
 import type { User } from "@/features/dashboard/types/caregiver/user";
 import StaffCaseloadInsights from "./StaffCaseloadInsights";
 import {
@@ -215,7 +215,10 @@ export default function StaffPatientsPanel({ variant }: Props) {
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {filtered.map((patient) => {
-              const routes = staffPatientRoutes(user?.role, patient.id);
+              const routes = staffPatientRoutes(
+                user?.role,
+                patientPublicRef(patient),
+              );
               return (
                 <PatientCard
                   key={patient.id}

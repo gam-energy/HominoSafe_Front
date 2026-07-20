@@ -24,17 +24,29 @@ import {
   profileToFormSeed,
 } from "../utils/profileMappers";
 import { parsePatientKnowledgeError } from "../utils/patientKnowledgeErrors";
-import { isStaffRole, staffPatientRoutes } from "../utils/staffRoutes";
+import { isStaffRole, staffPatientRoutes, patientPublicRef } from "../utils/staffRoutes";
+import { useGetPatientProfile } from "@/features/patients-list/api/use-get-patient-profile";
 
-export function PatientImportPage() {
+export function PatientImportPage({
+  patientId: patientIdProp,
+}: {
+  patientId?: number;
+}) {
   const { t } = useTranslation();
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { user } = useUser();
   const [pollStatus, setPollStatus] = useState(false);
 
-  const patientId = Number(Array.isArray(params.id) ? params.id[0] : params.id);
-  const routes = staffPatientRoutes(user?.role, patientId);
+  const routeRef = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { data: patientInfo } = useGetPatientProfile(
+    patientIdProp ?? routeRef,
+  );
+  const patientId = patientIdProp ?? patientInfo?.id;
+  const routes = staffPatientRoutes(
+    user?.role,
+    patientInfo ? patientPublicRef(patientInfo) : routeRef || "",
+  );
 
   const {
     data: knowledgeData,
@@ -94,7 +106,7 @@ export function PatientImportPage() {
     }
   }, [user, router, t]);
 
-  if (isLoading || user === null || !isStaffRole(user.role)) {
+  if (isLoading || user === null || !isStaffRole(user.role) || !patientId) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="flex flex-col items-center">

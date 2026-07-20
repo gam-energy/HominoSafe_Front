@@ -30,11 +30,14 @@ import {
 import { useCreateRoom } from "@/features/chat/api/use-craete-room";
 import { useUser } from "@/context/UserContext";
 import { useState } from "react";
-import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
+import { staffPatientRoutes, patientPublicRef } from "@/features/patient-knowledge/utils/staffRoutes";
 
 function PatientRowActions({ user }: { user: User }) {
   const { user: currentUser } = useUser();
-  const routes = staffPatientRoutes(currentUser?.role, user.id);
+  const routes = staffPatientRoutes(
+    currentUser?.role,
+    patientPublicRef(user),
+  );
 
   return (
     <DropdownMenu>

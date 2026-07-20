@@ -14,7 +14,7 @@ import {
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { usePatients } from '@/features/patients-list/api/useGetPatients';
-import { staffPatientRoutes } from '@/features/patient-knowledge/utils/staffRoutes';
+import { staffPatientRoutes, patientPublicRef } from '@/features/patient-knowledge/utils/staffRoutes';
 import { useUser } from '@/context/UserContext';
 import {
   fetchAlertHistory,
@@ -206,7 +206,10 @@ export default function CaregiverHome() {
             ) : (
               <div className="flex flex-col gap-2">
                 {unsettled.map(({ patient, alert }) => {
-                  const routes = staffPatientRoutes(user?.role, patient.id);
+                  const routes = staffPatientRoutes(
+                    user?.role,
+                    patientPublicRef(patient),
+                  );
                   return (
                     <PatientCard
                       key={patient.id}

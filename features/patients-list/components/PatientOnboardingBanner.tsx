@@ -10,12 +10,22 @@ import {
 import { staffPatientRoutes } from "@/features/patient-knowledge/utils/staffRoutes";
 import { useRouter } from "next/navigation";
 
-export function PatientOnboardingBanner({ patientId }: { patientId: number }) {
+export function PatientOnboardingBanner({
+  patientId,
+  patientRef,
+}: {
+  patientId: number;
+  /** UUID for staff URLs; defaults to numeric id */
+  patientRef?: string;
+}) {
   const { user } = useUser();
   const router = useRouter();
   const { data, isLoading } = usePatientOnboarding(patientId);
   const unlock = useMarkRecordsComplete(patientId);
-  const routes = staffPatientRoutes(user?.role || "doctor", patientId);
+  const routes = staffPatientRoutes(
+    user?.role || "doctor",
+    patientRef || String(patientId),
+  );
 
   if (isLoading || !data) return null;
   if (data.monitoring_enabled) {

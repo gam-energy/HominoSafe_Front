@@ -19,13 +19,13 @@ const fetchPatientImportRecords = async (
 };
 
 export const usePatientImportRecords = (
-  patientId: number,
+  patientId?: number,
   options?: { enabled?: boolean; poll?: boolean }
 ) => {
   return useQuery({
-    queryKey: patientImportRecordsQueryKey(patientId),
-    queryFn: () => fetchPatientImportRecords(patientId),
-    enabled: Number.isFinite(patientId) && patientId > 0 && (options?.enabled ?? true),
+    queryKey: patientImportRecordsQueryKey(patientId ?? 0),
+    queryFn: () => fetchPatientImportRecords(patientId as number),
+    enabled: Number.isFinite(patientId) && (patientId as number) > 0 && (options?.enabled ?? true),
     staleTime: 0,
     refetchInterval: (query) => {
       if (!options?.poll) return false;

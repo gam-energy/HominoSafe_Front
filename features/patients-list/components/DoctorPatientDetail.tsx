@@ -199,7 +199,7 @@ export default function DoctorPatientDetail() {
   return (
     <PageContainer scrollable>
       <div className="flex w-full flex-col gap-6">
-        <PatientOnboardingBanner patientId={userId} />
+        <PatientOnboardingBanner patientId={userId} patientRef={publicRef} />
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button
             variant="ghost"

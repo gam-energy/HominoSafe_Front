@@ -12,12 +12,12 @@ const fetchKnowledgeStatus = async (
 };
 
 export const useKnowledgeStatus = (
-  userId: number,
+  userId?: number,
   options?: { enabled?: boolean; poll?: boolean }
 ) => {
   return useQuery({
     queryKey: ["patient-knowledge-status", userId],
-    queryFn: () => fetchKnowledgeStatus(userId),
+    queryFn: () => fetchKnowledgeStatus(userId as number),
     enabled: !!userId && (options?.enabled ?? true),
     staleTime: 0,
     refetchInterval: (query) => {

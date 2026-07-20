@@ -20,7 +20,7 @@ import {
 import PageContainer from '@/components/layout/page-container';
 import { Button } from '@/components/ui/button';
 import { usePatients } from '@/features/patients-list/api/useGetPatients';
-import { staffPatientRoutes } from '@/features/patient-knowledge/utils/staffRoutes';
+import { staffPatientRoutes, patientPublicRef } from '@/features/patient-knowledge/utils/staffRoutes';
 import { useUser } from '@/context/UserContext';
 import { useDoctorWidget } from '@/features/appointments/api/use-appointments';
 import { fetchAlertHistory } from '@/features/alert/api/alertApi';
@@ -254,7 +254,10 @@ export default function DoctorHome() {
             ) : (
               <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pe-1">
                 {attentionPatients.map(({ patient, status }) => {
-                  const routes = staffPatientRoutes(user?.role, patient.id);
+                  const routes = staffPatientRoutes(
+                    user?.role,
+                    patientPublicRef(patient),
+                  );
                   return (
                     <PatientCard
                       key={patient.id}
