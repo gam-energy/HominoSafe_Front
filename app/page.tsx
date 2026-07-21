@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import {
@@ -12,6 +13,8 @@ import {
   Users,
   BellRing,
   Activity,
+  Download,
+  Smartphone,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -19,9 +22,31 @@ import { Button } from '@/components/ui/button';
 import { LanguageToggle } from '@/components/layout/language-toggle';
 import { ModeToggle } from '@/components/layout/ThemeToggle/theme-toggle';
 
+const APK_URL = '/downloads/SenioSentry.apk';
+
+function isNativeAppShell(): boolean {
+  if (typeof window === 'undefined') return false;
+  const ua = navigator.userAgent || '';
+  if (ua.includes('SenioSentry-Android')) return true;
+  const cap = (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } })
+    .Capacitor;
+  return Boolean(cap?.isNativePlatform?.());
+}
+
 export default function LandingPage() {
   const { t } = useTranslation();
   const hasToken = Boolean(Cookies.get('access_token'));
+  const [showApkDownload, setShowApkDownload] = useState(false);
+
+  useEffect(() => {
+    if (isNativeAppShell()) {
+      setShowApkDownload(false);
+      return;
+    }
+    fetch(APK_URL, { method: 'HEAD' })
+      .then((r) => setShowApkDownload(r.ok))
+      .catch(() => setShowApkDownload(false));
+  }, []);
 
   const steps = [
     {
@@ -109,6 +134,16 @@ export default function LandingPage() {
           <div className="flex items-center gap-1 sm:gap-2">
             <ModeToggle />
             <LanguageToggle />
+            {showApkDownload && (
+              <Button asChild variant="outline" size="sm" className="gap-1.5">
+                <a href={APK_URL} download="SenioSentry.apk">
+                  <Download className="h-4 w-4" aria-hidden />
+                  <span className="hidden sm:inline">
+                    {t('download_app', 'Download app')}
+                  </span>
+                </a>
+              </Button>
+            )}
             {hasToken ? (
               <Button asChild variant="outline" size="sm">
                 <Link href="/dashboard">{t('dashboard')}</Link>
@@ -163,7 +198,28 @@ export default function LandingPage() {
                 >
                   <Link href="/auth/sign-in">{t('sign_in')}</Link>
                 </Button>
+                {showApkDownload && (
+                  <Button
+                    asChild
+                    variant="secondary"
+                    size="lg"
+                    className="h-12 rounded-xl px-6 text-base gap-2"
+                  >
+                    <a href={APK_URL} download="SenioSentry.apk">
+                      <Smartphone className="h-4 w-4" aria-hidden />
+                      {t('download_android_app', 'Download Android app')}
+                    </a>
+                  </Button>
+                )}
               </div>
+              {showApkDownload && (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  {t(
+                    'download_android_app_hint',
+                    'Install the Android APK for a full-screen app (no browser chrome).'
+                  )}
+                </p>
+              )}
             </div>
 
             <div className="relative">

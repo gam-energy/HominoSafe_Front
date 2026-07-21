@@ -22,12 +22,10 @@ const ingestKnowledge = async (
     formData.append("files", file);
   });
 
+  // Do NOT set Content-Type manually — axios must attach the multipart boundary.
   const response = await axiosInstance.post<IngestKnowledgeResponse>(
     "/api/ingest/patient-knowledge",
-    formData,
-    {
-      headers: { "Content-Type": "multipart/form-data" },
-    }
+    formData
   );
 
   return response.data;

@@ -69,7 +69,18 @@ export const useLogin = () => {
       window.location.assign(path);
     },
     onError: (error) => {
-      toast.error(error.message || 'خطا در ورود!');
+      const axiosErr = error as AxiosError<{ detail?: string }>;
+      const detail = axiosErr?.response?.data?.detail;
+      const status = axiosErr?.response?.status;
+      let message = detail || error.message || 'Login failed';
+      if (status === 403) {
+        message =
+          detail ||
+          'This account is inactive. Sign in with the caregiver username from your application to track status.';
+      } else if (status === 401) {
+        message = detail || 'Invalid username or password.';
+      }
+      toast.error(message);
       console.error('Login error:', error);
     },
   });

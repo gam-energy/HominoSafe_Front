@@ -164,6 +164,11 @@ export function KnowledgeStatusPanel({
                       {documentStatusLabel(doc.status)}
                     </Badge>
                   )}
+                  {(doc.error_message || doc.error) && (
+                    <span className="basis-full text-xs text-destructive">
+                      {doc.error_message || doc.error}
+                    </span>
+                  )}
                 </li>
               ))}
             </ul>

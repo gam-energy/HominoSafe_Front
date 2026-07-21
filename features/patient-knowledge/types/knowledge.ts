@@ -72,6 +72,7 @@ export interface KnowledgeStatusResponse {
   last_refreshed_at?: string | null;
   summary?: string | null;
   error?: string;
+  error_message?: string | null;
 }
 
 export interface PatientKnowledgePatient {
