@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Download, X } from 'lucide-react';
+import { Download, Smartphone, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type BeforeInstallPromptEvent = Event & {
@@ -10,24 +10,33 @@ type BeforeInstallPromptEvent = Event & {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 };
 
+const APK_URL = '/downloads/SenioSentry.apk';
+
 function isStandaloneDisplay(): boolean {
   if (typeof window === 'undefined') return false;
   return (
     window.matchMedia('(display-mode: standalone)').matches ||
     window.matchMedia('(display-mode: fullscreen)').matches ||
-    // iOS Safari
     Boolean((navigator as Navigator & { standalone?: boolean }).standalone)
   );
 }
 
+function isMobileUa(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
 /**
- * Prompts install so SenioSentry runs as its own app (standalone), not a browser tab.
+ * Helps users leave the browser tab: native install prompt, manual Add-to-Home,
+ * or download the Android APK
  */
 export function InstallPwaPrompt() {
   const { t } = useTranslation();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [visible, setVisible] = useState(false);
   const [iosHint, setIosHint] = useState(false);
+  const [androidHint, setAndroidHint] = useState(false);
+  const [apkAvailable, setApkAvailable] = useState(false);
 
   useEffect(() => {
     if (isStandaloneDisplay()) return;
@@ -41,12 +50,22 @@ export function InstallPwaPrompt() {
     window.addEventListener('beforeinstallprompt', onBip);
 
     const ua = navigator.userAgent;
-    const isIos = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    const isSafari = /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
-    if (isIos && isSafari) {
+    const isIos =
+      /iPad|iPhone|iPod/.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(ua);
+
+    if (isIos) {
       setIosHint(true);
       setVisible(true);
+    } else if (isAndroid || isMobileUa()) {
+      setAndroidHint(true);
+      setVisible(true);
     }
+
+    fetch(APK_URL, { method: 'HEAD' })
+      .then((r) => setApkAvailable(r.ok))
+      .catch(() => setApkAvailable(false));
 
     return () => window.removeEventListener('beforeinstallprompt', onBip);
   }, []);
@@ -86,10 +105,15 @@ export function InstallPwaPrompt() {
                   'install_app_ios_hint',
                   'Tap Share, then “Add to Home Screen” to open SenioSentry as its own app.',
                 )
-              : t(
-                  'install_app_desc',
-                  'Install the app to open SenioSentry full-screen — not inside the browser.',
-                )}
+              : androidHint && !deferred
+                ? t(
+                    'install_app_android_hint',
+                    'In Brave/Chrome: menu ⋮ → Install app (or Add to Home screen). Or download the Android app file below.',
+                  )
+                : t(
+                    'install_app_desc',
+                    'Install the app to open SenioSentry full-screen — not inside the browser.',
+                  )}
           </p>
           <div className="flex flex-wrap items-center gap-2 pt-1">
             {deferred ? (
@@ -98,8 +122,16 @@ export function InstallPwaPrompt() {
                 {t('install_app_cta', 'Install app')}
               </Button>
             ) : null}
+            {apkAvailable ? (
+              <Button size="sm" variant="secondary" className="rounded-xl h-8" asChild>
+                <a href={APK_URL} download="SenioSentry.apk">
+                  <Smartphone className="me-1.5 h-3.5 w-3.5" />
+                  {t('download_apk', 'Download APK')}
+                </a>
+              </Button>
+            ) : null}
             <Button size="sm" variant="ghost" className="rounded-xl h-8" onClick={dismiss}>
-              {t('dismiss', 'Dismiss')}
+              {t('dismiss', 'Not now')}
             </Button>
           </div>
         </div>
