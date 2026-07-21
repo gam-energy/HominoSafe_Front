@@ -95,7 +95,10 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md">
+      <header
+        style={{ paddingTop: 'var(--app-sat, env(safe-area-inset-top, 0px))' }}
+        className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-md"
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-3 px-4">
           <Link href="/" className="flex items-center gap-2">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">

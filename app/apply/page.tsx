@@ -13,7 +13,10 @@ export default function ApplyPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-sky-50/50 dark:from-zinc-950 dark:via-zinc-950 dark:to-zinc-900">
-      <header className="border-b bg-background/80 backdrop-blur">
+      <header
+        style={{ paddingTop: 'var(--app-sat, env(safe-area-inset-top, 0px))' }}
+        className="border-b bg-background/80 backdrop-blur"
+      >
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <Link href="/" className="text-lg font-bold tracking-tight text-primary">
             SenioSentry

@@ -23,11 +23,17 @@ const SignInInner = () => {
   };
 
   return (
-    <section className="w-full min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 p-4 relative overflow-hidden">
+    <section
+      style={{ paddingTop: 'calc(1rem + var(--app-sat, 0px))' }}
+      className="w-full min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 p-4 relative overflow-hidden"
+    >
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-100 dark:bg-blue-900/20 rounded-full blur-3xl opacity-70" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-purple-100 dark:bg-purple-900/20 rounded-full blur-3xl opacity-70" />
 
-      <div className="absolute top-4 end-4 z-20 flex items-center gap-2">
+      <div
+        style={{ top: 'calc(1rem + var(--app-sat, 0px))' }}
+        className="absolute end-4 z-20 flex items-center gap-2"
+      >
         <ModeToggle />
         <LanguageToggle />
       </div>

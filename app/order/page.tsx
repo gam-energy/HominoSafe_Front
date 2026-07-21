@@ -67,8 +67,14 @@ export default function OrderPage() {
 
   if (placed) {
     return (
-      <section className="w-full min-h-screen flex flex-col justify-center items-center bg-secondary p-4 relative">
-        <div className="absolute top-4 end-4 z-20 flex items-center gap-2">
+      <section
+        style={{ paddingTop: 'calc(1rem + var(--app-sat, 0px))' }}
+        className="w-full min-h-screen flex flex-col justify-center items-center bg-secondary p-4 relative"
+      >
+        <div
+          style={{ top: 'calc(1rem + var(--app-sat, 0px))' }}
+          className="absolute end-4 z-20 flex items-center gap-2"
+        >
           <ModeToggle />
           <LanguageToggle />
         </div>
@@ -125,8 +131,14 @@ export default function OrderPage() {
   }
 
   return (
-    <section className="w-full min-h-screen flex flex-col justify-center items-center bg-secondary p-4 relative">
-      <div className="absolute top-4 end-4 z-20 flex items-center gap-2">
+    <section
+      style={{ paddingTop: 'calc(1rem + var(--app-sat, 0px))' }}
+      className="w-full min-h-screen flex flex-col justify-center items-center bg-secondary p-4 relative"
+    >
+      <div
+        style={{ top: 'calc(1rem + var(--app-sat, 0px))' }}
+        className="absolute end-4 z-20 flex items-center gap-2"
+      >
         <ModeToggle />
         <LanguageToggle />
       </div>
