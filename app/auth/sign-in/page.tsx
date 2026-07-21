@@ -35,8 +35,8 @@ const SignInInner = () => {
       <div className="w-full max-w-6xl flex flex-col lg:flex-row items-center justify-center gap-12 relative z-10">
         <div className="hidden lg:flex flex-col gap-6 w-1/2">
           <div className="flex items-center gap-3">
-            <div className="bg-blue-600 p-3 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-none">
-              <Image src="/assets/images/logo.png" alt="Logo" width={40} height={40} className="brightness-0 invert" />
+            <div className="bg-white p-2 rounded-2xl shadow-lg shadow-blue-200 dark:shadow-none border border-gray-100">
+              <Image src="/assets/images/logo.png" alt="SenioSentry" width={48} height={48} className="rounded-xl" />
             </div>
             <h1 className="text-4xl font-black text-zinc-900 dark:text-white tracking-tight">
               SenioSentry
@@ -62,7 +62,7 @@ const SignInInner = () => {
 
         <div className="w-full lg:w-1/2 max-w-md relative">
           <div className="lg:hidden flex items-center justify-center gap-2 mb-8">
-            <Image src="/assets/images/logo.png" alt="Logo" width={32} height={32} />
+            <Image src="/assets/images/logo.png" alt="SenioSentry" width={40} height={40} className="rounded-lg" />
             <h1 className="text-2xl font-black text-zinc-900 dark:text-white tracking-tight">
               SenioSentry
             </h1>

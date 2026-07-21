@@ -14,8 +14,8 @@ self.addEventListener('push', (event) => {
   const url = data.url || data.path || '/dashboard/alert';
   const options = {
     body,
-    icon: '/assets/images/logo.png',
-    badge: '/assets/images/logo.png',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
     data: { url },
     tag: data.tag || `senio-${data.alert_id || Date.now()}`,
     renotify: true,

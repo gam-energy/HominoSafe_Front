@@ -23,8 +23,8 @@ self.addEventListener('push', (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: '/assets/images/logo.png',
-      badge: '/assets/images/logo.png',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
       data: { url },
       tag: data.tag || `senio-${data.alert_id || Date.now()}`,
       renotify: true,

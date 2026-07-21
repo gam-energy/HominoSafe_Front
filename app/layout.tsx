@@ -8,11 +8,12 @@ import type { Metadata, Viewport } from 'next';
 import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { UserProvider } from "@/context/UserContext";
 import AppTopLoader from '@/components/layout/app-top-loader';
+import { InstallPwaPrompt } from '@/components/pwa/InstallPwaPrompt';
 import './globals.css';
 import './theme.css';
 
 const META_THEME_COLORS = {
-  light: '#ffffff',
+  light: '#f5f5f5',
   dark: '#09090b'
 };
 
@@ -31,12 +32,19 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: 'default',
     title: 'SenioSentry',
-    startupImage: ['/assets/images/logo.png'],
+    startupImage: ['/icons/icon-512.png'],
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
   icons: {
-    icon: '/assets/images/logo.png',
-    shortcut: '/assets/images/logo.png',
-    apple: '/assets/images/logo.png',
+    icon: [
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/assets/images/favicon.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: '/icons/icon-192.png',
+    apple: [{ url: '/icons/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
 };
 
@@ -101,6 +109,7 @@ export default async function RootLayout({
               <QueryProvider>
               <UserProvider>
                 {children}
+                <InstallPwaPrompt />
                 <Toaster richColors position="top-center" />
               </UserProvider>
               </QueryProvider>

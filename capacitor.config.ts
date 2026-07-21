@@ -7,7 +7,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 // open Android Studio.
 const config: CapacitorConfig = {
   appId: 'com.hominosafe.app',
-  appName: 'HominoSafe',
+  appName: 'SenioSentry',
   webDir: 'out',
   bundledWebRuntime: false,
   android: {
