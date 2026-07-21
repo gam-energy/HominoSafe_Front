@@ -246,6 +246,23 @@ export function useMySubscription() {
   });
 }
 
+export interface AdminSubscriptionRow extends Subscription {
+  patient_name: string;
+  patient_username: string;
+}
+
+export function useAdminSubscriptions() {
+  return useQuery({
+    queryKey: ['admin-subscriptions'],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<AdminSubscriptionRow[]>(
+        '/admin/orders/subscriptions',
+      );
+      return data;
+    },
+  });
+}
+
 export function useClaimRecord() {
   return useMutation({
     mutationFn: async (payload: { national_code: string; dob: string }) => {

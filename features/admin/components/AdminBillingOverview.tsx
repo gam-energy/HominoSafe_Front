@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
   AlertTriangle,
+  BadgeCheck,
   Building2,
   CheckCircle2,
   CreditCard,
@@ -35,8 +36,27 @@ import {
   type ClinicBillingRow,
   type AppointmentDebt,
 } from '../api/use-clinics';
+import { useAdminSubscriptions } from '@/features/orders/api/use-orders';
 import { BillingDialog } from './BillingDialog';
 import { Badge } from '@/components/ui/badge';
+
+function planLabel(plan?: string) {
+  if (plan === 'b2c_annual') return 'Annual · €780/year';
+  if (plan === 'b2c_monthly') return 'Monthly · €65/month';
+  return plan || '—';
+}
+
+function moneyEur(amount: number, currency = 'EUR') {
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  } catch {
+    return `${amount.toFixed(0)} ${currency}`;
+  }
+}
 
 const STATUSES: ClinicBilling['status'][] = ['unpaid', 'paid', 'overdue', 'waived'];
 
@@ -60,6 +80,7 @@ export function AdminBillingOverview() {
   const update = useUpdateBilling();
   const debtsQuery = useAllAppointmentDebts();
   const updateDebt = useUpdateAdminAppointmentDebt();
+  const subsQuery = useAdminSubscriptions();
 
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -133,10 +154,79 @@ export function AdminBillingOverview() {
         <div>
           <h1 className="text-2xl font-bold">Billing</h1>
           <p className="text-sm text-muted-foreground">
-            Yearly billing across all clinics. Mark paid, edit amounts, or open a clinic to add a year.
+            B2C subscription plans (€780/year · €65/month), clinic yearly billing, and appointment debts.
           </p>
         </div>
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BadgeCheck className="h-5 w-5 text-primary" />
+            B2C subscription plans
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Annual €780 · Monthly €65. Starts on Nest activation (or 30 days after delivery).
+          </p>
+        </CardHeader>
+        <CardContent className="p-0">
+          {subsQuery.isLoading ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading subscriptions…
+            </div>
+          ) : subsQuery.isError ? (
+            <div className="py-10 text-center text-sm text-destructive">
+              Failed to load subscriptions.
+            </div>
+          ) : (subsQuery.data ?? []).length === 0 ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              No B2C subscriptions yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <tr>
+                    <th className="px-4 py-3">Patient</th>
+                    <th className="px-4 py-3">Plan</th>
+                    <th className="px-4 py-3 text-right">Amount</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Ends</th>
+                    <th className="px-4 py-3 text-right">Days left</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(subsQuery.data ?? []).map((s) => (
+                    <tr key={s.id} className="border-b last:border-0 hover:bg-muted/30">
+                      <td className="px-4 py-3">
+                        <div className="font-medium">{s.patient_name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          @{s.patient_username}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">{planLabel(s.plan)}</td>
+                      <td className="px-4 py-3 text-right font-semibold tabular-nums">
+                        {moneyEur(s.amount, s.currency || 'EUR')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <Badge variant="outline" className="capitalize">
+                          {String(s.status).replace(/_/g, ' ')}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">
+                        {formatWhen(s.end_date)}
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums">
+                        {s.days_remaining}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat

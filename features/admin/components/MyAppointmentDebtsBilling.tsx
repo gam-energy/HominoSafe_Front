@@ -4,7 +4,8 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
-  CheckCircle2,
+  BadgeCheck,
+  CalendarClock,
   CreditCard,
   Loader2,
   Percent,
@@ -24,6 +25,7 @@ import {
 } from '@/components/ui/select';
 import axiosInstance from '@/api/axiosInstance';
 import type { AppointmentDebt } from '@/features/admin/api/use-clinics';
+import { useMySubscription } from '@/features/orders/api/use-orders';
 
 function money(amount: number, currency = 'USD') {
   try {
@@ -50,6 +52,12 @@ function formatWhen(iso?: string | null) {
   } catch {
     return iso;
   }
+}
+
+function planLabel(plan?: string) {
+  if (plan === 'b2c_annual') return 'Annual plan (B2C) · €780/year';
+  if (plan === 'b2c_monthly') return 'Monthly plan (B2C) · €65/month';
+  return plan || '—';
 }
 
 const TONES: Record<string, string> = {
@@ -104,6 +112,7 @@ export function MyAppointmentDebtsBilling({
   const { t } = useTranslation();
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const subQuery = useMySubscription();
 
   const { data = [], isLoading, isError, error } = useQuery({
     queryKey: ['my-appointment-billing-debts'],
@@ -126,16 +135,18 @@ export function MyAppointmentDebtsBilling({
       .filter((d) => d.status === 'waived')
       .reduce((s, d) => s + Number(d.amount || 0), 0);
     const total = unpaidAmt + paidAmt + waivedAmt;
+    const planAmt = Number(subQuery.data?.amount || 0);
     return {
       unpaidAmt,
       paidAmt,
       waivedAmt,
       total,
+      planAmt,
       unpaidCount: data.filter((d) => d.status === 'unpaid').length,
       paidCount: data.filter((d) => d.status === 'paid').length,
       collection: total > 0 ? Math.round((paidAmt / total) * 1000) / 10 : 0,
     };
-  }, [data]);
+  }, [data, subQuery.data]);
 
   const rows = useMemo(() => {
     let src = data;
@@ -153,6 +164,8 @@ export function MyAppointmentDebtsBilling({
     return src;
   }, [data, q, statusFilter]);
 
+  const sub = subQuery.data;
+
   return (
     <div className="flex w-full min-w-0 flex-col gap-4 p-4 sm:p-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -163,16 +176,85 @@ export function MyAppointmentDebtsBilling({
           <p className="text-sm text-muted-foreground">
             {description ||
               t(
-                'my_appointment_debts_desc',
-                'Charges from completed appointments.',
+                'billing_with_plan_desc',
+                'Your subscription plan and charges from completed appointments.',
               )}
           </p>
         </div>
       </div>
 
+      <Card
+        className={
+          sub?.status === 'active'
+            ? 'border-emerald-200/60 bg-emerald-50/50 dark:border-emerald-900/40 dark:bg-emerald-950/20'
+            : undefined
+        }
+      >
+        <CardHeader className="pb-2">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BadgeCheck className="h-5 w-5 text-primary" />
+            {t('subscription_plan', 'Subscription plan')}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {subQuery.isLoading ? (
+            <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {t('loading', 'Loading...')}
+            </div>
+          ) : !sub ? (
+            <p className="py-4 text-sm text-muted-foreground">
+              {t(
+                'no_subscription_plan',
+                'No subscription plan on file yet. B2C annual is €780/year (€65/month).',
+              )}
+            </p>
+          ) : (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <p className="text-xs text-muted-foreground">{t('plan', 'Plan')}</p>
+                <p className="text-lg font-semibold">{planLabel(sub.plan)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t('amount', 'Amount')}
+                </p>
+                <p className="text-lg font-semibold tabular-nums">
+                  {money(sub.amount, sub.currency || 'EUR')}
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t('status', 'Status')}
+                </p>
+                <Badge variant="outline" className="mt-1 capitalize">
+                  {String(sub.status).replace(/_/g, ' ')}
+                </Badge>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">
+                  {t('remaining', 'Remaining')}
+                </p>
+                <p className="flex items-center gap-1.5 text-lg font-semibold">
+                  <CalendarClock className="h-4 w-4 text-muted-foreground" />
+                  {sub.days_remaining} {t('days', 'days')}
+                </p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
-          label={t('total_billed', 'Total billed')}
+          label={t('subscription', 'Subscription')}
+          value={money(kpis.planAmt, sub?.currency || 'EUR')}
+          sub={planLabel(sub?.plan)}
+          icon={<BadgeCheck className="h-4 w-4" />}
+          tone="blue"
+        />
+        <Stat
+          label={t('appointment_charges', 'Appointment charges')}
           value={money(kpis.total)}
           sub={`${data.length} ${t('records', 'records')}`}
           icon={<CreditCard className="h-4 w-4" />}
@@ -186,18 +268,11 @@ export function MyAppointmentDebtsBilling({
           tone="amber"
         />
         <Stat
-          label={t('paid', 'Paid')}
-          value={money(kpis.paidAmt)}
-          sub={`${kpis.paidCount} ${t('paid_records', 'paid records')}`}
-          icon={<CheckCircle2 className="h-4 w-4" />}
-          tone="teal"
-        />
-        <Stat
           label={t('collection_rate', 'Collection rate')}
           value={`${kpis.collection}%`}
           sub={t('paid_over_billed', 'Paid / billed')}
           icon={<Percent className="h-4 w-4" />}
-          tone="emerald"
+          tone="teal"
         />
       </div>
 
