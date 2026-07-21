@@ -66,6 +66,75 @@ function chartStats(values: number[]) {
   return { avg: Math.round(avg * 10) / 10, min: Math.min(...values), max: Math.max(...values), latest, trend: Math.round(trend * 10) / 10 };
 }
 
+type SeriesPoint = { timestamp: string; value: number };
+
+function formatTick(iso: string) {
+  try {
+    return new Date(iso).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
+/** Align multiple series onto shared bucket timestamps (average within bucket). */
+function zipBucketed(
+  series: Record<string, SeriesPoint[]>,
+  bucketMs = 15 * 60 * 1000,
+  maxPoints = 48,
+): { time: string; ts: number; [k: string]: number | string }[] {
+  const keys = Object.keys(series);
+  const allTs = new Set<number>();
+  const bucketed: Record<string, Map<number, number>> = {};
+
+  for (const key of keys) {
+    const map = new Map<number, { sum: number; count: number }>();
+    for (const p of series[key] ?? []) {
+      const t = new Date(p.timestamp).getTime();
+      if (!Number.isFinite(t) || !Number.isFinite(p.value)) continue;
+      const b = Math.floor(t / bucketMs) * bucketMs;
+      allTs.add(b);
+      const cur = map.get(b);
+      if (cur) {
+        cur.sum += p.value;
+        cur.count += 1;
+      } else {
+        map.set(b, { sum: p.value, count: 1 });
+      }
+    }
+    bucketed[key] = new Map(
+      [...map.entries()].map(([b, { sum, count }]) => [
+        b,
+        Math.round((sum / count) * 10) / 10,
+      ]),
+    );
+  }
+
+  let stamps = [...allTs].sort((a, b) => a - b);
+  if (stamps.length > maxPoints) {
+    const step = stamps.length / maxPoints;
+    const thinned: number[] = [];
+    for (let i = 0; i < maxPoints; i++) {
+      thinned.push(stamps[Math.min(stamps.length - 1, Math.floor(i * step))]);
+    }
+    stamps = thinned;
+  }
+
+  return stamps.map((ts) => {
+    const row: { time: string; ts: number; [k: string]: number | string } = {
+      time: formatTick(new Date(ts + bucketMs / 2).toISOString()),
+      ts,
+    };
+    for (const key of keys) {
+      const v = bucketed[key].get(ts);
+      if (v != null) row[key] = v;
+    }
+    return row;
+  });
+}
+
 function ChartTooltipContent({ active, payload, label }: { active?: boolean; payload?: Array<{ name?: string; value?: number; color?: string }>; label?: string }) {
   if (!active || !payload?.length) return null;
   return (
@@ -189,66 +258,71 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
     enabled: !!userId,
   });
 
-  // Build chart data from real history
-  const chartData = useMemo(() => {
-    const raw = historyData?.data as unknown as Record<string, { timestamp: string; value: number }[]> | undefined;
-    if (!raw) return [];
-    const hr = raw.heart_rate ?? [];
-    const spo2 = raw.spo2 ?? [];
-    const bpSys = raw.bp_systolic ?? [];
-    const bpDia = raw.bp_diastolic ?? [];
-    const temp = raw.body_temperature ?? [];
-    const humidity = raw.humidity ?? [];
-    const co2 = raw.CO2 ?? [];
-    const mq2 = raw.mq2 ?? [];
-    const ambient = raw.temperature ?? [];
-    const len = Math.max(
-      hr.length,
-      spo2.length,
-      bpSys.length,
-      temp.length,
-      humidity.length,
-      co2.length
-    );
-    const out: {
-      time: string;
-      heartRate: number;
-      spo2: number;
-      bpSystolic: number;
-      bpDiastolic: number;
-      temperature: number;
-      humidity: number;
-      co2: number;
-      mq2: number;
-      ambient: number;
-    }[] = [];
-    for (let i = 0; i < len; i++) {
-      const ts =
-        hr[i]?.timestamp ??
-        spo2[i]?.timestamp ??
-        bpSys[i]?.timestamp ??
-        temp[i]?.timestamp ??
-        "";
-      const time = ts
-        ? new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-        : "";
-      out.push({
-        time,
-        heartRate: hr[i]?.value ?? 0,
-        spo2: spo2[i]?.value ?? 0,
-        bpSystolic: bpSys[i]?.value ?? 0,
-        bpDiastolic: bpDia[i]?.value ?? 0,
-        temperature: temp[i]?.value ?? 0,
-        humidity: humidity[i]?.value ?? 0,
-        co2: co2[i]?.value ?? 0,
-        mq2: mq2[i]?.value ?? 0,
-        ambient: ambient[i]?.value ?? 0,
-      });
-    }
-    return out;
+  // Build chart data from real history (bucketed for mobile readability)
+  const { vitalsData, envData } = useMemo(() => {
+    const raw = historyData?.data as unknown as
+      | Record<string, SeriesPoint[]>
+      | undefined;
+    if (!raw) return { vitalsData: [], envData: [] };
+
+    const vitalsData = zipBucketed(
+      {
+        heartRate: raw.heart_rate ?? [],
+        spo2: raw.spo2 ?? [],
+        bpSystolic: raw.bp_systolic ?? [],
+        bpDiastolic: raw.bp_diastolic ?? [],
+        temperature: raw.body_temperature ?? [],
+      },
+      15 * 60 * 1000,
+      48,
+    ).map((row) => ({
+      time: String(row.time),
+      heartRate: Number(row.heartRate ?? 0),
+      spo2: Number(row.spo2 ?? 0),
+      bpSystolic: Number(row.bpSystolic ?? 0),
+      bpDiastolic: Number(row.bpDiastolic ?? 0),
+      temperature: Number(row.temperature ?? 0),
+    }));
+
+    const envData = zipBucketed(
+      {
+        ambient: raw.temperature ?? [],
+        humidity: raw.humidity ?? [],
+        co2: raw.CO2 ?? [],
+        mq2: raw.mq2 ?? [],
+      },
+      15 * 60 * 1000,
+      48,
+    ).map((row) => ({
+      time: String(row.time),
+      ambient: row.ambient != null ? Number(row.ambient) : undefined,
+      humidity: row.humidity != null ? Number(row.humidity) : undefined,
+      co2: row.co2 != null ? Number(row.co2) : undefined,
+      mq2: row.mq2 != null ? Number(row.mq2) : undefined,
+    }));
+
+    return { vitalsData, envData };
   }, [historyData]);
 
-  const data = chartData;
+  const data = vitalsData;
+  const hasEnvData = envData.some(
+    (d) =>
+      d.humidity != null ||
+      d.co2 != null ||
+      d.ambient != null ||
+      d.mq2 != null,
+  );
+
+  const envLatest = useMemo(() => {
+    const last = [...envData].reverse().find(
+      (d) =>
+        d.humidity != null ||
+        d.co2 != null ||
+        d.ambient != null ||
+        d.mq2 != null,
+    );
+    return last ?? null;
+  }, [envData]);
 
   // Build hero cards from real KPIs
   const heroCards = useMemo(() => {
@@ -423,11 +497,46 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
     };
   }, [data, heroCards, systemScores, riskBreakdown, t, patientName, userId]);
 
-  const chartTabs: { key: MetricKey; label: string; icon: typeof HeartPulse; color: string; unit: string }[] = [
-    { key: "heart_rate", label: t("heart_rate", "Heart Rate"), icon: HeartPulse, color: "#ef4444", unit: t("bpm", "bpm") },
-    { key: "spo2", label: t("spo2", "SpO2"), icon: Droplets, color: "#3b82f6", unit: "%" },
-    { key: "bp_systolic", label: t("blood_pressure", "Blood Pressure"), icon: Gauge, color: "#8b5cf6", unit: "mmHg" },
-    { key: "body_temperature", label: t("body_temperature", "Body temp"), icon: Thermometer, color: "#f97316", unit: "°C" },
+  const chartTabs: {
+    key: MetricKey;
+    label: string;
+    short: string;
+    icon: typeof HeartPulse;
+    color: string;
+    unit: string;
+  }[] = [
+    {
+      key: "heart_rate",
+      label: t("heart_rate", "Heart Rate"),
+      short: t("hr_short", "HR"),
+      icon: HeartPulse,
+      color: "#ef4444",
+      unit: t("bpm", "bpm"),
+    },
+    {
+      key: "spo2",
+      label: t("spo2", "SpO2"),
+      short: "SpO2",
+      icon: Droplets,
+      color: "#3b82f6",
+      unit: "%",
+    },
+    {
+      key: "bp_systolic",
+      label: t("blood_pressure", "Blood Pressure"),
+      short: t("bp_short", "BP"),
+      icon: Gauge,
+      color: "#8b5cf6",
+      unit: "mmHg",
+    },
+    {
+      key: "body_temperature",
+      label: t("body_temperature", "Body temp"),
+      short: t("temp_short", "Temp"),
+      icon: Thermometer,
+      color: "#f97316",
+      unit: "°C",
+    },
   ];
 
   const activityLabel =
@@ -555,93 +664,100 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
                 <p>{t("no_data", "No vitals data yet. Waiting for watch readings...")}</p>
               </div>
             ) : (
-              <Tabs defaultValue="heart_rate" className="flex w-full flex-col gap-6">
-                <TabsList className="mx-auto grid w-full max-w-2xl grid-cols-2 gap-1 rounded-full bg-muted p-1 sm:grid-cols-4 h-11">
+              <Tabs defaultValue="heart_rate" className="flex w-full flex-col gap-5">
+                <TabsList className="flex h-auto w-full gap-1 overflow-x-auto rounded-xl bg-muted p-1 sm:grid sm:grid-cols-4 sm:overflow-visible">
                   {chartTabs.map((tab) => {
                     const Icon = tab.icon;
                     return (
-                      <TabsTrigger key={tab.key} value={tab.key} className="flex items-center justify-center gap-1.5 rounded-full text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white sm:text-sm dark:data-[state=active]:bg-blue-500 h-full">
-                        <Icon className="h-4 w-4 shrink-0" /><span className="truncate">{tab.label}</span>
+                      <TabsTrigger
+                        key={tab.key}
+                        value={tab.key}
+                        className="h-10 shrink-0 flex-none gap-1.5 rounded-lg px-3 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:shadow-sm sm:flex-1 sm:px-2 sm:text-sm dark:data-[state=active]:bg-blue-500"
+                      >
+                        <Icon className="h-4 w-4 shrink-0" />
+                        <span className="sm:hidden">{tab.short}</span>
+                        <span className="hidden truncate sm:inline">{tab.label}</span>
                       </TabsTrigger>
                     );
                   })}
                 </TabsList>
 
-                <TabsContent value="heart_rate" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{t("heart_rate", "Heart Rate")} <span className="text-sm font-normal text-muted-foreground">({t("bpm", "bpm")})</span></CardTitle>
+                <TabsContent value="heart_rate" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-base sm:text-lg">{t("heart_rate", "Heart Rate")} <span className="text-sm font-normal text-muted-foreground">({t("bpm", "bpm")})</span></CardTitle>
                     <TrendBadge trend={chartStats(data.map((d) => d.heartRate)).trend} />
                   </div>
                   <StatGrid values={data.map((d) => d.heartRate)} unit={t("bpm", "bpm")} />
-                  <div className="h-[280px] w-full" data-export-chart="vital-heartRate" data-export-chart-title={t("heart_rate", "Heart Rate")}>
+                  <div className="h-[220px] w-full sm:h-[280px]" data-export-chart="vital-heartRate" data-export-chart-title={t("heart_rate", "Heart Rate")}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                      <AreaChart data={data} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
                         <defs><linearGradient id="colorHeart" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#ef4444" stopOpacity={0.35} /><stop offset="95%" stopColor="#ef4444" stopOpacity={0} /></linearGradient></defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
-                        <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                        <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                        <XAxis dataKey="time" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" />
+                        <YAxis domain={["dataMin - 5", "dataMax + 5"]} tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} width={36} />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Area type="monotone" dataKey="heartRate" name={t("heart_rate", "Heart Rate")} stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorHeart)" />
+                        <Area type="monotone" dataKey="heartRate" name={t("heart_rate", "Heart Rate")} stroke="#ef4444" strokeWidth={2} fillOpacity={1} fill="url(#colorHeart)" dot={false} activeDot={{ r: 4 }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </TabsContent>
 
-                <TabsContent value="spo2" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{t("spo2", "SpO2")} <span className="text-sm font-normal text-muted-foreground">(%)</span></CardTitle>
+                <TabsContent value="spo2" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-base sm:text-lg">{t("spo2", "SpO2")} <span className="text-sm font-normal text-muted-foreground">(%)</span></CardTitle>
                     <TrendBadge trend={chartStats(data.map((d) => d.spo2)).trend} />
                   </div>
                   <StatGrid values={data.map((d) => d.spo2)} unit="%" />
-                  <div className="h-[280px] w-full" data-export-chart="vital-spo2" data-export-chart-title={t("spo2", "SpO2")}>
+                  <div className="h-[220px] w-full sm:h-[280px]" data-export-chart="vital-spo2" data-export-chart-title={t("spo2", "SpO2")}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                      <AreaChart data={data} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+                        <defs><linearGradient id="colorSpo2" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} /><stop offset="95%" stopColor="#3b82f6" stopOpacity={0} /></linearGradient></defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
-                        <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                        <YAxis domain={[90, 100]} tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                        <XAxis dataKey="time" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" />
+                        <YAxis domain={[90, 100]} tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} width={36} />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Line type="monotone" dataKey="spo2" name={t("spo2", "SpO2")} stroke="#3b82f6" strokeWidth={2.5} dot={{ r: 4, fill: "#3b82f6" }} activeDot={{ r: 6 }} />
-                      </LineChart>
+                        <Area type="monotone" dataKey="spo2" name={t("spo2", "SpO2")} stroke="#3b82f6" strokeWidth={2} fill="url(#colorSpo2)" dot={false} activeDot={{ r: 4 }} />
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </TabsContent>
 
-                <TabsContent value="bp_systolic" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{t("blood_pressure", "Blood Pressure")} <span className="text-sm font-normal text-muted-foreground">(mmHg)</span></CardTitle>
+                <TabsContent value="bp_systolic" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-base sm:text-lg">{t("blood_pressure", "Blood Pressure")} <span className="text-sm font-normal text-muted-foreground">(mmHg)</span></CardTitle>
                     <TrendBadge trend={chartStats(data.map((d) => d.bpSystolic)).trend} />
                   </div>
                   <StatGrid values={data.map((d) => d.bpSystolic)} unit="mmHg" />
-                  <div className="h-[280px] w-full" data-export-chart="vital-bloodPressure" data-export-chart-title={t("blood_pressure", "Blood Pressure")}>
+                  <div className="h-[220px] w-full sm:h-[280px]" data-export-chart="vital-bloodPressure" data-export-chart-title={t("blood_pressure", "Blood Pressure")}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                      <LineChart data={data} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
-                        <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                        <YAxis domain={["dataMin - 10", "dataMax + 10"]} tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                        <XAxis dataKey="time" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" />
+                        <YAxis domain={["dataMin - 10", "dataMax + 10"]} tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} width={36} />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
-                        <Line type="monotone" dataKey="bpSystolic" name={t("systolic", "Systolic")} stroke="#8b5cf6" strokeWidth={2.5} dot={{ r: 3 }} />
-                        <Line type="monotone" dataKey="bpDiastolic" name={t("diastolic", "Diastolic")} stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} />
+                        <Legend wrapperStyle={{ fontSize: 12 }} />
+                        <Line type="monotone" dataKey="bpSystolic" name={t("systolic", "Systolic")} stroke="#8b5cf6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="bpDiastolic" name={t("diastolic", "Diastolic")} stroke="#10b981" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   </div>
                 </TabsContent>
 
-                <TabsContent value="body_temperature" forceMount className="flex flex-col gap-5 data-[state=inactive]:hidden">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{t("body_temperature", "Body temperature")} <span className="text-sm font-normal text-muted-foreground">(°C)</span></CardTitle>
+                <TabsContent value="body_temperature" forceMount className="flex flex-col gap-4 data-[state=inactive]:hidden">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-base sm:text-lg">{t("body_temperature", "Body temperature")} <span className="text-sm font-normal text-muted-foreground">(°C)</span></CardTitle>
                     <TrendBadge trend={chartStats(data.map((d) => d.temperature)).trend} />
                   </div>
                   <StatGrid values={data.map((d) => d.temperature)} unit="°C" />
-                  <div className="h-[280px] w-full" data-export-chart="vital-temperature" data-export-chart-title={t("body_temperature", "Body temperature")}>
+                  <div className="h-[220px] w-full sm:h-[280px]" data-export-chart="vital-temperature" data-export-chart-title={t("body_temperature", "Body temperature")}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
+                      <AreaChart data={data} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
                         <defs><linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#f97316" stopOpacity={0.35} /><stop offset="95%" stopColor="#f97316" stopOpacity={0} /></linearGradient></defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
-                        <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                        <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
+                        <XAxis dataKey="time" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" />
+                        <YAxis domain={["dataMin - 0.5", "dataMax + 0.5"]} tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} width={36} />
                         <Tooltip content={<ChartTooltipContent />} />
-                        <Area type="monotone" dataKey="temperature" name={t("body_temperature", "Body temperature")} stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#colorTemp)" />
+                        <Area type="monotone" dataKey="temperature" name={t("body_temperature", "Body temperature")} stroke="#f97316" strokeWidth={2} fillOpacity={1} fill="url(#colorTemp)" dot={false} activeDot={{ r: 4 }} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -771,23 +887,66 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
               )}
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[280px]">
-            {data.some((d) => d.humidity || d.co2 || d.ambient) ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
-                  <XAxis dataKey="time" tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: CHART_TICK }} axisLine={false} tickLine={false} />
-                  <Tooltip content={<ChartTooltipContent />} />
-                  <Legend />
-                  <Line type="monotone" dataKey="ambient" name={t("room_temp", "Room °C")} stroke="#f97316" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="humidity" name={t("humidity", "Humidity %")} stroke="#3b82f6" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="co2" name="CO2" stroke="#64748b" strokeWidth={2} dot={false} />
-                  <Line type="monotone" dataKey="mq2" name="MQ2" stroke="#eab308" strokeWidth={2} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+          <CardContent className="flex flex-col gap-4">
+            {hasEnvData ? (
+              <>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {[
+                    {
+                      label: t("room_temp", "Room °C"),
+                      value: envLatest?.ambient,
+                      unit: "°C",
+                    },
+                    {
+                      label: t("humidity", "Humidity"),
+                      value: envLatest?.humidity,
+                      unit: "%",
+                    },
+                    {
+                      label: "CO₂",
+                      value: envLatest?.co2,
+                      unit: "ppm",
+                    },
+                    {
+                      label: "MQ2",
+                      value: envLatest?.mq2,
+                      unit: "",
+                    },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className="rounded-xl border border-border/80 bg-muted/20 p-3"
+                    >
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+                        {item.label}
+                      </p>
+                      <p className="mt-1 ltr-nums text-lg font-semibold">
+                        {item.value != null
+                          ? `${Number(item.value).toFixed(item.unit === "ppm" ? 0 : 1)}${item.unit ? ` ${item.unit}` : ""}`
+                          : "—"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <div className="h-[220px] w-full sm:h-[260px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={envData} margin={{ top: 8, right: 4, left: -16, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={CHART_BORDER} />
+                      <XAxis dataKey="time" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} minTickGap={28} interval="preserveStartEnd" />
+                      <YAxis yAxisId="left" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} width={36} />
+                      <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11, fill: CHART_TICK }} axisLine={false} tickLine={false} width={40} />
+                      <Tooltip content={<ChartTooltipContent />} />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      <Line yAxisId="left" type="monotone" dataKey="ambient" name={t("room_temp", "Room °C")} stroke="#f97316" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls />
+                      <Line yAxisId="left" type="monotone" dataKey="humidity" name={t("humidity", "Humidity %")} stroke="#3b82f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls />
+                      <Line yAxisId="right" type="monotone" dataKey="co2" name="CO₂ ppm" stroke="#64748b" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls />
+                      <Line yAxisId="right" type="monotone" dataKey="mq2" name="MQ2" stroke="#eab308" strokeWidth={2} dot={false} activeDot={{ r: 4 }} connectNulls />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </>
             ) : (
-              <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[180px] items-center justify-center text-sm text-muted-foreground">
                 {t("no_env_data", "No environment history yet.")}
               </div>
             )}
