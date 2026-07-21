@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Button } from "../ui/button";
 import { memo } from "react";
+import { useTranslation } from "react-i18next";
 import type { VisibilityType } from "./visibility-selector";
 
 interface SuggestedActionsProps {
@@ -14,37 +15,52 @@ interface SuggestedActionsProps {
   selectedVisibilityType: VisibilityType;
 }
 
-const suggestedActions = [
-  {
-    title: "Could any of my meds",
-    label: "interact with each other?",
-    action: "Could any of my current medications interact with each other?",
-  },
-  {
-    title: "What symptoms",
-    label: "should make me seek help?",
-    action: "What symptoms should make me seek help for my condition?",
-  },
-  {
-    title: "Do my medication doses",
-    label: "still look right?",
-    action: "Do my current medication doses still look right for me?",
-  },
-  {
-    title: "Is my weight and BMI",
-    label: "in a healthy range?",
-    action: "Is my current weight and BMI in a healthy range?",
-  },
-];
-
 function PureSuggestedActions({
   chatId,
   sendMessage,
 }: SuggestedActionsProps) {
+  const { t, i18n } = useTranslation();
+  const isRtl = (i18n.language || "en").startsWith("fa");
+
+  const suggestedActions = [
+    {
+      title: t("ai_suggest_meds_title", "Could any of my meds"),
+      label: t("ai_suggest_meds_label", "interact with each other?"),
+      action: t(
+        "ai_suggest_meds_action",
+        "Could any of my current medications interact with each other?",
+      ),
+    },
+    {
+      title: t("ai_suggest_symptoms_title", "What symptoms"),
+      label: t("ai_suggest_symptoms_label", "should make me seek help?"),
+      action: t(
+        "ai_suggest_symptoms_action",
+        "What symptoms should make me seek help for my condition?",
+      ),
+    },
+    {
+      title: t("ai_suggest_doses_title", "Do my medication doses"),
+      label: t("ai_suggest_doses_label", "still look right?"),
+      action: t(
+        "ai_suggest_doses_action",
+        "Do my current medication doses still look right for me?",
+      ),
+    },
+    {
+      title: t("ai_suggest_bmi_title", "Is my weight and BMI"),
+      label: t("ai_suggest_bmi_label", "in a healthy range?"),
+      action: t(
+        "ai_suggest_bmi_action",
+        "Is my current weight and BMI in a healthy range?",
+      ),
+    },
+  ];
+
   return (
     <div
       data-testid="suggested-actions"
-      className="grid sm:grid-cols-2 gap-2 w-full"
+      className="grid w-full gap-2 sm:grid-cols-2"
     >
       {suggestedActions.map((suggestedAction, index) => (
         <motion.div
@@ -62,7 +78,7 @@ function PureSuggestedActions({
               window.history.replaceState(
                 {},
                 "",
-                `/dashboard/ai/chat/${chatId}`
+                `/dashboard/ai/chat/${chatId}`,
               );
 
               sendMessage({
@@ -70,7 +86,7 @@ function PureSuggestedActions({
                 parts: [{ type: "text", text: suggestedAction.action }],
               });
             }}
-            className="text-left border rounded-xl px-4 py-3.5 text-sm flex-1 gap-1 sm:flex-col w-full h-auto justify-start items-start"
+            className="h-auto w-full flex-1 flex-col items-start justify-start gap-1 rounded-xl border px-4 py-3.5 text-sm sm:flex-col text-start"
           >
             <span className="font-medium">{suggestedAction.title}</span>
             <span className="text-muted-foreground">
@@ -89,7 +105,6 @@ export const SuggestedActions = memo(
     if (prevProps.chatId !== nextProps.chatId) return false;
     if (prevProps.selectedVisibilityType !== nextProps.selectedVisibilityType)
       return false;
-
     return true;
-  }
+  },
 );

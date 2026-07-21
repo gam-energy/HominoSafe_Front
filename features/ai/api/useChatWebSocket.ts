@@ -55,7 +55,16 @@ export function useChatWebSocket(
       const contentText = extractContentText(input);
 
       if (ws.current && ws.current.readyState === WebSocket.OPEN) {
-        ws.current.send(JSON.stringify({ message: contentText }));
+        ws.current.send(
+          JSON.stringify({
+            message: contentText,
+            language:
+              typeof window !== 'undefined' &&
+              (window.localStorage.getItem('i18nextLng') || 'en').startsWith('fa')
+                ? 'fa'
+                : 'en',
+          }),
+        );
 
         setMessages((prev) => [
           ...prev,

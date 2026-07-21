@@ -66,10 +66,10 @@ export function PredictiveAIPanel({ userId: userIdProp }: { userId?: number } = 
           <div className="relative z-10 flex flex-col gap-8 p-6 sm:p-8 lg:p-10">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl space-y-4">
-                <p className="font-[family-name:var(--font-instrument)] text-sm font-semibold tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
+                <p className="text-sm font-semibold tracking-[0.18em] text-teal-700 uppercase dark:text-teal-300">
                   SenioSentry
                 </p>
-                <h1 className="font-[family-name:var(--font-instrument)] text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl lg:leading-[1.1]">
+                <h1 className="text-3xl font-semibold tracking-tight text-foreground sm:text-4xl lg:text-5xl lg:leading-[1.1]">
                   {t('predictive_ai', 'Predictive AI')}
                 </h1>
                 <p className="max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">

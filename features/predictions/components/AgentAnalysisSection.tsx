@@ -137,7 +137,7 @@ export function AgentAnalysisSection({ patientId }: { patientId: number }) {
           />
           <div className="relative flex min-w-0 flex-wrap items-center justify-between gap-3">
             <div className="min-w-0 space-y-1">
-              <h2 className="flex min-w-0 items-center gap-2 font-[family-name:var(--font-instrument)] text-xl font-semibold tracking-tight">
+              <h2 className="flex min-w-0 items-center gap-2 text-xl font-semibold tracking-tight">
                 <Brain className="h-5 w-5 shrink-0 text-primary" />
                 <span className="break-words">
                   {t('care_check', 'Care check')}

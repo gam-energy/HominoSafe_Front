@@ -33,7 +33,6 @@ export function AiLayoutShell({ children }: { children: React.ReactNode }) {
       <DataStreamProvider>
         <SidebarProvider
           defaultOpen={!isCollapsed}
-          dir="ltr"
           className="min-h-0 h-[calc(100dvh-4rem)]"
         >
           <SidebarInset className="min-h-0 overflow-hidden p-0">

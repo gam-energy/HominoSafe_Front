@@ -138,7 +138,7 @@ function MetricTile({
           <Icon className="h-3.5 w-3.5" />
           {label}
         </div>
-        <p className="ltr-nums font-[family-name:var(--font-instrument)] text-2xl font-semibold tracking-tight text-foreground sm:text-[1.7rem]">
+        <p className="ltr-nums text-2xl font-semibold tracking-tight text-foreground sm:text-[1.7rem]">
           {value}
         </p>
         {hint ? (
@@ -191,7 +191,7 @@ function RiskOrbit({
         />
       </svg>
       <div className="relative z-10 text-center">
-        <p className="ltr-nums font-[family-name:var(--font-instrument)] text-3xl font-semibold tracking-tight">
+        <p className="ltr-nums text-3xl font-semibold tracking-tight">
           {score != null ? score.toFixed(0) : '—'}
         </p>
         <p className="text-[10px] font-bold tracking-wider text-muted-foreground uppercase">
@@ -235,7 +235,7 @@ export function CnnResultsCard({
         />
         <div className="relative flex min-w-0 flex-wrap items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-1">
-            <h2 className="flex items-center gap-2 font-[family-name:var(--font-instrument)] text-xl font-semibold tracking-tight">
+            <h2 className="flex items-center gap-2 text-xl font-semibold tracking-tight">
               <Activity className="h-5 w-5 shrink-0 text-teal-600 dark:text-teal-400" />
               <span className="break-words">
                 {t('cnn_vitals_predictions', 'CNN vitals predictions')}
@@ -360,7 +360,7 @@ export function CnnResultsCard({
             {!compact && chartData.length > 0 ? (
               <div className="space-y-3">
                 <div className="flex items-end justify-between gap-2">
-                  <h3 className="font-[family-name:var(--font-instrument)] text-sm font-semibold tracking-tight">
+                  <h3 className="text-sm font-semibold tracking-tight">
                     {t('recent_window_trend', 'Recent window trend')}
                   </h3>
                   <p className="text-[11px] text-muted-foreground">

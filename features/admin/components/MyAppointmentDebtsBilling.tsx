@@ -27,7 +27,7 @@ import axiosInstance from '@/api/axiosInstance';
 import type { AppointmentDebt } from '@/features/admin/api/use-clinics';
 import { useMySubscription } from '@/features/orders/api/use-orders';
 
-function money(amount: number, currency = 'USD') {
+function money(amount: number, currency = 'EUR') {
   try {
     return new Intl.NumberFormat(undefined, {
       style: 'currency',
@@ -114,14 +114,16 @@ export function MyAppointmentDebtsBilling({
   const [statusFilter, setStatusFilter] = useState('all');
   const subQuery = useMySubscription();
 
-  const { data = [], isLoading, isError, error } = useQuery({
+  const { data = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ['my-appointment-billing-debts'],
     queryFn: async () => {
       const { data } = await axiosInstance.get<AppointmentDebt[]>(
         '/appointments/me/billing-debts',
       );
-      return data;
+      return data ?? [];
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   const kpis = useMemo(() => {
@@ -167,7 +169,7 @@ export function MyAppointmentDebtsBilling({
   const sub = subQuery.data;
 
   return (
-    <div className="flex w-full min-w-0 flex-col gap-4 p-4 sm:p-6">
+    <div className="flex w-full min-w-0 flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold">

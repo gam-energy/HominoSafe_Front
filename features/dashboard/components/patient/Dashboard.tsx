@@ -5,7 +5,6 @@ import { OverviewSection } from './OverviewSection';
 import { useUser } from '@/context/UserContext';
 import { useHistory } from '../../api/patient/useGetHistory';
 import { useGetOVerview } from '../../api/patient/useGetOverview';
-import { SubscriptionBanner } from '@/features/orders/components/SubscriptionBanner';
 import {
   ALL_HISTORY_METRICS,
   HistoryChart,
@@ -60,8 +59,6 @@ const Dashboard = () => {
             name: user?.first_name || 'User',
           })}
         />
-
-        <SubscriptionBanner />
 
         <div className="grid grid-cols-1 items-stretch gap-4 sm:gap-6 xl:grid-cols-12">
           {/* Profile card shows full content and defines the row height.

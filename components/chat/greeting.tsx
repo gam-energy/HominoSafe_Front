@@ -1,10 +1,12 @@
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 export const Greeting = () => {
+  const { t } = useTranslation();
   return (
     <div
       key="overview"
-      className="max-w-3xl mx-auto md:mt-20 px-8 size-full flex flex-col justify-center"
+      className="mx-auto flex size-full max-w-3xl flex-col justify-center px-8 md:mt-20"
     >
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -13,7 +15,7 @@ export const Greeting = () => {
         transition={{ delay: 0.5 }}
         className="text-2xl font-semibold"
       >
-        Hello there!
+        {t('ai_greeting', 'Hello there!')}
       </motion.div>
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -22,7 +24,7 @@ export const Greeting = () => {
         transition={{ delay: 0.6 }}
         className="text-2xl text-zinc-500"
       >
-        How can I help you today?
+        {t('ai_greeting_sub', 'How can I help you today?')}
       </motion.div>
     </div>
   );
