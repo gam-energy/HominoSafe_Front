@@ -1,18 +1,14 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   CheckCircle2,
-  CreditCard,
   Loader2,
   Stethoscope,
-  Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-import PageContainer from '@/components/layout/page-container';
-import { Heading } from '@/components/ui/heading';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -226,72 +222,87 @@ export function ClinicAppointmentBilling() {
     debtFilter === 'all' ? undefined : debtFilter,
   );
 
-  const kpis = useMemo(() => {
-    const s = summary.data;
-    return [
-      {
-        label: t('appointment_debt_unpaid', 'Unpaid appointment debt'),
-        value: money(s?.unpaid || 0),
-        icon: Wallet,
-      },
-      {
-        label: t('appointment_debt_paid', 'Paid'),
-        value: money(s?.paid || 0),
-        icon: CheckCircle2,
-      },
-      {
-        label: t('open_debts', 'Open debts'),
-        value: String(s?.unpaid_count || 0),
-        icon: CreditCard,
-      },
-    ];
-  }, [summary.data, t]);
-
   return (
-    <PageContainer scrollable>
-      <div className="flex w-full flex-col gap-6">
-        <Heading
-          title={t('clinic_billing', 'Clinic billing')}
-          description={t(
+    <div className="flex w-full min-w-0 flex-col gap-4 p-4 sm:p-6">
+      <div>
+        <h1 className="text-2xl font-bold">
+          {t('clinic_billing', 'Clinic billing')}
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          {t(
             'clinic_billing_desc',
             'Set each doctor’s appointment price and track visit debts after completed appointments.',
           )}
-        />
+        </p>
+      </div>
 
-        <div className="grid gap-3 sm:grid-cols-3">
-          {kpis.map(({ label, value, icon: Icon }) => (
-            <Card key={label} className="rounded-2xl">
-              <CardContent className="flex items-center gap-3 p-4">
-                <div className="rounded-lg bg-primary/10 p-2 text-primary">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xl font-semibold tracking-tight">{value}</p>
-                  <p className="text-xs text-muted-foreground">{label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground">
+              {t('appointment_debt_unpaid', 'Unpaid appointment debt')}
+            </div>
+            <div className="mt-2 text-2xl font-bold tracking-tight">
+              {money(summary.data?.unpaid || 0)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground">
+              {t('appointment_debt_paid', 'Paid')}
+            </div>
+            <div className="mt-2 text-2xl font-bold tracking-tight">
+              {money(summary.data?.paid || 0)}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground">
+              {t('open_debts', 'Open debts')}
+            </div>
+            <div className="mt-2 text-2xl font-bold tracking-tight">
+              {summary.data?.unpaid_count || 0}
+            </div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="text-xs font-medium text-muted-foreground">
+              {t('total_debt', 'Total debt')}
+            </div>
+            <div className="mt-2 text-2xl font-bold tracking-tight">
+              {money(summary.data?.total_debt || 0)}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <Tabs defaultValue="debts">
-          <TabsList>
-            <TabsTrigger value="debts">
-              {t('appointment_debts', 'Appointment debts')}
-            </TabsTrigger>
-            <TabsTrigger value="prices">
-              {t('doctor_pricing', 'Doctor pricing')}
-            </TabsTrigger>
-          </TabsList>
+      <Tabs defaultValue="debts">
+        <TabsList>
+          <TabsTrigger value="debts">
+            {t('appointment_debts', 'Appointment debts')}
+          </TabsTrigger>
+          <TabsTrigger value="prices">
+            {t('doctor_pricing', 'Doctor pricing')}
+          </TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="debts" className="mt-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                {t(
-                  'appointment_debts_hint',
-                  'Created automatically when a visit is completed with a report.',
-                )}
-              </p>
+        <TabsContent value="debts" className="mt-4">
+          <Card>
+            <CardHeader className="flex-row flex-wrap items-center justify-between space-y-0 gap-3">
+              <div>
+                <CardTitle>
+                  {t('appointment_debts', 'Appointment debts')}
+                </CardTitle>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t(
+                    'appointment_debts_hint',
+                    'Created automatically when a visit is completed with a report.',
+                  )}
+                </p>
+              </div>
               <Select value={debtFilter} onValueChange={setDebtFilter}>
                 <SelectTrigger className="w-36">
                   <SelectValue />
@@ -303,76 +314,73 @@ export function ClinicAppointmentBilling() {
                   <SelectItem value="waived">{t('waived', 'Waived')}</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            {debts.isLoading ? (
-              <div className="flex justify-center py-12">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : debts.isError ? (
-              <Card className="border-destructive/40">
-                <CardContent className="py-10 text-center text-sm text-destructive">
+            </CardHeader>
+            <CardContent className="p-0">
+              {debts.isLoading ? (
+                <div className="flex justify-center py-16">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : debts.isError ? (
+                <p className="py-16 text-center text-sm text-destructive">
                   {t(
                     'failed_load_debts',
                     'Failed to load appointment debts. Check your clinic admin access.',
                   )}
-                </CardContent>
-              </Card>
-            ) : (debts.data?.length ?? 0) === 0 ? (
-              <Card className="border-dashed">
-                <CardContent className="py-12 text-center text-sm text-muted-foreground">
+                </p>
+              ) : (debts.data?.length ?? 0) === 0 ? (
+                <p className="py-16 text-center text-sm text-muted-foreground">
                   {t('no_appointment_debts', 'No appointment debts yet.')}
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {debts.data?.map((d) => (
-                  <DebtRow key={d.id} debt={d} />
-                ))}
-              </div>
-            )}
-          </TabsContent>
+                </p>
+              ) : (
+                <div className="flex flex-col gap-2 p-4">
+                  {debts.data?.map((d) => (
+                    <DebtRow key={d.id} debt={d} />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="prices" className="mt-4 space-y-4">
-            <Card className="rounded-2xl">
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <Stethoscope className="h-4 w-4 text-primary" />
-                  {t('doctor_appointment_prices', 'Doctor appointment prices')}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
+        <TabsContent value="prices" className="mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Stethoscope className="h-4 w-4 text-primary" />
+                {t('doctor_appointment_prices', 'Doctor appointment prices')}
+              </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                {t(
+                  'doctor_prices_hint',
+                  'Each completed appointment for that doctor creates an unpaid debt at this rate.',
+                )}
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {prices.isLoading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : prices.isError ? (
+                <p className="py-8 text-center text-sm text-destructive">
+                  {t('failed_load_prices', 'Failed to load doctor prices.')}
+                </p>
+              ) : (prices.data?.length ?? 0) === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">
                   {t(
-                    'doctor_prices_hint',
-                    'Each completed appointment for that doctor creates an unpaid debt at this rate.',
+                    'no_clinic_doctors',
+                    'No doctors assigned to this clinic yet.',
                   )}
                 </p>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {prices.isLoading ? (
-                  <div className="flex justify-center py-10">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                  </div>
-                ) : prices.isError ? (
-                  <p className="py-8 text-center text-sm text-destructive">
-                    {t('failed_load_prices', 'Failed to load doctor prices.')}
-                  </p>
-                ) : (prices.data?.length ?? 0) === 0 ? (
-                  <p className="py-8 text-center text-sm text-muted-foreground">
-                    {t(
-                      'no_clinic_doctors',
-                      'No doctors assigned to this clinic yet.',
-                    )}
-                  </p>
-                ) : (
-                  prices.data?.map((row) => (
-                    <DoctorPriceRow key={row.doctor_id} row={row} />
-                  ))
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    </PageContainer>
+              ) : (
+                prices.data?.map((row) => (
+                  <DoctorPriceRow key={row.doctor_id} row={row} />
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

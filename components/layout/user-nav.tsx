@@ -46,9 +46,13 @@ export function UserNav() {
             <DropdownMenuItem onClick={() => router.push('/dashboard/profile')}>
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => router.push('/dashboard/billing')}>
-              Billing
-            </DropdownMenuItem>
+            {['admin', 'clinic_admin', 'patient', 'doctor'].includes(
+              String(user.role || '').toLowerCase(),
+            ) ? (
+              <DropdownMenuItem onClick={() => router.push('/dashboard/billing')}>
+                Billing
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
               Settings
             </DropdownMenuItem>

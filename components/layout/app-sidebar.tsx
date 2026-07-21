@@ -221,12 +221,16 @@ export default function AppSidebar() {
                     <IconUserCircle className="me-2 h-4 w-4" />
                     {t("profile", "Profile")}
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.push("/dashboard/billing")}
-                  >
-                    <IconCreditCard className="me-2 h-4 w-4" />
-                    {t("billing", "Billing")}
-                  </DropdownMenuItem>
+                  {["admin", "clinic_admin", "patient", "doctor"].includes(
+                    String(user?.role || "").toLowerCase(),
+                  ) ? (
+                    <DropdownMenuItem
+                      onClick={() => router.push("/dashboard/billing")}
+                    >
+                      <IconCreditCard className="me-2 h-4 w-4" />
+                      {t("billing", "Billing")}
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem
                     onClick={() => router.push("/dashboard/settings#notifications")}
                   >
