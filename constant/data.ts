@@ -63,13 +63,6 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
-      title: 'Medical Profile',
-      url: '/dashboard/medical-profile',
-      icon: 'billing',
-      isActive: true,
-      items: [],
-    },
-    {
       title: 'Health KPIs',
       url: '/dashboard/health-kpis',
       icon: 'healthKpi',
@@ -77,10 +70,24 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
+      title: 'Medical Profile',
+      url: '/dashboard/medical-profile',
+      icon: 'userPen',
+      isActive: true,
+      items: [],
+    },
+    {
       title: 'Appointments',
       url: '/dashboard/appointments',
       icon: 'appointment',
       shortcut: ['a', 'p'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'Billing',
+      url: '/dashboard/billing',
+      icon: 'user',
       isActive: false,
       items: [],
     },
@@ -185,6 +192,13 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
+      title: 'Billing',
+      url: '/dashboard/billing',
+      icon: 'user',
+      isActive: false,
+      items: [],
+    },
+    {
       title: 'AI Chat',
       url: '/dashboard/ai',
       icon: 'aiChat',
@@ -282,6 +296,13 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       isActive: false,
       items: [],
     },
+    {
+      title: 'Billing',
+      url: '/dashboard/billing',
+      icon: 'user',
+      isActive: false,
+      items: [],
+    },
   ],
   clinic_admin: [
     {
@@ -313,6 +334,13 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       url: '/dashboard/appointments',
       icon: 'appointment',
       shortcut: ['a', 'p'],
+      isActive: false,
+      items: [],
+    },
+    {
+      title: 'Billing',
+      url: '/dashboard/billing',
+      icon: 'user',
       isActive: false,
       items: [],
     },

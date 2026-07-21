@@ -219,14 +219,14 @@ export function ClinicDetail({ clinicId }: { clinicId: number }) {
         />
         <Stat
           label="Total billed"
-          value={`$${totalBilled.toFixed(2)}`}
-          sub={`$${totalPaid.toFixed(2)} paid`}
+          value={`€${totalBilled.toFixed(2)}`}
+          sub={`€${totalPaid.toFixed(2)} paid`}
           icon={<CreditCard className="h-4 w-4" />}
           tone="emerald"
         />
         <Stat
           label="Outstanding"
-          value={`$${outstanding.toFixed(2)}`}
+          value={`€${outstanding.toFixed(2)}`}
           sub={`${unpaidYears} unpaid years`}
           icon={<Wallet className="h-4 w-4" />}
           tone="amber"

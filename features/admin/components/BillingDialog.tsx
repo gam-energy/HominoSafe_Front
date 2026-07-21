@@ -48,7 +48,7 @@ export function BillingDialog({ open, onOpenChange, clinicId, billing, defaultYe
   const [form, setForm] = useState<BillingPayload>({
     year: defaultYear ?? currentYear,
     amount: 0,
-    currency: 'USD',
+    currency: 'EUR',
     status: 'unpaid',
     due_date: null,
     invoice_number: '',
@@ -71,7 +71,7 @@ export function BillingDialog({ open, onOpenChange, clinicId, billing, defaultYe
         setForm({
           year: defaultYear ?? currentYear,
           amount: 0,
-          currency: 'USD',
+          currency: 'EUR',
           status: 'unpaid',
           due_date: null,
           invoice_number: '',
@@ -91,7 +91,7 @@ export function BillingDialog({ open, onOpenChange, clinicId, billing, defaultYe
       if (isEdit && billing) {
         const payload: BillingUpdatePayload = {
           amount: Number(form.amount),
-          currency: form.currency,
+          currency: 'EUR',
           status: form.status,
           due_date: form.due_date || null,
           invoice_number: form.invoice_number || null,
@@ -150,11 +150,7 @@ export function BillingDialog({ open, onOpenChange, clinicId, billing, defaultYe
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="b-currency">Currency</Label>
-              <Input
-                id="b-currency"
-                value={form.currency}
-                onChange={(e) => setForm({ ...form, currency: e.target.value })}
-              />
+              <Input id="b-currency" value="EUR" readOnly className="bg-muted" />
             </div>
             <div className="grid gap-1.5">
               <Label htmlFor="b-status">Status</Label>

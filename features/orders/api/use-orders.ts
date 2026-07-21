@@ -241,8 +241,10 @@ export function useMySubscription() {
     queryKey: ['my-subscription'],
     queryFn: async () => {
       const { data } = await axiosInstance.get<Subscription | null>('/me/subscription');
-      return data;
+      return data ?? null;
     },
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 }
 

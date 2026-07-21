@@ -149,14 +149,14 @@ export function AdminClinicsTable() {
         />
         <StatCard
           label="Billed"
-          value={`$${kpis.totalBilled.toFixed(0)}`}
-          sub={`$${kpis.totalPaid.toFixed(0)} collected`}
+          value={`€${kpis.totalBilled.toFixed(0)}`}
+          sub={`€${kpis.totalPaid.toFixed(0)} collected`}
           icon={<CreditCard className="h-4 w-4" />}
           tone="emerald"
         />
         <StatCard
           label="Outstanding"
-          value={`$${kpis.totalOutstanding.toFixed(0)}`}
+          value={`€${kpis.totalOutstanding.toFixed(0)}`}
           sub={`${kpis.unpaid} unpaid years`}
           icon={<Wallet className="h-4 w-4" />}
           tone="amber"
@@ -338,7 +338,7 @@ export function AdminClinicsTable() {
                               : 'text-muted-foreground'
                           }
                         >
-                          ${(c.billing_outstanding || 0).toFixed(2)}
+                          €{(c.billing_outstanding || 0).toFixed(2)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs text-muted-foreground">

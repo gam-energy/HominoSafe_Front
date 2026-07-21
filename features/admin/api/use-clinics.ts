@@ -358,7 +358,7 @@ export function useUpsertMyDoctorPrice() {
     mutationFn: async ({
       doctorId,
       amount,
-      currency = 'USD',
+      currency = 'EUR',
       is_active = true,
     }: {
       doctorId: number;

@@ -149,7 +149,7 @@ export function AdminBillingOverview() {
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 sm:p-6">
+    <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold">Billing</h1>
@@ -231,22 +231,22 @@ export function AdminBillingOverview() {
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Total billed"
-          value={`$${kpis.totalBilled.toFixed(0)}`}
-          sub={`Avg $${kpis.avgInvoice.toFixed(0)} / invoice`}
+          value={`€${kpis.totalBilled.toFixed(0)}`}
+          sub={`Avg €${kpis.avgInvoice.toFixed(0)} / invoice`}
           icon={<CreditCard className="h-4 w-4" />}
           tone="emerald"
         />
         <Stat
           label="Collected"
-          value={`$${kpis.totalPaid.toFixed(0)}`}
+          value={`€${kpis.totalPaid.toFixed(0)}`}
           sub={`${kpis.paidCount} paid records`}
           icon={<CheckCircle2 className="h-4 w-4" />}
           tone="teal"
         />
         <Stat
           label="Outstanding"
-          value={`$${kpis.outstanding.toFixed(0)}`}
-          sub={`$${kpis.unpaidAmt.toFixed(0)} unpaid`}
+          value={`€${kpis.outstanding.toFixed(0)}`}
+          sub={`€${kpis.unpaidAmt.toFixed(0)} unpaid`}
           icon={<Wallet className="h-4 w-4" />}
           tone="amber"
         />
@@ -260,7 +260,7 @@ export function AdminBillingOverview() {
         <Stat
           label="Overdue"
           value={kpis.overdueCount}
-          sub={`$${kpis.overdueAmt.toFixed(0)} overdue`}
+          sub={`€${kpis.overdueAmt.toFixed(0)} overdue`}
           icon={<AlertTriangle className="h-4 w-4" />}
           tone={kpis.overdueCount > 0 ? 'rose' : 'slate'}
         />
@@ -279,7 +279,7 @@ export function AdminBillingOverview() {
         />
         <Stat
           label="Waived"
-          value={`$${kpis.waivedAmt.toFixed(0)}`}
+          value={`€${kpis.waivedAmt.toFixed(0)}`}
           icon={<CreditCard className="h-4 w-4" />}
           tone="slate"
         />
