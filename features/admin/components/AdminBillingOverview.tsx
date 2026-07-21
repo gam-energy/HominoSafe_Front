@@ -28,20 +28,42 @@ import {
 
 import {
   useAllBillings,
+  useAllAppointmentDebts,
   useUpdateBilling,
+  useUpdateAdminAppointmentDebt,
   type ClinicBilling,
   type ClinicBillingRow,
+  type AppointmentDebt,
 } from '../api/use-clinics';
 import { BillingDialog } from './BillingDialog';
+import { Badge } from '@/components/ui/badge';
 
 const STATUSES: ClinicBilling['status'][] = ['unpaid', 'paid', 'overdue', 'waived'];
+
+function formatWhen(iso?: string | null) {
+  if (!iso) return '—';
+  try {
+    return new Date(iso).toLocaleString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return iso;
+  }
+}
 
 export function AdminBillingOverview() {
   const { data, isLoading, error } = useAllBillings();
   const update = useUpdateBilling();
+  const debtsQuery = useAllAppointmentDebts();
+  const updateDebt = useUpdateAdminAppointmentDebt();
 
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [debtFilter, setDebtFilter] = useState<string>('all');
   const [editing, setEditing] = useState<ClinicBillingRow | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -281,6 +303,146 @@ export function AdminBillingOverview() {
                 </tbody>
               </table>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex-row items-center justify-between space-y-0 gap-3 flex-wrap">
+          <div>
+            <CardTitle>Appointment debts</CardTitle>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Visit charges created when appointments are completed (e.g. Mahdi Mohammadi).
+            </p>
+          </div>
+          <Select value={debtFilter} onValueChange={setDebtFilter}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="unpaid">Unpaid</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="waived">Waived</SelectItem>
+            </SelectContent>
+          </Select>
+        </CardHeader>
+        <CardContent className="p-0">
+          {debtsQuery.isLoading ? (
+            <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading appointment debts…
+            </div>
+          ) : debtsQuery.isError ? (
+            <div className="py-10 text-center text-sm text-destructive">
+              Failed to load appointment debts.
+            </div>
+          ) : (
+            (() => {
+              const debts = (debtsQuery.data ?? []).filter((d) =>
+                debtFilter === 'all' ? true : d.status === debtFilter,
+              );
+              if (debts.length === 0) {
+                return (
+                  <div className="py-10 text-center text-sm text-muted-foreground">
+                    No appointment debts yet.
+                  </div>
+                );
+              }
+              return (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                      <tr>
+                        <th className="px-4 py-3">Patient</th>
+                        <th className="px-4 py-3">Doctor</th>
+                        <th className="px-4 py-3">Clinic</th>
+                        <th className="px-4 py-3">When</th>
+                        <th className="px-4 py-3 text-right">Amount</th>
+                        <th className="px-4 py-3">Status</th>
+                        <th className="px-4 py-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {debts.map((d: AppointmentDebt) => (
+                        <tr key={d.id} className="border-b last:border-0 hover:bg-muted/30">
+                          <td className="px-4 py-3 font-medium">
+                            {d.patient_name || `#${d.patient_id}`}
+                          </td>
+                          <td className="px-4 py-3">{d.doctor_name || '—'}</td>
+                          <td className="px-4 py-3">
+                            <Link
+                              href={`/dashboard/clinics/${d.clinic_id}`}
+                              className="hover:underline"
+                            >
+                              {d.clinic_name || `#${d.clinic_id}`}
+                            </Link>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground">
+                            {formatWhen(d.scheduled_at || d.charged_at)}
+                          </td>
+                          <td className="px-4 py-3 text-right tabular-nums">
+                            {d.currency} {Number(d.amount).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge variant="outline" className="capitalize">
+                              {d.status}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="inline-flex gap-1">
+                              {d.status !== 'paid' ? (
+                                <Button
+                                  size="sm"
+                                  variant="secondary"
+                                  disabled={updateDebt.isPending}
+                                  onClick={async () => {
+                                    try {
+                                      await updateDebt.mutateAsync({
+                                        debtId: d.id,
+                                        status: 'paid',
+                                      });
+                                      toast.success('Marked paid');
+                                    } catch (err: any) {
+                                      toast.error(
+                                        err?.response?.data?.detail || 'Update failed',
+                                      );
+                                    }
+                                  }}
+                                >
+                                  Mark paid
+                                </Button>
+                              ) : null}
+                              {d.status !== 'waived' ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={updateDebt.isPending}
+                                  onClick={async () => {
+                                    try {
+                                      await updateDebt.mutateAsync({
+                                        debtId: d.id,
+                                        status: 'waived',
+                                      });
+                                      toast.success('Waived');
+                                    } catch (err: any) {
+                                      toast.error(
+                                        err?.response?.data?.detail || 'Update failed',
+                                      );
+                                    }
+                                  }}
+                                >
+                                  Waive
+                                </Button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()
           )}
         </CardContent>
       </Card>

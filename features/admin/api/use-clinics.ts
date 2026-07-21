@@ -299,3 +299,197 @@ export function useDeleteBilling() {
     },
   });
 }
+
+// ---- Clinic-admin: doctor appointment prices + appointment debts ---- //
+
+export interface DoctorAppointmentPrice {
+  id?: number | null;
+  clinic_id: number;
+  doctor_id: number;
+  doctor_name: string;
+  doctor_username: string;
+  amount: number;
+  currency: string;
+  is_active: boolean;
+}
+
+export interface AppointmentDebt {
+  id: number;
+  appointment_id: number;
+  clinic_id: number;
+  clinic_name?: string;
+  doctor_id: number;
+  patient_id: number;
+  doctor_name: string;
+  patient_name: string;
+  scheduled_at?: string | null;
+  amount: number;
+  currency: string;
+  status: 'unpaid' | 'paid' | 'waived';
+  charged_at: string;
+  paid_at?: string | null;
+  notes?: string | null;
+}
+
+export interface AppointmentDebtSummary {
+  total_debt: number;
+  unpaid: number;
+  paid: number;
+  waived: number;
+  count: number;
+  unpaid_count: number;
+}
+
+export function useMyDoctorPrices() {
+  return useQuery({
+    queryKey: ['my-clinic-doctor-prices'],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<DoctorAppointmentPrice[]>(
+        '/me/clinic/doctor-prices',
+      );
+      return data;
+    },
+  });
+}
+
+export function useUpsertMyDoctorPrice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      doctorId,
+      amount,
+      currency = 'USD',
+      is_active = true,
+    }: {
+      doctorId: number;
+      amount: number;
+      currency?: string;
+      is_active?: boolean;
+    }) => {
+      const { data } = await axiosInstance.put<DoctorAppointmentPrice>(
+        `/me/clinic/doctors/${doctorId}/appointment-price`,
+        { amount, currency, is_active },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-clinic-doctor-prices'] });
+    },
+  });
+}
+
+export function useMyAppointmentDebts(status?: string) {
+  return useQuery({
+    queryKey: ['my-clinic-appointment-debts', status || 'all'],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<AppointmentDebt[]>(
+        '/me/clinic/appointment-debts',
+        { params: status && status !== 'all' ? { status } : undefined },
+      );
+      return data;
+    },
+  });
+}
+
+export function useAllAppointmentDebts(status?: string) {
+  return useQuery({
+    queryKey: ['admin-all-appointment-debts', status || 'all'],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<AppointmentDebt[]>(
+        '/admin/clinics/appointment-debts/all',
+        { params: status && status !== 'all' ? { status } : undefined },
+      );
+      return data;
+    },
+  });
+}
+
+export function useUpdateAdminAppointmentDebt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      debtId,
+      status,
+      notes,
+    }: {
+      debtId: number;
+      status?: AppointmentDebt['status'];
+      notes?: string | null;
+    }) => {
+      const { data } = await axiosInstance.patch<AppointmentDebt>(
+        `/admin/clinics/appointment-debts/${debtId}`,
+        { status, notes },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-all-appointment-debts'] });
+      qc.invalidateQueries({ queryKey: ['admin-clinic-appointment-debts'] });
+    },
+  });
+}
+
+export function useMyAppointmentDebtSummary() {
+  return useQuery({
+    queryKey: ['my-clinic-appointment-debt-summary'],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<AppointmentDebtSummary>(
+        '/me/clinic/appointment-debts/summary',
+      );
+      return data;
+    },
+  });
+}
+
+export function useUpdateMyAppointmentDebt() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      debtId,
+      status,
+      notes,
+    }: {
+      debtId: number;
+      status?: AppointmentDebt['status'];
+      notes?: string | null;
+    }) => {
+      const { data } = await axiosInstance.patch<AppointmentDebt>(
+        `/me/clinic/appointment-debts/${debtId}`,
+        { status, notes },
+      );
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['my-clinic-appointment-debts'] });
+      qc.invalidateQueries({ queryKey: ['my-clinic-appointment-debt-summary'] });
+    },
+  });
+}
+
+export function useClinicDoctorPrices(clinicId?: number) {
+  return useQuery({
+    queryKey: ['admin-clinic-doctor-prices', clinicId],
+    enabled: typeof clinicId === 'number',
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<DoctorAppointmentPrice[]>(
+        `/admin/clinics/${clinicId}/doctor-prices`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useClinicAppointmentDebts(clinicId?: number, status?: string) {
+  return useQuery({
+    queryKey: ['admin-clinic-appointment-debts', clinicId, status || 'all'],
+    enabled: typeof clinicId === 'number',
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<AppointmentDebt[]>(
+        `/admin/clinics/${clinicId}/appointment-debts`,
+        { params: status && status !== 'all' ? { status } : undefined },
+      );
+      return data;
+    },
+  });
+}
+

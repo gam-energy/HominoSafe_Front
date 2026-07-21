@@ -301,6 +301,14 @@ export const roleNavItems: Record<Role, NavItem[]> = {
       items: [],
     },
     {
+      title: 'Billing',
+      url: '/dashboard/billing',
+      icon: 'billing',
+      shortcut: ['b', 'b'],
+      isActive: false,
+      items: [],
+    },
+    {
       title: 'Applications',
       url: '/dashboard/applications',
       icon: 'filePlus',
