@@ -12,6 +12,7 @@ const config: CapacitorConfig = {
   android: {
     allowMixedContent: true,
     captureInput: true,
+    appendUserAgent: 'SenioSentry-Android',
   },
   server: {
     // Load production UI over HTTPS instead of bundled static files.

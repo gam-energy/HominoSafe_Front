@@ -9,6 +9,7 @@ import { NuqsAdapter } from 'nuqs/adapters/next/app';
 import { UserProvider } from "@/context/UserContext";
 import AppTopLoader from '@/components/layout/app-top-loader';
 import { InstallPwaPrompt } from '@/components/pwa/InstallPwaPrompt';
+import { CapacitorSafeArea } from '@/components/pwa/CapacitorSafeArea';
 import './globals.css';
 import './theme.css';
 
@@ -84,6 +85,14 @@ export default async function RootLayout({
                 document.documentElement.lang = isFa ? 'fa' : 'en';
                 document.documentElement.dir = isFa ? 'rtl' : 'ltr';
               } catch (_) {}
+              try {
+                var isCap = (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||
+                            (navigator.userAgent && navigator.userAgent.indexOf('SenioSentry-Android') !== -1);
+                if (isCap) {
+                  document.documentElement.classList.add('native-capacitor');
+                  document.documentElement.style.setProperty('--app-sat', '40px');
+                }
+              } catch (_) {}
             `
           }}
         />
@@ -108,6 +117,7 @@ export default async function RootLayout({
             <Providers activeThemeValue={activeThemeValue as string}>
               <QueryProvider>
               <UserProvider>
+                <CapacitorSafeArea />
                 {children}
                 <InstallPwaPrompt />
                 <Toaster richColors position="top-center" />

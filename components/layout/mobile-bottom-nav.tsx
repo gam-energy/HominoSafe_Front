@@ -34,7 +34,10 @@ export default function MobileBottomNav() {
   const mainItems = hasMore ? displayItems.slice(0, 4) : displayItems;
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 z-40 md:hidden">
+    <div
+      style={{ marginBottom: 'var(--app-sab, 0px)' }}
+      className="fixed bottom-4 left-4 right-4 z-40 md:hidden"
+    >
       <div className="mx-auto max-w-lg rounded-2xl border border-white/20 bg-white/70 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] backdrop-blur-md dark:border-zinc-800/50 dark:bg-zinc-950/70">
         <nav className="flex items-center justify-around px-2 py-2">
           {mainItems.map((item) => {

@@ -199,3 +199,21 @@ html[dir="rtl"] [data-rtl-flip] {
   direction: ltr;
   unicode-bidi: embed;
 }
+
+/*
+ * PWA / browser: use env() safe-area.
+ * Capacitor: --app-sat is set from Android status_bar_height (env() is often 0).
+ * Sticky header also uses pt-[var(--app-sat)] so chrome clears the status bar.
+ */
+html:not(.native-capacitor) {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+html.native-capacitor {
+  /* Fallback until MainActivity / CapacitorSafeArea set the inline var */
+  --app-sat: 40px;
+  --app-sab: 0px;
+}
