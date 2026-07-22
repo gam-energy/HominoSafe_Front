@@ -240,6 +240,10 @@ export function formSeedKey(seed: ProfileFormSeed): string {
     seed.diagnosis,
     seed.comorbidities,
     seed.physician_notes,
+    seed.age,
+    seed.weight,
+    seed.height,
+    seed.gender,
     seed.medications.length,
     seed.symptoms.length,
   ].join("|");

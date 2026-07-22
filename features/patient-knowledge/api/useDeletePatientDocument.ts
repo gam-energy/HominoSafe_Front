@@ -26,6 +26,9 @@ export const useDeletePatientDocument = () => {
       queryClient.invalidateQueries({
         queryKey: patientImportRecordsQueryKey(variables.userId),
       });
+      queryClient.invalidateQueries({
+        queryKey: ["profile-stats", variables.userId],
+      });
     },
   });
 };

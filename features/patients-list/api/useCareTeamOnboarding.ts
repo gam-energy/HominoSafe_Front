@@ -117,7 +117,7 @@ export function usePatientOnboarding(patientId: number | null) {
 export function useMarkRecordsComplete(patientId: number) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (complete = true) => {
+    mutationFn: async (complete: boolean = true) => {
       const { data } = await axiosInstance.post<PatientOnboarding>(
         `/user/patients/${patientId}/records-complete`,
         { complete },

@@ -43,6 +43,12 @@ export const useIngestKnowledge = () => {
       queryClient.invalidateQueries({
         queryKey: patientImportRecordsQueryKey(variables.userId),
       });
+      queryClient.invalidateQueries({
+        queryKey: ["profile-stats", variables.userId],
+      });
+      queryClient.invalidateQueries({
+        queryKey: ["user-care-team", variables.userId],
+      });
     },
   });
 };

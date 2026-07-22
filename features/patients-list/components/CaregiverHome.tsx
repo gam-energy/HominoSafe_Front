@@ -77,7 +77,7 @@ export default function CaregiverHome() {
     staleTime: 45_000,
   });
 
-  const unsettled = useMemo(() => {
+  const unsettledAll = useMemo(() => {
     const byPatient = new Map<
       number,
       { severity: string; message: string; when: string }
@@ -123,14 +123,14 @@ export default function CaregiverHome() {
               ? 1
               : 2;
         return ra - rb;
-      })
-      .slice(0, 6);
+      });
   }, [alerts, patientIds, patients]);
 
-  const recentFalls = useMemo(() => {
+  const unsettled = useMemo(() => unsettledAll.slice(0, 6), [unsettledAll]);
+
+  const recentFallsAll = useMemo(() => {
     return falls
       .filter((f) => patientIds.size === 0 || patientIds.has(f.patient_id))
-      .slice(0, 5)
       .map((f) => {
         const p = (patients ?? []).find((x) => x.id === f.patient_id);
         const name = p
@@ -139,6 +139,11 @@ export default function CaregiverHome() {
         return { ...f, displayName: name, patient: p };
       });
   }, [falls, patientIds, patients]);
+
+  const recentFalls = useMemo(
+    () => recentFallsAll.slice(0, 5),
+    [recentFallsAll]
+  );
 
   const medsDue = useMemo(
     () => (pendingDoses.data?.doses ?? []).slice(0, 6),
@@ -151,11 +156,11 @@ export default function CaregiverHome() {
       total: list.length,
       active: list.filter((p) => String(p.status).toLowerCase() === 'active')
         .length,
-      unsettled: unsettled.length,
-      falls: recentFalls.length,
-      meds: pendingDoses.data?.doses?.length ?? medsDue.length,
+      unsettled: unsettledAll.length,
+      falls: recentFallsAll.length,
+      meds: pendingDoses.data?.doses?.length ?? 0,
     };
-  }, [patients, unsettled.length, recentFalls.length, pendingDoses.data, medsDue.length]);
+  }, [patients, unsettledAll.length, recentFallsAll.length, pendingDoses.data]);
 
   const householdPreview = useMemo(
     () => (patients ?? []).slice(0, 6),

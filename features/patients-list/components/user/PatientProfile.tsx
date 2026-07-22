@@ -1,6 +1,6 @@
 "use client";
 
-import { FC, useEffect, useState } from "react";
+import { FC, useEffect, useMemo, useState } from "react";
 import { useUserProfiles } from "@/features/patients-list/api/useUserProfiles";
 import {
   Card,

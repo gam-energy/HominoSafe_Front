@@ -28,6 +28,7 @@ import {
   type DocumentType,
   type PatientProfileJson,
 } from "../types/knowledge";
+import { parsePatientKnowledgeError } from "../utils/patientKnowledgeErrors";
 import type { ProfileFormSeed } from "../utils/profileMappers";
 import { hasProfileContent } from "../utils/profileMappers";
 
