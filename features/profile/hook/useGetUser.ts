@@ -16,6 +16,31 @@ export function calcAgeFromDob(dob?: string | null): number | null {
   return age >= 0 ? age : null;
 }
 
+function parseDemographicsBlob(
+  demographics?: string | null
+): Partial<UserProfileData> {
+  if (!demographics || !String(demographics).trim()) return {};
+  const text = String(demographics).trim();
+  if (!(text.startsWith('{') || text.startsWith('['))) return {};
+  try {
+    const parsed = JSON.parse(text) as Record<string, unknown>;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+    const toNum = (v: unknown): number | null => {
+      if (v == null || v === '') return null;
+      const n = Number(v);
+      return Number.isFinite(n) && n > 0 ? n : null;
+    };
+    return {
+      age: toNum(parsed.age),
+      weight: toNum(parsed.weight),
+      height: toNum(parsed.height),
+      gender: parsed.gender != null ? String(parsed.gender) : null,
+    };
+  } catch {
+    return {};
+  }
+}
+
 export function mapProfileStats(data: Partial<UserProfileData>): ProfileStats {
   const age =
     data.age != null && data.age > 0
@@ -29,6 +54,19 @@ export function mapProfileStats(data: Partial<UserProfileData>): ProfileStats {
   };
 }
 
+function mergeProfileStats(
+  primary: Partial<UserProfileData>,
+  fallback: Partial<UserProfileData>
+): ProfileStats {
+  const merged: Partial<UserProfileData> = {
+    ...fallback,
+    ...Object.fromEntries(
+      Object.entries(primary).filter(([, v]) => v != null && v !== '')
+    ),
+  };
+  return mapProfileStats(merged);
+}
+
 export const getUserProfile = async (): Promise<UserProfileData> => {
   // refresh_token may be HttpOnly (not visible to js-cookie); access_token is enough
   const accessToken = Cookies.get('access_token');
@@ -38,6 +76,26 @@ export const getUserProfile = async (): Promise<UserProfileData> => {
 
   const response = await axiosInstance.get<UserProfileData>('/api/profile/user');
   return response.data;
+};
+
+const fetchEhrDemographics = async (
+  userId: number
+): Promise<Partial<UserProfileData>> => {
+  try {
+    const response = await axiosInstance.get<
+      Array<{ demographics?: string | null }>
+    >('/api/profile/all', { params: { user_id: userId } });
+    const rows = Array.isArray(response.data) ? response.data : [];
+    for (const row of rows) {
+      const parsed = parseDemographicsBlob(row.demographics);
+      if (parsed.weight || parsed.height || parsed.age) {
+        return parsed;
+      }
+    }
+    return rows[0] ? parseDemographicsBlob(rows[0].demographics) : {};
+  } catch {
+    return {};
+  }
 };
 
 const fetchProfileStats = async (userId?: number): Promise<ProfileStats> => {
@@ -50,7 +108,16 @@ const fetchProfileStats = async (userId?: number): Promise<ProfileStats> => {
     `/user/${userId}`
   );
   const data = Array.isArray(response.data) ? response.data[0] : response.data;
-  return mapProfileStats(data ?? {});
+  const fromUser = mapProfileStats(data ?? {});
+
+  // Caregiver/doctor panels historically missed weight/height/age because
+  // UserResponse omitted them and EHR demographics were never mirrored.
+  if (fromUser.weight != null && fromUser.height != null && fromUser.age != null) {
+    return fromUser;
+  }
+
+  const fromEhr = await fetchEhrDemographics(userId);
+  return mergeProfileStats(data ?? {}, fromEhr);
 };
 
 export const useUserProfile = () => {
