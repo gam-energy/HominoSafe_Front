@@ -1,12 +1,19 @@
 "use client";
 
 import { useTranslation } from "react-i18next";
-import { FileText, Pill, Stethoscope } from "lucide-react";
+import { FileText, Loader2, Pill, Stethoscope, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
-import type { PatientKnowledgeResponse, PatientProfileJson } from "../types/knowledge";
+import { useDeletePatientDocument } from "../api/useDeletePatientDocument";
+import type {
+  KnowledgeDocument,
+  PatientKnowledgeResponse,
+  PatientProfileJson,
+} from "../types/knowledge";
 import {
   documentDisplayName,
   documentStatusLabel,
@@ -20,13 +27,47 @@ import {
 
 interface PatientKnowledgeSnapshotProps {
   data: PatientKnowledgeResponse;
+  onRefetch?: () => void;
 }
 
-export function PatientKnowledgeSnapshot({ data }: PatientKnowledgeSnapshotProps) {
+export function PatientKnowledgeSnapshot({
+  data,
+  onRefetch,
+}: PatientKnowledgeSnapshotProps) {
   const { t } = useTranslation();
+  const deleteMutation = useDeletePatientDocument();
   const normalized = normalizePatientKnowledgeResponse(data);
   const profile = normalized.profile;
   const hasProfile = profile && hasProfileContent(profile);
+  const userId = normalized.patient.user_id;
+  const deletingId = deleteMutation.isPending
+    ? deleteMutation.variables?.documentId
+    : null;
+
+  const handleDelete = async (doc: KnowledgeDocument) => {
+    if (doc.id == null) {
+      toast.error(t("delete_document_missing_id", "Cannot delete this document."));
+      return;
+    }
+    const confirmed = window.confirm(
+      t(
+        "delete_document_confirm",
+        "Delete this document? This removes the file and its indexed chunks."
+      )
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteMutation.mutateAsync({
+        userId,
+        documentId: Number(doc.id),
+      });
+      toast.success(t("delete_document_success", "Document deleted"));
+      onRefetch?.();
+    } catch {
+      toast.error(t("delete_document_failed", "Failed to delete document"));
+    }
+  };
 
   return (
     <Card className="overflow-hidden border-primary/20">
@@ -71,27 +112,48 @@ export function PatientKnowledgeSnapshot({ data }: PatientKnowledgeSnapshotProps
               {t("uploaded_documents", "Uploaded Documents")}
             </p>
             <ul className="space-y-1.5">
-              {normalized.documents.map((doc, index) => (
-                <li
-                  key={String(doc.id ?? doc.filename ?? index)}
-                  className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2 text-sm"
-                >
-                  <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate">
-                    {documentDisplayName(doc)}
-                  </span>
-                  {doc.document_type && (
-                    <Badge variant="secondary" className="shrink-0 capitalize">
-                      {String(doc.document_type).replace(/_/g, " ")}
-                    </Badge>
-                  )}
-                  {doc.status && (
-                    <Badge variant="outline" className="shrink-0 text-xs">
-                      {documentStatusLabel(doc.status)}
-                    </Badge>
-                  )}
-                </li>
-              ))}
+              {normalized.documents.map((doc, index) => {
+                const docId = doc.id != null ? Number(doc.id) : null;
+                const isDeleting = deletingId != null && docId === deletingId;
+                return (
+                  <li
+                    key={String(doc.id ?? doc.filename ?? index)}
+                    className="flex items-center gap-2 rounded-md border bg-muted/20 px-3 py-2 text-sm"
+                  >
+                    <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {documentDisplayName(doc)}
+                    </span>
+                    {doc.document_type && (
+                      <Badge variant="secondary" className="shrink-0 capitalize">
+                        {String(doc.document_type).replace(/_/g, " ")}
+                      </Badge>
+                    )}
+                    {doc.status && (
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        {documentStatusLabel(doc.status)}
+                      </Badge>
+                    )}
+                    {docId != null && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        disabled={deleteMutation.isPending}
+                        aria-label={t("delete_document", "Delete document")}
+                        onClick={() => handleDelete(doc)}
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
@@ -124,7 +186,25 @@ function ExistingProfileDetails({ profile }: { profile: PatientProfileJson }) {
   const demographics =
     typeof profile.demographics === "object" && profile.demographics
       ? profile.demographics
-      : null;
+      : typeof profile.demographics === "string" && profile.demographics.trim()
+        ? (() => {
+            try {
+              const parsed = JSON.parse(profile.demographics);
+              return parsed && typeof parsed === "object" ? parsed : null;
+            } catch {
+              return null;
+            }
+          })()
+        : null;
+  const comorbidityList = Array.isArray(profile.comorbidities)
+    ? profile.comorbidities.map(String).filter(Boolean)
+    : profile.comorbidities && typeof profile.comorbidities === "object"
+      ? Object.entries(profile.comorbidities).map(([k, v]) =>
+          v && String(v).toLowerCase() !== "true" && String(v) !== k
+            ? `${k}: ${v}`
+            : k
+        )
+      : [];
 
   return (
     <div className="space-y-4 rounded-xl border bg-muted/10 p-4">
@@ -132,13 +212,13 @@ function ExistingProfileDetails({ profile }: { profile: PatientProfileJson }) {
         <SnapshotBlock label={t("diagnosis", "Diagnosis")} value={profile.diagnosis} />
       )}
 
-      {profile.comorbidities?.length > 0 && (
+      {comorbidityList.length > 0 && (
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t("comorbidities", "Comorbidities")}
           </p>
           <div className="flex flex-wrap gap-1.5">
-            {profile.comorbidities.map((item) => (
+            {comorbidityList.map((item) => (
               <Badge key={item} variant="secondary">
                 {item}
               </Badge>

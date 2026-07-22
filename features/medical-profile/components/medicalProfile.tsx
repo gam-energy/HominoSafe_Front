@@ -3,7 +3,7 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { useProfile } from "@/features/medical-profile/api/useGetMedicalProfile";
 import { useUpdateAllergies } from "@/features/medical-profile/api/useUpdateAllergies";
-import { normalizeComorbidities } from "@/features/medical-profile/utils/profile";
+import { normalizeComorbidities, parseDemographics } from "@/features/medical-profile/utils/profile";
 import type { Symptom } from "@/features/medical-profile/types/medicalprofile";
 import Link from "next/link";
 import { useUserProfiles } from "@/features/patients-list/api/useUserProfiles";
@@ -262,12 +262,24 @@ function buildMedicalProfileReport(
     lastUpdated: data.timestamp
       ? new Date(data.timestamp).toLocaleString()
       : undefined,
-    demographics: data.demographics,
+    demographics: (() => {
+      const parsed = parseDemographics(data.demographics);
+      if (!parsed) return "";
+      if (parsed.raw) return parsed.raw;
+      return [
+        parsed.age != null ? `Age ${parsed.age}` : null,
+        parsed.gender ? `Gender ${parsed.gender}` : null,
+        parsed.weight != null ? `Weight ${parsed.weight} kg` : null,
+        parsed.height != null ? `Height ${parsed.height} cm` : null,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+    })(),
     diagnosis: data.diagnosis,
     physicianNotes: data.physician_notes,
     comorbidities: comorbidityEntries.map(([key, value]) => ({
       label: formatLabel(key),
-      value: value || "—",
+      value: value || "Present",
     })),
     allergies,
     medications: medications.map((med) => ({
@@ -440,6 +452,7 @@ export function MedicalProfileView({
   const medications = data.medications ?? [];
   const symptoms = data.symptoms ?? [];
   const allergies = data.allergies ?? [];
+  const demographics = parseDemographics(data.demographics);
 
   const stats = [
     {
@@ -544,11 +557,46 @@ export function MedicalProfileView({
               title={t("demographics", "Demographics")}
               description={t("demographics_desc", "Patient background and identifiers")}
             >
-              <p className="text-sm leading-relaxed text-foreground">
-                {data.demographics || (
-                  <span className="text-muted-foreground">{t("no_demographics")}</span>
-                )}
-              </p>
+              {!demographics ? (
+                <p className="text-sm text-muted-foreground">{t("no_demographics")}</p>
+              ) : demographics.raw ? (
+                <p className="text-sm leading-relaxed text-foreground">{demographics.raw}</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  {demographics.age != null && demographics.age !== "" && (
+                    <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("age", "Age")}
+                      </p>
+                      <p className="text-sm font-medium">{demographics.age}</p>
+                    </div>
+                  )}
+                  {demographics.gender && (
+                    <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("gender", "Gender")}
+                      </p>
+                      <p className="text-sm font-medium capitalize">{demographics.gender}</p>
+                    </div>
+                  )}
+                  {demographics.weight != null && demographics.weight !== "" && (
+                    <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("weight", "Weight")}
+                      </p>
+                      <p className="text-sm font-medium">{demographics.weight} kg</p>
+                    </div>
+                  )}
+                  {demographics.height != null && demographics.height !== "" && (
+                    <div className="rounded-xl border border-border bg-muted/30 px-3 py-2.5">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        {t("height", "Height")}
+                      </p>
+                      <p className="text-sm font-medium">{demographics.height} cm</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </SectionShell>
 
             <SectionShell
@@ -603,19 +651,15 @@ export function MedicalProfileView({
               {comorbidityEntries.length === 0 ? (
                 <p className="text-sm text-muted-foreground">{t("no_comorbidities")}</p>
               ) : (
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-wrap gap-2">
                   {comorbidityEntries.map(([key, value]) => (
-                    <div
-                      key={key}
-                      className="rounded-xl border border-border bg-muted/30 px-3 py-2.5 transition-colors hover:bg-muted/50"
+                    <Badge
+                      key={`${key}-${value}`}
+                      variant="secondary"
+                      className="rounded-lg px-3 py-1.5 text-sm font-medium"
                     >
-                      <p className="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-400">
-                        {formatLabel(key)}
-                      </p>
-                      <p className="mt-0.5 text-sm font-medium text-foreground">
-                        {value || t("no_data", "No data")}
-                      </p>
-                    </div>
+                      {value ? `${formatLabel(key)}: ${value}` : formatLabel(key)}
+                    </Badge>
                   ))}
                 </div>
               )}

@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { AlertCircle, CheckCircle2, FileText, Loader2, RefreshCw } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  Loader2,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+import { useDeletePatientDocument } from "../api/useDeletePatientDocument";
 import { useRefreshKnowledge } from "../api/useRefreshKnowledge";
 import type {
   KnowledgeDocument,
@@ -59,6 +67,7 @@ export function KnowledgeStatusPanel({
 }: KnowledgeStatusPanelProps) {
   const { t } = useTranslation();
   const refreshMutation = useRefreshKnowledge();
+  const deleteMutation = useDeletePatientDocument();
 
   const handleRefresh = async () => {
     try {
@@ -68,6 +77,32 @@ export function KnowledgeStatusPanel({
       onRefetch?.();
     } catch {
       toast.error(t("reindex_failed", "Failed to start re-indexing"));
+    }
+  };
+
+  const handleDelete = async (doc: KnowledgeDocument) => {
+    if (doc.id == null) {
+      toast.error(t("delete_document_missing_id", "Cannot delete this document."));
+      return;
+    }
+    const name = documentDisplayName(doc);
+    const confirmed = window.confirm(
+      t(
+        "delete_document_confirm",
+        "Delete this document? This removes the file and its indexed chunks."
+      )
+    );
+    if (!confirmed) return;
+
+    try {
+      await deleteMutation.mutateAsync({
+        userId,
+        documentId: Number(doc.id),
+      });
+      toast.success(t("delete_document_success", "Document deleted"));
+      onRefetch?.();
+    } catch {
+      toast.error(t("delete_document_failed", "Failed to delete document"));
     }
   };
 
@@ -83,6 +118,9 @@ export function KnowledgeStatusPanel({
   }
 
   const status = knowledge;
+  const deletingId = deleteMutation.isPending
+    ? deleteMutation.variables?.documentId
+    : null;
 
   return (
     <Card className="overflow-hidden">
@@ -147,30 +185,51 @@ export function KnowledgeStatusPanel({
               {t("indexed_documents", "Indexed Documents")}
             </p>
             <ul className="space-y-1.5">
-              {documents.map((doc, index) => (
-                <li
-                  key={String(doc.id ?? doc.original_filename ?? doc.filename ?? index)}
-                  className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
-                >
-                  <FileText className="h-3.5 w-3.5 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">
-                    {documentDisplayName(doc)}
-                    {doc.document_type
-                      ? ` (${String(doc.document_type).replace(/_/g, " ")})`
-                      : ""}
-                  </span>
-                  {doc.status && (
-                    <Badge variant="outline" className="shrink-0 text-xs">
-                      {documentStatusLabel(doc.status)}
-                    </Badge>
-                  )}
-                  {(doc.error_message || doc.error) && (
-                    <span className="basis-full text-xs text-destructive">
-                      {doc.error_message || doc.error}
+              {documents.map((doc, index) => {
+                const docId = doc.id != null ? Number(doc.id) : null;
+                const isDeleting = deletingId != null && docId === deletingId;
+                return (
+                  <li
+                    key={String(doc.id ?? doc.original_filename ?? doc.filename ?? index)}
+                    className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <FileText className="h-3.5 w-3.5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">
+                      {documentDisplayName(doc)}
+                      {doc.document_type
+                        ? ` (${String(doc.document_type).replace(/_/g, " ")})`
+                        : ""}
                     </span>
-                  )}
-                </li>
-              ))}
+                    {doc.status && (
+                      <Badge variant="outline" className="shrink-0 text-xs">
+                        {documentStatusLabel(doc.status)}
+                      </Badge>
+                    )}
+                    {docId != null && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                        disabled={deleteMutation.isPending}
+                        aria-label={t("delete_document", "Delete document")}
+                        onClick={() => handleDelete(doc)}
+                      >
+                        {isDeleting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    )}
+                    {(doc.error_message || doc.error) && (
+                      <span className="basis-full text-xs text-destructive">
+                        {doc.error_message || doc.error}
+                      </span>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

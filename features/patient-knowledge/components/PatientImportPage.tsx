@@ -180,7 +180,12 @@ export function PatientImportPage({
           </Alert>
         )}
 
-        {knowledgeData && <PatientKnowledgeSnapshot data={knowledgeData} />}
+        {knowledgeData && (
+          <PatientKnowledgeSnapshot
+            data={knowledgeData}
+            onRefetch={() => void refetch()}
+          />
+        )}
 
         {!loadError && (
           <PatientImportForm

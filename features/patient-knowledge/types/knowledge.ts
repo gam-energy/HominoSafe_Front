@@ -91,6 +91,8 @@ export interface KnowledgeDocument {
   chunk_count?: number;
   content_summary?: string | null;
   uploaded_at?: string;
+  error?: string;
+  error_message?: string | null;
 }
 
 export interface PatientKnowledgeResponse {
