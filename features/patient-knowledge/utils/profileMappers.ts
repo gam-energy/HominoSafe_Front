@@ -9,6 +9,7 @@ export type ProfileFormSeed = {
   comorbidities: string;
   physician_notes: string;
   medical_history: string;
+  allergies: string;
   age: string;
   weight: string;
   height: string;
@@ -34,6 +35,7 @@ const EMPTY_FORM_SEED: ProfileFormSeed = {
   comorbidities: "",
   physician_notes: "",
   medical_history: "",
+  allergies: "",
   age: "",
   weight: "",
   height: "",
@@ -127,9 +129,19 @@ export function normalizeProfile(
     : [];
   const symptoms = Array.isArray(record.symptoms) ? record.symptoms : [];
 
+  const allergies = Array.isArray(record.allergies)
+    ? record.allergies.map(String).map((s) => s.trim()).filter(Boolean)
+    : typeof record.allergies === "string" && record.allergies.trim()
+      ? record.allergies
+          .split(/[,،;]+/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+
   const normalized: PatientProfileJson = {
     diagnosis: String(record.diagnosis ?? ""),
     comorbidities,
+    allergies,
     demographics: parseDemographics(
       record.demographics as PatientProfileJson["demographics"],
       patientAge
@@ -166,6 +178,7 @@ export function hasProfileContent(profile: PatientProfileJson): boolean {
     profile.diagnosis?.trim() ||
       profile.physician_notes?.trim() ||
       profile.comorbidities?.length ||
+      profile.allergies?.length ||
       profile.medications?.length ||
       profile.symptoms?.length ||
       profile.medical_history ||
@@ -209,6 +222,7 @@ export function profileToFormSeed(
     comorbidities: (profile.comorbidities ?? []).join(", "),
     physician_notes: profile.physician_notes ?? "",
     medical_history: formatMedicalHistory(profile.medical_history),
+    allergies: (profile.allergies ?? []).join(", "),
     age: demographics.age != null ? String(demographics.age) : "",
     weight: demographics.weight != null ? String(demographics.weight) : "",
     height: demographics.height != null ? String(demographics.height) : "",
@@ -240,6 +254,7 @@ export function formSeedKey(seed: ProfileFormSeed): string {
     seed.diagnosis,
     seed.comorbidities,
     seed.physician_notes,
+    seed.allergies,
     seed.age,
     seed.weight,
     seed.height,

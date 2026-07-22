@@ -227,6 +227,25 @@ function ExistingProfileDetails({ profile }: { profile: PatientProfileJson }) {
         </div>
       )}
 
+      {Array.isArray(profile.allergies) && profile.allergies.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("allergies", "Allergies")}
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {profile.allergies.map((item) => (
+              <Badge
+                key={item}
+                variant="outline"
+                className="border-amber-500/30 bg-amber-500/10 text-amber-800 dark:text-amber-300"
+              >
+                {item}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
       {demographics && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {demographics.age != null && (

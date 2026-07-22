@@ -52,6 +52,7 @@ export interface PatientProfileJson {
   demographics?: ProfileDemographics | string;
   physician_notes: string;
   medical_history?: string | ProfileMedicalHistoryItem[];
+  allergies?: string[];
   medications: ProfileMedication[];
   symptoms: ProfileSymptom[];
 }

@@ -53,6 +53,7 @@ const profileSchema = z.object({
   comorbidities: z.string(),
   physician_notes: z.string(),
   medical_history: z.string().optional(),
+  allergies: z.string().optional(),
   age: z.string().optional(),
   weight: z.string().optional(),
   height: z.string().optional(),
@@ -68,6 +69,7 @@ const EMPTY_FORM_VALUES: ProfileFormValues = {
   comorbidities: "",
   physician_notes: "",
   medical_history: "",
+  allergies: "",
   age: "",
   weight: "",
   height: "",
@@ -117,6 +119,7 @@ export function PatientImportForm({
   const hasExistingProfile = Boolean(
     initialProfile?.diagnosis ||
       initialProfile?.physician_notes ||
+      initialProfile?.allergies ||
       initialProfile?.medications.length ||
       initialProfile?.symptoms.length
   );
@@ -147,6 +150,11 @@ export function PatientImportForm({
       .map((item) => item.trim())
       .filter(Boolean);
 
+    const allergies = (data.allergies ?? "")
+      .split(/[,،;]+/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+
     const demographics: PatientProfileJson["demographics"] = {};
     if (data.age) demographics.age = Number(data.age);
     if (data.weight) demographics.weight = Number(data.weight);
@@ -162,6 +170,7 @@ export function PatientImportForm({
     return {
       diagnosis: data.diagnosis,
       comorbidities,
+      allergies,
       demographics: Object.keys(demographics).length ? demographics : undefined,
       physician_notes: data.physician_notes,
       medical_history: data.medical_history,
@@ -267,6 +276,18 @@ export function PatientImportForm({
               <Label htmlFor="gender">{t("gender", "Gender")}</Label>
               <Input id="gender" {...register("gender")} />
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="allergies">{t("allergies", "Allergies")}</Label>
+            <Input
+              id="allergies"
+              placeholder={t(
+                "allergies_placeholder",
+                "e.g. Penicillin, Peanut (comma-separated)"
+              )}
+              {...register("allergies")}
+            />
           </div>
 
           <div className="space-y-2">

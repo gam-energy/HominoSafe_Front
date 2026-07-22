@@ -675,7 +675,7 @@ export function MedicalProfileView({
                 "Known allergies and intolerances"
               )}
             >
-              <AllergiesEditor allergies={allergies} userId={user?.id} />
+              <AllergiesEditor allergies={allergies} userId={reportUserId} />
             </SectionShell>
           </motion.div>
         </div>
