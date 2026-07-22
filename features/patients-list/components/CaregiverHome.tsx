@@ -236,6 +236,48 @@ export default function CaregiverHome() {
           <>
             <section>
               <SectionTitle
+                title={t('my_household', 'My Household')}
+                description={t(
+                  'household_preview_desc',
+                  'People you care for — open anyone to see vitals and care details.'
+                )}
+                action={
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    onClick={() => router.push('/dashboard/my-patients')}
+                  >
+                    {t('view_all', 'View all')}
+                    <ArrowRight className="ms-1 h-3.5 w-3.5 rtl:-scale-x-100" />
+                  </Button>
+                }
+              />
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {householdPreview.map((patient) => {
+                  const routes = staffPatientRoutes(
+                    user?.role,
+                    patientPublicRef(patient)
+                  );
+                  const unsettledHit = unsettled.find(
+                    (u) => u.patient.id === patient.id
+                  );
+                  return (
+                    <PatientCard
+                      key={patient.id}
+                      patient={patient}
+                      status={unsettledHit ? 'unsettled' : 'ok'}
+                      statusHint={unsettledHit?.alert.message}
+                      ctaLabel={t('open', 'Open')}
+                      onOpen={() => router.push(routes.detailRoute)}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+
+            <section>
+              <SectionTitle
                 title={t('household_overview', 'Household overview')}
                 description={t(
                   'household_overview_desc',
@@ -276,7 +318,7 @@ export default function CaregiverHome() {
             </section>
 
             <section className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-              <StaffSurface className="flex h-full min-h-[22rem] flex-col gap-3 overflow-hidden p-5 lg:col-span-1">
+              <StaffSurface className="flex h-full min-h-[22rem] flex-col gap-3 overflow-hidden p-5 lg:col-span-3">
                 <SectionTitle
                   title={t('whos_unsettled', "Who’s unsettled")}
                   description={t(
@@ -300,7 +342,7 @@ export default function CaregiverHome() {
                     {t('household_calm', 'Everyone looks settled right now.')}
                   </p>
                 ) : (
-                  <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pe-1">
+                  <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-y-auto pe-1 sm:grid-cols-2 xl:grid-cols-3">
                     {unsettled.map(({ patient, alert }) => {
                       const routes = staffPatientRoutes(
                         user?.role,
@@ -319,48 +361,6 @@ export default function CaregiverHome() {
                     })}
                   </div>
                 )}
-              </StaffSurface>
-
-              <StaffSurface className="flex h-full min-h-[22rem] flex-col gap-3 overflow-hidden p-5 lg:col-span-2">
-                <SectionTitle
-                  title={t('my_household', 'My Household')}
-                  description={t(
-                    'household_preview_desc',
-                    'People you care for — open anyone to see vitals and care details.'
-                  )}
-                  action={
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => router.push('/dashboard/my-patients')}
-                    >
-                      {t('view_all', 'View all')}
-                      <ArrowRight className="ms-1 h-3.5 w-3.5 rtl:-scale-x-100" />
-                    </Button>
-                  }
-                />
-                <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-y-auto pe-1 sm:grid-cols-2">
-                  {householdPreview.map((patient) => {
-                    const routes = staffPatientRoutes(
-                      user?.role,
-                      patientPublicRef(patient)
-                    );
-                    const unsettledHit = unsettled.find(
-                      (u) => u.patient.id === patient.id
-                    );
-                    return (
-                      <PatientCard
-                        key={patient.id}
-                        patient={patient}
-                        status={unsettledHit ? 'unsettled' : 'ok'}
-                        statusHint={unsettledHit?.alert.message}
-                        ctaLabel={t('open', 'Open')}
-                        onOpen={() => router.push(routes.detailRoute)}
-                      />
-                    );
-                  })}
-                </div>
               </StaffSurface>
             </section>
 

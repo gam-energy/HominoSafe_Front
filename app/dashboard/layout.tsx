@@ -4,7 +4,6 @@ import MobileBottomNav from '@/components/layout/mobile-bottom-nav';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
-import  AssistantModal  from '@/components/ui/assistant-ui/assistant-modal';
 import { LayoutSidebarProvider } from '@/context/SidebarContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 
@@ -28,7 +27,6 @@ export default async function DashboardLayout({
         <NotificationProvider>
       <AppSidebar />
       <SidebarInset className="min-w-0 overflow-x-hidden pb-24 md:pb-0">
-        <AssistantModal />
         <Header />
         {/* page main content */}
         {children}

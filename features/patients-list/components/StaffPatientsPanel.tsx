@@ -151,6 +151,37 @@ export default function StaffPatientsPanel({ variant }: Props) {
           </div>
         </div>
 
+        {filtered.length === 0 ? (
+          <StaffGlass className="border-dashed p-12 text-center">
+            <p className="text-sm text-muted-foreground">
+              {t("no_patients_found", "No patients found.")}
+            </p>
+          </StaffGlass>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((patient) => {
+              const routes = staffPatientRoutes(
+                user?.role,
+                patientPublicRef(patient),
+              );
+              return (
+                <PatientCard
+                  key={patient.id}
+                  patient={patient}
+                  messaging={messagingId === patient.id}
+                  showImport
+                  onOpen={() => router.push(routes.detailRoute)}
+                  onImport={() => router.push(routes.importRoute)}
+                  onClinicalAgent={() =>
+                    router.push(routes.clinicalAgentRoute)
+                  }
+                  onMessage={() => handleMessage(patient)}
+                />
+              );
+            })}
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StaffStatCard
             label={t("total_patients", "Total")}
@@ -204,37 +235,6 @@ export default function StaffPatientsPanel({ variant }: Props) {
 
         {!isCaregiver && (
           <StaffCaseloadInsights patients={patients ?? []} />
-        )}
-
-        {filtered.length === 0 ? (
-          <StaffGlass className="border-dashed p-12 text-center">
-            <p className="text-sm text-muted-foreground">
-              {t("no_patients_found", "No patients found.")}
-            </p>
-          </StaffGlass>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {filtered.map((patient) => {
-              const routes = staffPatientRoutes(
-                user?.role,
-                patientPublicRef(patient),
-              );
-              return (
-                <PatientCard
-                  key={patient.id}
-                  patient={patient}
-                  messaging={messagingId === patient.id}
-                  showImport
-                  onOpen={() => router.push(routes.detailRoute)}
-                  onImport={() => router.push(routes.importRoute)}
-                  onClinicalAgent={() =>
-                    router.push(routes.clinicalAgentRoute)
-                  }
-                  onMessage={() => handleMessage(patient)}
-                />
-              );
-            })}
-          </div>
         )}
       </div>
     </PageContainer>
