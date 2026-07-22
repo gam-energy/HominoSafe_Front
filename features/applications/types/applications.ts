@@ -15,6 +15,13 @@ export type PublicClinic = {
   phone?: string | null;
 };
 
+export type PublicDoctor = {
+  id: number;
+  first_name: string;
+  last_name: string;
+  username: string;
+};
+
 export type CaregiverApplicationInput = {
   username: string;
   password: string;
@@ -41,6 +48,7 @@ export type PatientApplicationInput = {
 
 export type CreateApplicationPayload = {
   clinic_id: number;
+  doctor_id: number;
   caregiver: CaregiverApplicationInput;
   patient: PatientApplicationInput;
 };
@@ -73,6 +81,8 @@ export type ApplicationSummary = {
   status: ApplicationStatus;
   clinic?: PublicClinic | null;
   clinic_id?: number | null;
+  doctor?: PublicDoctor | null;
+  doctor_id?: number | null;
   caregiver?: PersonSummary | null;
   patient?: PersonSummary | null;
   payment_amount?: number | null;

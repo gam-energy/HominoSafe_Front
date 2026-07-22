@@ -282,6 +282,13 @@ export function ApplicationsReviewPanel() {
                 <p className="mt-0.5 text-sm text-muted-foreground">
                   {t('clinic', 'Clinic')}: {app.clinic?.name ?? '—'}
                 </p>
+                {app.doctor && (
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {t('doctor', 'Doctor')}:{' '}
+                    {`${app.doctor.first_name} ${app.doctor.last_name}`.trim() ||
+                      app.doctor.username}
+                  </p>
+                )}
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   {t('submitted', 'Submitted')}:{' '}
                   {formatDateTime(app.submitted_at || app.created_at)}

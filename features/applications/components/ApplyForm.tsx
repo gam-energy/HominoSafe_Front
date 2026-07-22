@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { relationships } from '@/features/auth/types/auth';
-import { useCreateApplication, usePublicClinics } from '../api/use-applications';
+import { useCreateApplication, useClinicDoctors, usePublicClinics } from '../api/use-applications';
 import { GENDERS, type Gender } from '../types/applications';
 import { cn } from '@/lib/utils';
 
@@ -58,6 +58,7 @@ type FormState = {
     height: string;
   };
   clinic_id: number | null;
+  doctor_id: number | null;
 };
 
 const initialForm: FormState = {
@@ -86,6 +87,7 @@ const initialForm: FormState = {
     height: '',
   },
   clinic_id: null,
+  doctor_id: null,
 };
 
 const STEPS = ['caregiver', 'patient', 'clinic'] as const;
@@ -151,9 +153,20 @@ export function ApplyForm() {
   });
   const [submitted, setSubmitted] = useState(false);
 
+  const {
+    data: doctors,
+    isLoading: doctorsLoading,
+    error: doctorsError,
+  } = useClinicDoctors(form.clinic_id);
+
   const selectedClinic = useMemo(
     () => clinics?.find((c) => c.id === form.clinic_id) ?? null,
     [clinics, form.clinic_id]
+  );
+
+  const selectedDoctor = useMemo(
+    () => doctors?.find((d) => d.id === form.doctor_id) ?? null,
+    [doctors, form.doctor_id]
   );
 
   const setCaregiver = (key: keyof FormState['caregiver'], value: string) => {
@@ -212,6 +225,7 @@ export function ApplyForm() {
   const validateClinic = (): boolean => {
     const e: Record<string, string> = {};
     if (!form.clinic_id) e.clinic = t('err_clinic_required', 'Please select a clinic');
+    if (!form.doctor_id) e.doctor = t('err_doctor_required', 'Please select your doctor');
     setFieldErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -229,10 +243,11 @@ export function ApplyForm() {
   };
 
   const handleSubmit = async () => {
-    if (!validateClinic() || !form.clinic_id || !form.patient.gender) return;
+    if (!validateClinic() || !form.clinic_id || !form.doctor_id || !form.patient.gender) return;
 
     const payload = {
       clinic_id: form.clinic_id,
+      doctor_id: form.doctor_id,
       caregiver: {
         username: form.caregiver.username.trim(),
         password: form.caregiver.password,
@@ -603,9 +618,12 @@ export function ApplyForm() {
       {step === 2 && (
         <div className="space-y-4">
           <div>
-            <h2 className="text-lg font-bold">{t('app_step_clinic', 'Clinic & review')}</h2>
+            <h2 className="text-lg font-bold">{t('app_step_clinic', 'Clinic & doctor')}</h2>
             <p className="text-sm text-muted-foreground">
-              {t('app_step_clinic_desc', 'Choose a clinic and confirm your application.')}
+              {t(
+                'app_step_clinic_desc',
+                'Choose your clinic, then select your doctor and confirm.'
+              )}
             </p>
           </div>
 
@@ -628,7 +646,13 @@ export function ApplyForm() {
                 <button
                   key={clinic.id}
                   type="button"
-                  onClick={() => setForm((prev) => ({ ...prev, clinic_id: clinic.id }))}
+                  onClick={() =>
+                    setForm((prev) => ({
+                      ...prev,
+                      clinic_id: clinic.id,
+                      doctor_id: prev.clinic_id === clinic.id ? prev.doctor_id : null,
+                    }))
+                  }
                   className={cn(
                     'rounded-xl border p-4 text-start transition-colors',
                     selected
@@ -653,6 +677,68 @@ export function ApplyForm() {
             <p className="text-xs text-destructive">{fieldErrors.clinic}</p>
           )}
 
+          {form.clinic_id != null && (
+            <div className="space-y-3 pt-2">
+              <div>
+                <h3 className="font-semibold">{t('select_doctor', 'Select your doctor')}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    'select_doctor_desc',
+                    'Pick the doctor who will care for this patient at the clinic.'
+                  )}
+                </p>
+              </div>
+              {doctorsLoading && (
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {t('loading_doctors', 'Loading doctors…')}
+                </div>
+              )}
+              {doctorsError && (
+                <p className="text-sm text-destructive">
+                  {t('err_load_doctors', 'Could not load doctors. Please try again.')}
+                </p>
+              )}
+              {!doctorsLoading && !doctorsError && (doctors?.length ?? 0) === 0 && (
+                <p className="text-sm text-muted-foreground">
+                  {t(
+                    'no_doctors_for_clinic',
+                    'No doctors are available for this clinic yet. Choose another clinic or contact support.'
+                  )}
+                </p>
+              )}
+              <div className="grid gap-3">
+                {(doctors ?? []).map((doctor) => {
+                  const selected = form.doctor_id === doctor.id;
+                  const name = `${doctor.first_name} ${doctor.last_name}`.trim();
+                  return (
+                    <button
+                      key={doctor.id}
+                      type="button"
+                      onClick={() =>
+                        setForm((prev) => ({ ...prev, doctor_id: doctor.id }))
+                      }
+                      className={cn(
+                        'rounded-xl border p-4 text-start transition-colors',
+                        selected
+                          ? 'border-primary bg-primary/5 ring-2 ring-primary/30'
+                          : 'hover:border-primary/40 hover:bg-muted/40'
+                      )}
+                    >
+                      <p className="font-semibold">{name || doctor.username}</p>
+                      <p className="mt-0.5 text-sm text-muted-foreground" dir="ltr">
+                        @{doctor.username}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+              {fieldErrors.doctor && (
+                <p className="text-xs text-destructive">{fieldErrors.doctor}</p>
+              )}
+            </div>
+          )}
+
           <div className="mt-6 space-y-2 rounded-xl border bg-muted/30 p-4 text-sm">
             <h3 className="font-semibold">{t('app_review_summary', 'Review summary')}</h3>
             <p>
@@ -666,6 +752,13 @@ export function ApplyForm() {
             <p>
               <span className="text-muted-foreground">{t('clinic', 'Clinic')}: </span>
               {selectedClinic?.name ?? '—'}
+            </p>
+            <p>
+              <span className="text-muted-foreground">{t('doctor', 'Doctor')}: </span>
+              {selectedDoctor
+                ? `${selectedDoctor.first_name} ${selectedDoctor.last_name}`.trim() ||
+                  selectedDoctor.username
+                : '—'}
             </p>
           </div>
         </div>

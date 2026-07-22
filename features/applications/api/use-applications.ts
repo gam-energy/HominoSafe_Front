@@ -8,12 +8,15 @@ import type {
   CreateApplicationPayload,
   PatchApplicationPayload,
   PublicClinic,
+  PublicDoctor,
 } from '../types/applications';
 
 export const applicationKeys = {
   all: ['applications'] as const,
   me: ['applications', 'me'] as const,
   clinics: ['applications', 'clinics'] as const,
+  clinicDoctors: (clinicId: number) =>
+    ['applications', 'clinics', clinicId, 'doctors'] as const,
   review: (status?: string) => ['applications', 'review', status ?? 'all'] as const,
   receipt: (id: number) => ['applications', 'receipt', id] as const,
 };
@@ -27,6 +30,21 @@ export function usePublicClinics() {
   return useQuery({
     queryKey: applicationKeys.clinics,
     queryFn: fetchPublicClinics,
+  });
+}
+
+export async function fetchClinicDoctors(clinicId: number): Promise<PublicDoctor[]> {
+  const { data } = await axiosInstance.get<PublicDoctor[]>(
+    `/applications/clinics/${clinicId}/doctors`
+  );
+  return data;
+}
+
+export function useClinicDoctors(clinicId: number | null) {
+  return useQuery({
+    queryKey: applicationKeys.clinicDoctors(clinicId ?? 0),
+    queryFn: () => fetchClinicDoctors(clinicId!),
+    enabled: clinicId != null && clinicId > 0,
   });
 }
 

@@ -194,6 +194,22 @@ export function ApplicationStatusView() {
               </div>
               <div className="rounded-2xl border bg-card p-5 shadow-sm">
                 <h2 className="text-sm font-semibold text-muted-foreground">
+                  {t('doctor', 'Doctor')}
+                </h2>
+                <p className="mt-1 font-semibold">
+                  {data.doctor
+                    ? `${data.doctor.first_name} ${data.doctor.last_name}`.trim() ||
+                      data.doctor.username
+                    : '—'}
+                </p>
+                {data.doctor?.username && (
+                  <p className="mt-0.5 text-sm text-muted-foreground" dir="ltr">
+                    @{data.doctor.username}
+                  </p>
+                )}
+              </div>
+              <div className="rounded-2xl border bg-card p-5 shadow-sm sm:col-span-2">
+                <h2 className="text-sm font-semibold text-muted-foreground">
                   {t('patient', 'Patient')}
                 </h2>
                 <p className="mt-1 font-semibold">{personDisplayName(data.patient)}</p>
