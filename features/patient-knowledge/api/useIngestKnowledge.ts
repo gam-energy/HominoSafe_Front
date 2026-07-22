@@ -50,6 +50,9 @@ export const useIngestKnowledge = () => {
         queryKey: ["user-care-team", variables.userId],
       });
       queryClient.invalidateQueries({ queryKey: ["medical-profile"] });
+      queryClient.invalidateQueries({
+        queryKey: ["patient-ehr-profiles", variables.userId],
+      });
       queryClient.invalidateQueries({ queryKey: ["user-profiles"] });
     },
   });

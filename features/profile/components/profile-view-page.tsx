@@ -216,9 +216,9 @@ export default function ProfileViewPage() {
 
   return (
     <>
-      <div className="w-full px-4 pt-24 pb-8 min-h-screen">
-        <Card className="max-w-3xl mx-auto rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md relative">
-          <div className="absolute -top-16 left-1/2 -translate-x-1/2">
+      <div className="w-full px-4 py-6 sm:py-8 min-h-screen">
+        <Card className="max-w-3xl mx-auto rounded-3xl border border-zinc-200/80 bg-white/70 p-6 shadow-sm transition-all duration-300 hover:shadow-md dark:border-zinc-800/80 dark:bg-zinc-900/60 backdrop-blur-md">
+          <div className="flex flex-col items-center">
             <div className="relative rounded-full p-1 bg-white dark:bg-zinc-900 shadow-xl ring-4 ring-zinc-100 dark:ring-zinc-800">
               <Avatar className="w-28 h-28 rounded-full">
                 {avatarSrc ? (
@@ -253,7 +253,7 @@ export default function ProfileViewPage() {
             ) : null}
           </div>
 
-          <CardHeader className="pt-16 text-center">
+          <CardHeader className="pt-6 text-center">
             <CardTitle className="text-3xl font-black tracking-tight text-zinc-900 dark:text-zinc-100">
               {t("account_settings", "Account Settings")}
             </CardTitle>

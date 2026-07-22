@@ -233,7 +233,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
           className="w-full"
           onClick={() => router.push("/auth/sign-in")}
         >
-          {t("already_have_account")}
+          {t("already_have_account")} {t("sign_in")}
         </Button>
       </form>
     </div>

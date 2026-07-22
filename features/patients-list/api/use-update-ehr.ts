@@ -14,9 +14,17 @@ export function useUpdateEhr() {
         { headers: { "Content-Type": "application/json" } }
       );
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables: { user_id?: number }) => {
       toast.success("User updated successfully!");
-      queryClient.invalidateQueries({ queryKey: ["admin-users","user-profiles"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-users", "user-profiles"] });
+      if (variables?.user_id) {
+        queryClient.invalidateQueries({
+          queryKey: ["patient-ehr-profiles", variables.user_id],
+        });
+      } else {
+        queryClient.invalidateQueries({ queryKey: ["patient-ehr-profiles"] });
+      }
+      queryClient.invalidateQueries({ queryKey: ["medical-profile"] });
     },
     onError: (err: any) => {
       const detail = err?.response?.data?.detail;

@@ -352,7 +352,7 @@
   "select_relationship": "Select relationship",
   "create_caregiver_account": "Create caregiver account",
   "creating_account": "Creating account…",
-  "already_have_account": "Already have an account? Sign in",
+  "already_have_account": "Already have an account?",
   "rel_parent": "Parent",
   "rel_spouse": "Spouse",
   "rel_sibling": "Sibling",

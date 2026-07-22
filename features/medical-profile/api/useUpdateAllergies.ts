@@ -19,9 +19,22 @@ export function useUpdateAllergies() {
       );
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       toast.success('Allergies updated');
+      // Patch staff cache immediately (badges show before refetch)
+      queryClient.setQueriesData<Array<{ allergies?: string[] | null }>>(
+        { queryKey: ['patient-ehr-profiles', variables.userId] },
+        (old) =>
+          old?.map((profile) => ({
+            ...profile,
+            allergies: variables.allergies,
+          })) ?? old
+      );
       queryClient.invalidateQueries({ queryKey: ['medical-profile'] });
+      // Staff/caregiver medical profile uses patient-ehr-profiles (not user-profiles)
+      queryClient.invalidateQueries({
+        queryKey: ['patient-ehr-profiles', variables.userId],
+      });
       queryClient.invalidateQueries({ queryKey: ['user-profiles'] });
     },
     onError: (err: any) => {
