@@ -138,8 +138,9 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
 
   const { data: subscription } = useMySubscription();
   const showOwnSubscription = !isViewingOther && !!subscription;
+  const viewedPatientId = isViewingOther ? viewedUser?.id : undefined;
   const { data: myDevices, isLoading: devicesLoading, isError: devicesError } =
-    useMyDevices(!isViewingOther);
+    useMyDevices(true, viewedPatientId);
   const revokeMutation = useDeviceRevoke();
   const [confirmDisconnectId, setConfirmDisconnectId] = useState<number | null>(
     null
@@ -436,7 +437,7 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
               </p>
             </div>
           )}
-          {isViewingOther ? (
+          {isViewingOther && (
             <Button
               onClick={handleMessagePatient}
               disabled={isCreatingRoom}
@@ -447,136 +448,149 @@ export default function ProfileCard({ viewedUser }: ProfileCardProps = {}) {
                 ? t('starting_chat', 'Starting chat...')
                 : t('message_patient', 'Message Patient')}
             </Button>
-          ) : (
-            <>
-              {isWatchConnected ? (
-                <div className="w-full rounded-2xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10 px-3 py-3 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Watch className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                      <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
-                        {t('watch_connected', 'Watch connected')}
+          )}
+
+          {isWatchConnected ? (
+            <div className="w-full rounded-2xl border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10 px-3 py-3 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Watch className="h-4 w-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+                    {t('watch_connected', 'Watch connected')}
+                  </p>
+                </div>
+                <span className="text-[11px] text-muted-foreground shrink-0">
+                  {anyOnline
+                    ? t('watch_online', 'Online')
+                    : t('paired_count', 'Paired · {{count}}', {
+                        count: pairedCount,
+                      })}
+                </span>
+              </div>
+
+              {devices.map((device) => (
+                <div
+                  key={device.id}
+                  className="rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800 px-3 py-2.5 space-y-2"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 space-y-1">
+                      <p
+                        className="text-sm font-medium truncate ltr"
+                        dir="ltr"
+                      >
+                        {device.device_id}
                       </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t('paired_on', 'Paired')}{' '}
+                        {new Date(device.created_at).toLocaleString()}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground">
+                        {t('last_seen', 'Last seen')}:{' '}
+                        {device.last_seen_at
+                          ? new Date(device.last_seen_at).toLocaleString()
+                          : t('never', 'Never')}
+                      </p>
+                      {device.mqtt_username && (
+                        <p
+                          className="text-[11px] text-muted-foreground ltr truncate"
+                          dir="ltr"
+                        >
+                          MQTT: {device.mqtt_username}
+                        </p>
+                      )}
                     </div>
-                    <span className="text-[11px] text-muted-foreground shrink-0">
-                      {anyOnline
+                    <span
+                      className={cn(
+                        'shrink-0 text-[11px] font-medium rounded-full px-2 py-0.5',
+                        device.online
+                          ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
+                          : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400'
+                      )}
+                    >
+                      {device.online
                         ? t('watch_online', 'Online')
-                        : t('paired_count', 'Paired · {{count}}', {
-                            count: pairedCount,
-                          })}
+                        : t('watch_offline', 'Watch offline')}
                     </span>
                   </div>
 
-                  {devices.map((device) => (
-                    <div
-                      key={device.id}
-                      className="rounded-xl bg-white dark:bg-zinc-950 border border-zinc-200/80 dark:border-zinc-800 px-3 py-2.5 space-y-2"
+                  {(device.activity ||
+                    (device.activity_intensity ?? 0) > 0) && (
+                    <ActivityMeter
+                      activity={device.activity}
+                      intensity={device.activity_intensity}
+                      bodyPosition={device.body_position}
+                      compact
+                    />
+                  )}
+
+                  {!isViewingOther && (
+                    <Button
+                      type="button"
+                      variant={
+                        confirmDisconnectId === device.id
+                          ? 'destructive'
+                          : 'outline'
+                      }
+                      size="sm"
+                      className="w-full rounded-xl"
+                      disabled={revokeMutation.isPending}
+                      onClick={() => handleDisconnect(device.id)}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 space-y-1">
-                          <p
-                            className="text-sm font-medium truncate ltr"
-                            dir="ltr"
-                          >
-                            {device.device_id}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {t('paired_on', 'Paired')}{' '}
-                            {new Date(device.created_at).toLocaleString()}
-                          </p>
-                          <p className="text-[11px] text-muted-foreground">
-                            {t('last_seen', 'Last seen')}:{' '}
-                            {device.last_seen_at
-                              ? new Date(device.last_seen_at).toLocaleString()
-                              : t('never', 'Never')}
-                          </p>
-                          {device.mqtt_username && (
-                            <p
-                              className="text-[11px] text-muted-foreground ltr truncate"
-                              dir="ltr"
-                            >
-                              MQTT: {device.mqtt_username}
-                            </p>
-                          )}
-                        </div>
-                        <span
-                          className={cn(
-                            'shrink-0 text-[11px] font-medium rounded-full px-2 py-0.5',
-                            device.online
-                              ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400'
-                              : 'bg-zinc-500/15 text-zinc-600 dark:text-zinc-400'
-                          )}
-                        >
-                          {device.online
-                            ? t('watch_online', 'Online')
-                            : t('watch_offline', 'Watch offline')}
-                        </span>
-                      </div>
-
-                      {(device.activity ||
-                        (device.activity_intensity ?? 0) > 0) && (
-                        <ActivityMeter
-                          activity={device.activity}
-                          intensity={device.activity_intensity}
-                          bodyPosition={device.body_position}
-                          compact
-                        />
-                      )}
-
-                      <Button
-                        type="button"
-                        variant={
-                          confirmDisconnectId === device.id
-                            ? 'destructive'
-                            : 'outline'
-                        }
-                        size="sm"
-                        className="w-full rounded-xl"
-                        disabled={revokeMutation.isPending}
-                        onClick={() => handleDisconnect(device.id)}
-                      >
-                        <Unplug className="h-3.5 w-3.5 me-1" />
-                        {confirmDisconnectId === device.id
-                          ? t('confirm_unlink', 'Confirm')
-                          : t('disconnect_watch', 'Disconnect')}
-                      </Button>
-                    </div>
-                  ))}
-
-                  <Button
-                    variant="secondary"
-                    className="w-full rounded-2xl h-10"
-                    onClick={() => setWatchDialogOpen(true)}
-                  >
-                    <Watch className="w-4 h-4 me-2" />
-                    {t('add_smartwatch', 'Add another watch')}
-                  </Button>
+                      <Unplug className="h-3.5 w-3.5 me-1" />
+                      {confirmDisconnectId === device.id
+                        ? t('confirm_unlink', 'Confirm')
+                        : t('disconnect_watch', 'Disconnect')}
+                    </Button>
+                  )}
                 </div>
-              ) : (
+              ))}
+
+              {!isViewingOther && (
                 <Button
                   variant="secondary"
-                  className="w-full rounded-2xl h-11"
+                  className="w-full rounded-2xl h-10"
                   onClick={() => setWatchDialogOpen(true)}
-                  disabled={devicesLoading}
                 >
                   <Watch className="w-4 h-4 me-2" />
-                  {devicesLoading
-                    ? t('loading', 'Loading...')
-                    : devicesError
-                      ? t('connect_smartwatch', 'Connect Smart Watch')
-                      : t('connect_smartwatch', 'Connect Smart Watch')}
+                  {t('add_smartwatch', 'Add another watch')}
                 </Button>
               )}
-              <Link href="/dashboard/profile" className="w-full block">
-                <Button
-                  variant="outline"
-                  className="w-full rounded-2xl h-11 hover:bg-primary hover:text-white dark:hover:bg-blue-600 dark:hover:text-white border-zinc-200 dark:border-zinc-800 hover:border-transparent transition-all duration-300 group"
-                >
-                  <Edit className="w-4 h-4 me-2 group-hover:rotate-12 transition-transform duration-300" />
-                  {t('edit_profile', 'Edit Profile')}
-                </Button>
-              </Link>
-            </>
+            </div>
+          ) : (
+            !isViewingOther && (
+              <Button
+                variant="secondary"
+                className="w-full rounded-2xl h-11"
+                onClick={() => setWatchDialogOpen(true)}
+                disabled={devicesLoading}
+              >
+                <Watch className="w-4 h-4 me-2" />
+                {devicesLoading
+                  ? t('loading', 'Loading...')
+                  : t('connect_smartwatch', 'Connect Smart Watch')}
+              </Button>
+            )
+          )}
+          {isViewingOther && !isWatchConnected && !devicesLoading && (
+            <div className="w-full rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 px-3 py-3 text-center">
+              <p className="text-sm text-muted-foreground">
+                {devicesError
+                  ? t('devices_load_failed', 'Could not load paired watches')
+                  : t('no_watch_paired', 'No smartwatch paired')}
+              </p>
+            </div>
+          )}
+          {!isViewingOther && (
+            <Link href="/dashboard/profile" className="w-full block">
+              <Button
+                variant="outline"
+                className="w-full rounded-2xl h-11 hover:bg-primary hover:text-white dark:hover:bg-blue-600 dark:hover:text-white border-zinc-200 dark:border-zinc-800 hover:border-transparent transition-all duration-300 group"
+              >
+                <Edit className="w-4 h-4 me-2 group-hover:rotate-12 transition-transform duration-300" />
+                {t('edit_profile', 'Edit Profile')}
+              </Button>
+            </Link>
           )}
           {user?.id && (
             <EhrDownloadDialog

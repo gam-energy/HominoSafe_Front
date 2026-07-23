@@ -228,7 +228,9 @@ export const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: Ale
           {alert.sensorData.temperature != null ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-muted/60 px-2 py-1 font-medium ltr-nums">
               <Thermometer className="h-3 w-3 text-orange-500" />
-              {alert.sensorData.temperature}°C
+              {alert.sensorData.temperature != null
+                ? `${Number(alert.sensorData.temperature).toFixed(1)}°C`
+                : "—"}
             </span>
           ) : null}
           {alert.sensorData.activity ? (
@@ -331,7 +333,7 @@ export const AlertCard: React.FC<{ alert: AlertType; onAcknowledge?: (alert: Ale
                           <Thermometer className="h-4 w-4 text-orange-500" />
                           <div>
                             <p className="text-[10px] text-muted-foreground font-semibold uppercase">{t('temperature', 'Temp')}</p>
-                            <p className="font-bold text-sm ltr-nums">{alert.sensorData.temperature} <span className="text-[10px] font-normal text-muted-foreground">°C</span></p>
+                            <p className="font-bold text-sm ltr-nums">{alert.sensorData.temperature != null ? Number(alert.sensorData.temperature).toFixed(1) : "—"} <span className="text-[10px] font-normal text-muted-foreground">°C</span></p>
                           </div>
                         </div>
                       )}

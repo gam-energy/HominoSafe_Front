@@ -98,7 +98,7 @@ export function OverviewSection({
       <KpiCard
         compact={compact}
         title={t('heart_rate')}
-        value={displayValue(wearable.heart_rate)}
+        value={displayValue(wearable.heart_rate, '—', 1)}
         unit="bpm"
         icon={HeartPulse}
         color="text-rose-500"
@@ -116,7 +116,7 @@ export function OverviewSection({
       <KpiCard
         compact={compact}
         title="SpO2"
-        value={displayValue(wearable.spo2)}
+        value={displayValue(wearable.spo2, '—', 1)}
         unit="%"
         icon={Droplets}
         color="text-blue-500"
@@ -125,7 +125,7 @@ export function OverviewSection({
       <KpiCard
         compact={compact}
         title={t('temperature')}
-        value={displayValue(wearable.temperature)}
+        value={displayValue(wearable.temperature, '—', 1)}
         unit="°C"
         icon={Thermometer}
         color="text-orange-500"
@@ -147,7 +147,7 @@ export function OverviewSection({
       <KpiCard
         compact={compact}
         title={t('env_temperature', 'Env. Temperature')}
-        value={displayValue(environmental.temperature, '—', 2)}
+        value={displayValue(environmental.temperature, '—', 1)}
         unit="°C"
         icon={Thermometer}
         color="text-orange-500"

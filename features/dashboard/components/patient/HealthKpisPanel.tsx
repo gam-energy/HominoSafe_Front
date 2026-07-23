@@ -65,7 +65,14 @@ function chartStats(values: number[]) {
   const latest = values[values.length - 1];
   const first = values[0];
   const trend = first === 0 ? 0 : ((latest - first) / first) * 100;
-  return { avg: Math.round(avg * 10) / 10, min: Math.min(...values), max: Math.max(...values), latest, trend: Math.round(trend * 10) / 10 };
+  const r1 = (n: number) => Math.round(n * 10) / 10;
+  return {
+    avg: r1(avg),
+    min: r1(Math.min(...values)),
+    max: r1(Math.max(...values)),
+    latest: r1(latest),
+    trend: r1(trend),
+  };
 }
 
 type SeriesPoint = { timestamp: string; value: number };
@@ -177,7 +184,7 @@ function StatGrid({ values, unit }: { values: number[]; unit: string }) {
       {items.map((item) => (
         <div key={item.label} className="rounded-xl border border-border bg-muted/40 p-3 text-center">
           <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">{item.label}</p>
-          <p className="ltr-nums mt-1 text-lg font-bold">{item.value}<span className="ms-1 text-xs font-normal text-muted-foreground">{unit}</span></p>
+          <p className="ltr-nums mt-1 text-lg font-bold">{item.value != null && Number.isFinite(item.value) ? Number(item.value).toFixed(1) : "—"}<span className="ms-1 text-xs font-normal text-muted-foreground">{unit}</span></p>
         </div>
       ))}
     </div>
@@ -510,7 +517,7 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
         { label: t("heart_rate", "Heart Rate"), unit: t("bpm", "bpm"), ...hrStats, readings: data.map((d) => ({ time: d.time, display: `${d.heartRate} bpm` })) },
         { label: t("spo2", "SpO2"), unit: "%", ...spo2Stats, readings: data.map((d) => ({ time: d.time, display: `${d.spo2}%` })) },
         { label: t("blood_pressure", "Blood Pressure"), unit: "mmHg", ...bpSysStats, readings: data.map((d) => ({ time: d.time, display: `${d.bpSystolic}/${d.bpDiastolic} mmHg` })) },
-        { label: t("temperature", "Temperature"), unit: "°C", ...tempStats, readings: data.map((d) => ({ time: d.time, display: `${d.temperature} °C` })) },
+        { label: t("temperature", "Temperature"), unit: "°C", ...tempStats, readings: data.map((d) => ({ time: d.time, display: `${Number(d.temperature).toFixed(1)} °C` })) },
       ],
     };
   }, [data, heroCards, systemScores, riskBreakdown, t, patientName, userId]);

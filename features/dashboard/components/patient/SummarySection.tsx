@@ -542,7 +542,7 @@ const KpiItemCard = ({
     name === "blood_pressure" && typeof kpi.value === "object"
       ? `${Math.round((kpi.value as { systolic?: number }).systolic ?? 0)} / ${Math.round((kpi.value as { diastolic?: number }).diastolic ?? 0)}`
       : typeof kpi.value === "number"
-        ? Math.round(kpi.value)
+        ? Number(kpi.value).toFixed(1)
         : kpi.value;
 
   const displayAvg24h =

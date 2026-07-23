@@ -104,9 +104,9 @@ export function PairWatchDialog({
       queryClient.invalidateQueries({ queryKey: MY_DEVICES_QUERY_KEY });
       setPairData(null);
       setView('list');
-      onOpenChange(false);
+      // Keep dialog open so the new device appears in the list.
     },
-    [onOpenChange, queryClient, t]
+    [queryClient, t]
   );
 
   useDeviceLoginWebSocket(open && view === 'pair', handlePairSuccess);

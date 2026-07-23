@@ -21,6 +21,12 @@ export type DeviceListResponse = {
 
 export const MY_DEVICES_QUERY_KEY = ['my-devices'] as const;
 
+export function myDevicesQueryKey(patientId?: number | null) {
+  return patientId != null
+    ? ([...MY_DEVICES_QUERY_KEY, patientId] as const)
+    : MY_DEVICES_QUERY_KEY;
+}
+
 const pairDevice = async (): Promise<DevicePairResponse> => {
   const response = await axiosInstance.post<DevicePairResponse>(
     '/device/pair',
@@ -30,9 +36,12 @@ const pairDevice = async (): Promise<DevicePairResponse> => {
   return response.data;
 };
 
-const fetchMyDevices = async (): Promise<DeviceListResponse> => {
+const fetchMyDevices = async (
+  patientId?: number | null
+): Promise<DeviceListResponse> => {
   const response = await axiosInstance.get<DeviceListResponse>('/device', {
     headers: { 'Content-Type': 'application/json' },
+    params: patientId != null ? { patient_id: patientId } : undefined,
   });
   return response.data;
 };
@@ -55,10 +64,13 @@ export const useDevicePair = () => {
   });
 };
 
-export const useMyDevices = (enabled = true) => {
+export const useMyDevices = (
+  enabled = true,
+  patientId?: number | null
+) => {
   return useQuery({
-    queryKey: MY_DEVICES_QUERY_KEY,
-    queryFn: fetchMyDevices,
+    queryKey: myDevicesQueryKey(patientId),
+    queryFn: () => fetchMyDevices(patientId),
     enabled,
     staleTime: 15_000,
     refetchInterval: enabled ? 30_000 : false,
