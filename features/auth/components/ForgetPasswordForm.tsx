@@ -15,6 +15,7 @@ import {
   useForgotPasswordConfirm,
   useForgotPasswordRequest,
 } from '@/features/auth/api/use-forgot-password';
+import { isValidPassword } from '@/features/auth/lib/credentials';
 
 export default function ForgetPasswordPage() {
   const { t } = useTranslation();
@@ -59,8 +60,8 @@ export default function ForgetPasswordPage() {
       toast.error(t('fp_err_code'));
       return;
     }
-    if (newPassword.length < 8) {
-      toast.error(t('fp_err_password_min'));
+    if (!isValidPassword(newPassword)) {
+      toast.error(t('fp_err_password_pattern'));
       return;
     }
     if (newPassword !== confirmPassword) {

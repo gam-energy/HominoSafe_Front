@@ -17,6 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { relationships } from '@/features/auth/types/auth';
+import { isValidPassword, isValidUsername } from '@/features/auth/lib/credentials';
+import { useUsernameAvailability } from '@/features/auth/api/use-username-availability';
 import { useCreateApplication, useClinicDoctors, usePublicClinics } from '../api/use-applications';
 import { GENDERS, type Gender } from '../types/applications';
 import { cn } from '@/lib/utils';
@@ -153,6 +155,9 @@ export function ApplyForm() {
   });
   const [submitted, setSubmitted] = useState(false);
 
+  const cgUsernameCheck = useUsernameAvailability(form.caregiver.username);
+  const ptUsernameCheck = useUsernameAvailability(form.patient.username);
+
   const {
     data: doctors,
     isLoading: doctorsLoading,
@@ -189,8 +194,10 @@ export function ApplyForm() {
     if (!c.first_name.trim()) e.cg_first_name = t('err_name_required');
     if (!c.last_name.trim()) e.cg_last_name = t('err_name_required');
     if (!c.username.trim()) e.cg_username = t('err_username_password_required');
+    else if (!isValidUsername(c.username)) e.cg_username = t('err_username_pattern');
+    else if (cgUsernameCheck.status === 'taken') e.cg_username = t('err_username_taken');
     if (!c.password) e.cg_password = t('err_username_password_required');
-    else if (c.password.length < 8) e.cg_password = t('err_password_min');
+    else if (!isValidPassword(c.password)) e.cg_password = t('err_password_pattern');
     if (c.password !== c.confirmPassword) e.cg_confirm = t('err_password_mismatch');
     if (!c.relationship_to_patient) e.cg_rel = t('err_relationship_required');
     if (!c.email.trim()) e.cg_email = t('err_email_required', 'Email is required');
@@ -210,8 +217,15 @@ export function ApplyForm() {
     if (!p.first_name.trim()) e.pt_first_name = t('err_name_required');
     if (!p.last_name.trim()) e.pt_last_name = t('err_name_required');
     if (!p.username.trim()) e.pt_username = t('err_username_password_required');
+    else if (!isValidUsername(p.username)) e.pt_username = t('err_username_pattern');
+    else if (ptUsernameCheck.status === 'taken') e.pt_username = t('err_username_taken');
+    else if (
+      p.username.trim().toLowerCase() === form.caregiver.username.trim().toLowerCase()
+    ) {
+      e.pt_username = t('err_username_same', 'Caregiver and patient usernames must differ.');
+    }
     if (!p.password) e.pt_password = t('err_username_password_required');
-    else if (p.password.length < 8) e.pt_password = t('err_password_min');
+    else if (!isValidPassword(p.password)) e.pt_password = t('err_password_pattern');
     if (p.password !== p.confirmPassword) e.pt_confirm = t('err_password_mismatch');
     if (!p.national_code.trim()) e.pt_national = t('err_national_code_required', 'National code is required');
     if (!p.dob) e.pt_dob = t('err_dob_required', 'Date of birth is required');
@@ -370,8 +384,19 @@ export function ApplyForm() {
                 onChange={(e) => setCaregiver('username', e.target.value)}
                 autoComplete="username"
               />
-              {fieldErrors.cg_username && (
-                <p className="text-xs text-destructive">{fieldErrors.cg_username}</p>
+              {cgUsernameCheck.status === 'available' && (
+                <p className="text-xs text-emerald-600">{t('username_available')}</p>
+              )}
+              {cgUsernameCheck.status === 'checking' && (
+                <p className="text-xs text-muted-foreground">{t('username_checking')}</p>
+              )}
+              {(fieldErrors.cg_username || cgUsernameCheck.status === 'taken') && (
+                <p className="text-xs text-destructive">
+                  {fieldErrors.cg_username || t('err_username_taken')}
+                </p>
+              )}
+              {cgUsernameCheck.status === 'invalid' && form.caregiver.username.trim() && !fieldErrors.cg_username && (
+                <p className="text-xs text-destructive">{t('err_username_pattern')}</p>
               )}
             </div>
             <div className="space-y-1.5">
@@ -492,8 +517,19 @@ export function ApplyForm() {
                 value={form.patient.username}
                 onChange={(e) => setPatient('username', e.target.value)}
               />
-              {fieldErrors.pt_username && (
-                <p className="text-xs text-destructive">{fieldErrors.pt_username}</p>
+              {ptUsernameCheck.status === 'available' && (
+                <p className="text-xs text-emerald-600">{t('username_available')}</p>
+              )}
+              {ptUsernameCheck.status === 'checking' && (
+                <p className="text-xs text-muted-foreground">{t('username_checking')}</p>
+              )}
+              {(fieldErrors.pt_username || ptUsernameCheck.status === 'taken') && (
+                <p className="text-xs text-destructive">
+                  {fieldErrors.pt_username || t('err_username_taken')}
+                </p>
+              )}
+              {ptUsernameCheck.status === 'invalid' && form.patient.username.trim() && !fieldErrors.pt_username && (
+                <p className="text-xs text-destructive">{t('err_username_pattern')}</p>
               )}
             </div>
             <div className="space-y-1.5">

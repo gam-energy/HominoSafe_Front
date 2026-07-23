@@ -74,11 +74,33 @@ export const useSignup = () => {
     },
 
     onError: (error) => {
-      const detail =
-        (error.response?.data as { detail?: string })?.detail ||
-        error.message ||
-        'Signup failed';
-      toast.error(typeof detail === 'string' ? detail : 'Signup failed');
+      const data = error.response?.data as
+        | { detail?: string | { message?: string; field?: string }; field?: string }
+        | undefined;
+      const detail = data?.detail;
+      let message = error.message || 'Signup failed';
+      if (typeof detail === 'string') {
+        message = detail;
+      } else if (detail && typeof detail === 'object' && detail.message) {
+        message = detail.message;
+      } else if (Array.isArray(detail)) {
+        message =
+          detail
+            .map((item: { msg?: string }) => item?.msg)
+            .filter(Boolean)
+            .join(', ') || message;
+      }
+
+      if (
+        error.response?.status === 409 ||
+        /already exists|already taken/i.test(message)
+      ) {
+        message = message.includes('Username')
+          ? message
+          : 'Username is already taken.';
+      }
+
+      toast.error(message);
       console.error('Signup error:', error.response?.data || error);
     },
   });

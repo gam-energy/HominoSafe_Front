@@ -21,6 +21,12 @@ import {
   type SignUpRole,
 } from "../types/auth";
 import { cn } from "@/lib/utils";
+import {
+  getPasswordChecks,
+  isValidPassword,
+  isValidUsername,
+} from "../lib/credentials";
+import { useUsernameAvailability } from "../api/use-username-availability";
 
 interface SignUpFormProps {
   onSubmit: (values: SignUpFormValues) => void;
@@ -81,12 +87,22 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const usernameCheck = useUsernameAvailability(formData.username);
+  const passwordChecks = getPasswordChecks(formData.password);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setFieldErrors((prev) => {
+      if (!prev[name]) return prev;
+      const next = { ...prev };
+      delete next[name];
+      return next;
+    });
   };
 
   const setRole = (role: SignUpRole) => {
@@ -95,31 +111,50 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: Record<string, string> = {};
 
-    if (!formData.username || !formData.password || !formData.confirmPassword) {
-      alert(t("err_username_password_required"));
-      return;
+    if (!formData.username.trim()) {
+      errors.username = t("err_username_password_required");
+    } else if (!isValidUsername(formData.username)) {
+      errors.username = t(
+        "err_username_pattern",
+        "Username must start with a letter and use only letters, digits, dots, underscores, or hyphens (3–50 chars)."
+      );
+    } else if (usernameCheck.status === "taken") {
+      errors.username = t("err_username_taken", "Username is already taken.");
     }
-    if (formData.password.length < 8) {
-      alert(t("err_password_min"));
-      return;
+
+    if (!formData.password) {
+      errors.password = t("err_username_password_required");
+    } else if (!isValidPassword(formData.password)) {
+      errors.password = t(
+        "err_password_pattern",
+        "Password must be 8–64 characters and include uppercase, lowercase, a number, and a special character."
+      );
     }
-    if (formData.password !== formData.confirmPassword) {
-      alert(t("err_password_mismatch"));
-      return;
+
+    if (!formData.confirmPassword) {
+      errors.confirmPassword = t("err_username_password_required");
+    } else if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = t("err_password_mismatch");
     }
+
     if (!formData.first_name || !formData.last_name) {
-      alert(t("err_name_required"));
-      return;
+      errors.first_name = t("err_name_required");
     }
     if (formData.role === "caregiver" && !formData.relationship_to_user) {
-      alert(t("err_relationship_required"));
-      return;
+      errors.relationship_to_user = t("err_relationship_required");
     }
     if (formData.role === "doctor" && !formData.specialization?.trim()) {
-      alert(t("err_specialization_required", "Specialization is required"));
-      return;
+      errors.specialization = t(
+        "err_specialization_required",
+        "Specialization is required"
+      );
     }
+
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) return;
+    if (usernameCheck.status === "checking") return;
 
     onSubmit({
       ...formData,
@@ -128,6 +163,19 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
   };
 
   const isCaregiver = formData.role === "caregiver";
+  const usernameHint =
+    usernameCheck.status === "checking"
+      ? t("username_checking", "Checking username…")
+      : usernameCheck.status === "available"
+        ? t("username_available", "Username is available")
+        : usernameCheck.status === "taken"
+          ? t("err_username_taken", "Username is already taken.")
+          : usernameCheck.status === "invalid" && formData.username.trim()
+            ? t(
+                "err_username_pattern",
+                "Username must start with a letter and use only letters, digits, dots, underscores, or hyphens (3–50 chars)."
+              )
+            : null;
 
   return (
     <div className="w-full max-w-2xl mx-auto bg-white dark:bg-zinc-900 rounded-2xl shadow-lg p-6 md:p-10 mt-4 sm:mt-8">
@@ -173,7 +221,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         {isCaregiver && (
           <div>
             <label className="block text-sm font-medium mb-1">
@@ -211,7 +259,30 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                 value={formData[field]}
                 onChange={handleChange}
                 placeholder={t(FIELD_KEYS[field])}
+                aria-invalid={Boolean(fieldErrors[field])}
+                className={cn(
+                  field === "username" &&
+                    usernameCheck.status === "taken" &&
+                    "border-red-500 focus-visible:ring-red-500"
+                )}
               />
+              {field === "username" && usernameHint && (
+                <p
+                  className={cn(
+                    "text-[11px] mt-1",
+                    usernameCheck.status === "available"
+                      ? "text-emerald-600"
+                      : usernameCheck.status === "checking"
+                        ? "text-muted-foreground"
+                        : "text-red-500"
+                  )}
+                >
+                  {usernameHint}
+                </p>
+              )}
+              {fieldErrors[field] && (
+                <p className="text-[11px] text-red-500 mt-1">{fieldErrors[field]}</p>
+              )}
             </div>
           ))}
 
@@ -226,6 +297,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                 onChange={handleChange}
                 placeholder={t("enter_password")}
                 className="pe-10"
+                aria-invalid={Boolean(fieldErrors.password)}
               />
               <button
                 type="button"
@@ -236,6 +308,40 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+            {formData.password ? (
+              <ul className="mt-1.5 space-y-0.5 text-[11px]">
+                {(
+                  [
+                    ["length", t("pw_rule_length", "At least 8 characters")],
+                    ["upper", t("pw_rule_upper", "One uppercase letter")],
+                    ["lower", t("pw_rule_lower", "One lowercase letter")],
+                    ["digit", t("pw_rule_digit", "One number")],
+                    ["special", t("pw_rule_special", "One special character")],
+                  ] as const
+                ).map(([key, label]) => (
+                  <li
+                    key={key}
+                    className={
+                      passwordChecks[key]
+                        ? "text-emerald-600"
+                        : "text-muted-foreground"
+                    }
+                  >
+                    {passwordChecks[key] ? "✓" : "○"} {label}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {t(
+                  "err_password_pattern",
+                  "Password must be 8–64 characters and include uppercase, lowercase, a number, and a special character."
+                )}
+              </p>
+            )}
+            {fieldErrors.password && (
+              <p className="text-[11px] text-red-500 mt-1">{fieldErrors.password}</p>
+            )}
           </div>
 
           <div>
@@ -249,6 +355,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                 onChange={handleChange}
                 placeholder={t("reenter_password")}
                 className="pe-10"
+                aria-invalid={Boolean(fieldErrors.confirmPassword)}
               />
               <button
                 type="button"
@@ -259,6 +366,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                 {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+            {fieldErrors.confirmPassword && (
+              <p className="text-[11px] text-red-500 mt-1">
+                {fieldErrors.confirmPassword}
+              </p>
+            )}
           </div>
 
           {isCaregiver ? (
@@ -283,6 +395,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                   ))}
                 </SelectContent>
               </Select>
+              {fieldErrors.relationship_to_user && (
+                <p className="text-[11px] text-red-500 mt-1">
+                  {fieldErrors.relationship_to_user}
+                </p>
+              )}
             </div>
           ) : (
             <div>
@@ -314,11 +431,20 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                   "You can practice independently. A clinic can be assigned later."
                 )}
               </p>
+              {fieldErrors.specialization && (
+                <p className="text-[11px] text-red-500 mt-1">
+                  {fieldErrors.specialization}
+                </p>
+              )}
             </div>
           )}
         </div>
 
-        <Button type="submit" className="w-full" disabled={isPending}>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={isPending || usernameCheck.status === "checking"}
+        >
           {isPending
             ? t("creating_account")
             : isCaregiver
