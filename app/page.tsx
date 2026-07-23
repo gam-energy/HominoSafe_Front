@@ -180,19 +180,27 @@ export default function LandingPage() {
               <p className="mt-5 max-w-xl text-lg text-muted-foreground">
                 {t(
                   'landing_hero_body',
-                  'SenioSentry helps family caregivers apply through their clinic, verify payment, and access a secure care panel for older loved ones.'
+                  'Create a patient account on your own or with a caregiver — or apply through your clinic for supervised care access.'
                 )}
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <Button asChild size="lg" className="h-12 rounded-xl px-6 text-base">
-                  <Link href="/apply">
-                    {t('apply_now', 'Apply now')}
+                  <Link href="/auth/sign-up">
+                    {t('create_account', 'Create account')}
                     <ArrowRight className="ms-2 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button
                   asChild
                   variant="outline"
+                  size="lg"
+                  className="h-12 rounded-xl px-6 text-base"
+                >
+                  <Link href="/apply">{t('clinic_apply', 'Clinic apply')}</Link>
+                </Button>
+                <Button
+                  asChild
+                  variant="ghost"
                   size="lg"
                   className="h-12 rounded-xl px-6 text-base"
                 >
@@ -315,12 +323,12 @@ export default function LandingPage() {
           <div className="mx-auto max-w-6xl px-4">
             <div className="overflow-hidden rounded-[1.75rem] border border-primary/30 bg-gradient-to-br from-primary to-blue-700 px-6 py-12 text-primary-foreground shadow-lg dark:from-blue-600 dark:to-blue-900 sm:px-12">
               <h2 className="max-w-xl text-3xl font-bold tracking-tight">
-                {t('landing_cta_title', 'Ready to start your clinic application?')}
+                {t('landing_cta_title', 'Ready to get started?')}
               </h2>
               <p className="mt-3 max-w-lg text-primary-foreground/90">
                 {t(
                   'landing_cta_body',
-                  'Apply in a few steps. Your clinic will guide review, payment, and dashboard access.'
+                  'Create a patient account now, or apply through your clinic for supervised enrollment.'
                 )}
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
@@ -330,7 +338,7 @@ export default function LandingPage() {
                   variant="secondary"
                   className="h-11 rounded-xl font-semibold"
                 >
-                  <Link href="/apply">{t('apply_now', 'Apply now')}</Link>
+                  <Link href="/auth/sign-up">{t('create_account', 'Create account')}</Link>
                 </Button>
                 <Button
                   asChild
@@ -338,7 +346,7 @@ export default function LandingPage() {
                   variant="outline"
                   className="h-11 rounded-xl border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white"
                 >
-                  <Link href="/auth/sign-in">{t('sign_in')}</Link>
+                  <Link href="/apply">{t('clinic_apply', 'Clinic apply')}</Link>
                 </Button>
               </div>
             </div>

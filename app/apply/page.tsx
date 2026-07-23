@@ -50,6 +50,12 @@ export default function ApplyPage() {
             {t('sign_in')}
           </Link>
         </p>
+        <p className="mt-3 text-center text-sm text-muted-foreground">
+          {t('prefer_self_serve_signup', 'Signing up without a clinic?')}{' '}
+          <Link href="/auth/sign-up" className="font-semibold text-primary hover:underline">
+            {t('create_account', 'Create account')} →
+          </Link>
+        </p>
       </main>
     </div>
   );

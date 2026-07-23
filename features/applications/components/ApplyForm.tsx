@@ -227,7 +227,12 @@ export function ApplyForm() {
     if (!p.password) e.pt_password = t('err_username_password_required');
     else if (!isValidPassword(p.password)) e.pt_password = t('err_password_pattern');
     if (p.password !== p.confirmPassword) e.pt_confirm = t('err_password_mismatch');
-    if (!p.national_code.trim()) e.pt_national = t('err_national_code_required', 'National code is required');
+    if (!p.national_code.trim() || p.national_code.trim().length < 5 || !/^[a-zA-Z0-9]+$/.test(p.national_code.trim())) {
+      e.pt_national = t(
+        'err_national_code_required',
+        'National code is required (min 5 alphanumeric characters)'
+      );
+    }
     if (!p.dob) e.pt_dob = t('err_dob_required', 'Date of birth is required');
     if (!p.gender) e.pt_gender = t('err_gender_required', 'Please select gender');
     if (p.weight && Number.isNaN(Number(p.weight))) e.pt_weight = t('err_number_invalid', 'Enter a valid number');

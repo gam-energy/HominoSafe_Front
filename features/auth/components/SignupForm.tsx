@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -17,8 +17,11 @@ import {
 import {
   relationships,
   specializations,
+  genders,
   type SignUpFormValues,
   type SignUpRole,
+  type PatientSignupMode,
+  type CaregiverSignupValues,
 } from "../types/auth";
 import { cn } from "@/lib/utils";
 import {
@@ -44,13 +47,16 @@ const RELATION_KEYS: Record<string, string> = {
   Other: "rel_other",
 };
 
-const FIELD_KEYS: Record<string, string> = {
-  first_name: "first_name",
-  last_name: "last_name",
-  username: "username",
-  email: "email",
-  phone_number: "phone_number",
-};
+const emptyCaregiver = (): CaregiverSignupValues => ({
+  username: "",
+  password: "",
+  confirmPassword: "",
+  email: "",
+  phone_number: "",
+  first_name: "",
+  last_name: "",
+  relationship_to_patient: "",
+});
 
 export const SignUpForm: React.FC<SignUpFormProps> = ({
   onSubmit,
@@ -59,13 +65,14 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
   const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const codeFromUrl = (searchParams.get("code") || "").toUpperCase();
   const roleFromUrl = (searchParams.get("role") || "").toLowerCase();
 
   const initialRole: SignUpRole =
-    roleFromUrl === "doctor" ? "doctor" : "caregiver";
+    roleFromUrl === "doctor" ? "doctor" : "patient";
 
   const [formData, setFormData] = useState<SignUpFormValues>({
+    role: initialRole,
+    patient_mode: "alone",
     username: "",
     password: "",
     confirmPassword: "",
@@ -73,28 +80,27 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
     phone_number: "",
     first_name: "",
     last_name: "",
-    role: initialRole,
-    relationship_to_user: "",
+    national_code: "",
+    dob: "",
+    gender: "",
+    weight: "",
+    height: "",
     specialization: "",
-    referral_code: codeFromUrl,
+    caregiver: emptyCaregiver(),
   });
-
-  useEffect(() => {
-    if (codeFromUrl) {
-      setFormData((prev) => ({ ...prev, referral_code: codeFromUrl }));
-    }
-  }, [codeFromUrl]);
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showCgPassword, setShowCgPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const usernameCheck = useUsernameAvailability(formData.username);
+  const cgUsernameCheck = useUsernameAvailability(
+    formData.caregiver?.username || ""
+  );
   const passwordChecks = getPasswordChecks(formData.password);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setFieldErrors((prev) => {
@@ -105,46 +111,76 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
     });
   };
 
+  const handleCaregiverChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      caregiver: { ...(prev.caregiver || emptyCaregiver()), [name]: value },
+    }));
+    const key = `cg_${name}`;
+    setFieldErrors((prev) => {
+      if (!prev[key]) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  };
+
   const setRole = (role: SignUpRole) => {
     setFormData((prev) => ({ ...prev, role }));
+  };
+
+  const setPatientMode = (patient_mode: PatientSignupMode) => {
+    setFormData((prev) => ({
+      ...prev,
+      patient_mode,
+      caregiver: prev.caregiver || emptyCaregiver(),
+    }));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const errors: Record<string, string> = {};
+    const withCg =
+      formData.role === "patient" && formData.patient_mode === "with_caregiver";
 
+    if (!formData.first_name || !formData.last_name) {
+      errors.first_name = t("err_name_required");
+    }
     if (!formData.username.trim()) {
       errors.username = t("err_username_password_required");
     } else if (!isValidUsername(formData.username)) {
-      errors.username = t(
-        "err_username_pattern",
-        "Username must start with a letter and use only letters, digits, dots, underscores, or hyphens (3–50 chars)."
-      );
+      errors.username = t("err_username_pattern");
     } else if (usernameCheck.status === "taken") {
-      errors.username = t("err_username_taken", "Username is already taken.");
+      errors.username = t("err_username_taken");
     }
 
     if (!formData.password) {
       errors.password = t("err_username_password_required");
     } else if (!isValidPassword(formData.password)) {
-      errors.password = t(
-        "err_password_pattern",
-        "Password must be 8–64 characters and include uppercase, lowercase, a number, and a special character."
-      );
+      errors.password = t("err_password_pattern");
     }
-
     if (!formData.confirmPassword) {
       errors.confirmPassword = t("err_username_password_required");
     } else if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = t("err_password_mismatch");
     }
 
-    if (!formData.first_name || !formData.last_name) {
-      errors.first_name = t("err_name_required");
+    if (formData.role === "patient") {
+      if (!formData.national_code.trim() || formData.national_code.trim().length < 5) {
+        errors.national_code = t(
+          "err_national_code_required",
+          "National code is required (min 5 characters)"
+        );
+      }
+      if (!formData.dob) {
+        errors.dob = t("err_dob_required", "Date of birth is required");
+      }
+      if (!formData.gender) {
+        errors.gender = t("err_gender_required", "Please select gender");
+      }
     }
-    if (formData.role === "caregiver" && !formData.relationship_to_user) {
-      errors.relationship_to_user = t("err_relationship_required");
-    }
+
     if (formData.role === "doctor" && !formData.specialization?.trim()) {
       errors.specialization = t(
         "err_specialization_required",
@@ -152,29 +188,58 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
       );
     }
 
+    if (withCg && formData.caregiver) {
+      const c = formData.caregiver;
+      if (!c.first_name || !c.last_name) {
+        errors.cg_first_name = t("err_name_required");
+      }
+      if (!c.username.trim()) {
+        errors.cg_username = t("err_username_password_required");
+      } else if (!isValidUsername(c.username)) {
+        errors.cg_username = t("err_username_pattern");
+      } else if (cgUsernameCheck.status === "taken") {
+        errors.cg_username = t("err_username_taken");
+      } else if (
+        c.username.trim().toLowerCase() === formData.username.trim().toLowerCase()
+      ) {
+        errors.cg_username = t(
+          "err_username_same",
+          "Caregiver and patient usernames must differ."
+        );
+      }
+      if (!c.password) {
+        errors.cg_password = t("err_username_password_required");
+      } else if (!isValidPassword(c.password)) {
+        errors.cg_password = t("err_password_pattern");
+      }
+      if (c.password !== c.confirmPassword) {
+        errors.cg_confirmPassword = t("err_password_mismatch");
+      }
+      if (!c.relationship_to_patient) {
+        errors.cg_relationship = t("err_relationship_required");
+      }
+    }
+
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) return;
     if (usernameCheck.status === "checking") return;
+    if (withCg && cgUsernameCheck.status === "checking") return;
 
-    onSubmit({
-      ...formData,
-      referral_code: formData.referral_code.trim().toUpperCase(),
-    });
+    onSubmit(formData);
   };
 
-  const isCaregiver = formData.role === "caregiver";
+  const isPatient = formData.role === "patient";
+  const withCaregiver = isPatient && formData.patient_mode === "with_caregiver";
+
   const usernameHint =
     usernameCheck.status === "checking"
-      ? t("username_checking", "Checking username…")
+      ? t("username_checking")
       : usernameCheck.status === "available"
-        ? t("username_available", "Username is available")
+        ? t("username_available")
         : usernameCheck.status === "taken"
-          ? t("err_username_taken", "Username is already taken.")
+          ? t("err_username_taken")
           : usernameCheck.status === "invalid" && formData.username.trim()
-            ? t(
-                "err_username_pattern",
-                "Username must start with a letter and use only letters, digits, dots, underscores, or hyphens (3–50 chars)."
-              )
+            ? t("err_username_pattern")
             : null;
 
   return (
@@ -184,18 +249,18 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
       </h1>
       <p className="text-sm text-muted-foreground text-center mb-6">
         {t(
-          "signup_choose_role_subtitle",
-          "Sign up as a caregiver on your own, or as an independent doctor (clinic optional later)."
+          "signup_b2c_subtitle",
+          "Register as a patient (alone or with a caregiver), or as an independent doctor."
         )}
       </p>
 
-      <div className="grid grid-cols-2 gap-2 mb-6">
+      <div className="grid grid-cols-2 gap-2 mb-4">
         {(
           [
             {
-              role: "caregiver" as const,
-              title: t("role_caregiver", "Caregiver"),
-              hint: t("role_caregiver_hint", "Family or hired care"),
+              role: "patient" as const,
+              title: t("role_patient", "Patient"),
+              hint: t("role_patient_hint", "B2C — alone or with caregiver"),
             },
             {
               role: "doctor" as const,
@@ -221,50 +286,59 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
         ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-        {isCaregiver && (
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              {t("doctor_referral_code")}{" "}
-              <span className="text-muted-foreground font-normal">
-                ({t("optional", "optional")})
-              </span>
-            </label>
-            <Input
-              name="referral_code"
-              dir="ltr"
-              value={formData.referral_code}
-              onChange={handleChange}
-              placeholder={t("referral_code_placeholder")}
-              className="uppercase tracking-wider"
-            />
-            <p className="text-[11px] text-muted-foreground mt-1">
-              {t(
-                "referral_optional_hint",
-                "Have a doctor code? Enter it to link your account. Otherwise leave blank."
+      {isPatient && (
+        <div className="grid grid-cols-2 gap-2 mb-6">
+          {(
+            [
+              {
+                mode: "alone" as const,
+                title: t("patient_mode_alone", "Patient alone"),
+                hint: t("patient_mode_alone_hint", "No caregiver account"),
+              },
+              {
+                mode: "with_caregiver" as const,
+                title: t("patient_mode_with_cg", "With caregiver"),
+                hint: t("patient_mode_with_cg_hint", "Create both accounts"),
+              },
+            ] as const
+          ).map((opt) => (
+            <button
+              key={opt.mode}
+              type="button"
+              onClick={() => setPatientMode(opt.mode)}
+              className={cn(
+                "rounded-xl border px-3 py-2.5 text-start transition-all",
+                formData.patient_mode === opt.mode
+                  ? "border-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 ring-1 ring-emerald-600"
+                  : "border-border hover:bg-muted/50"
               )}
-            </p>
-          </div>
-        )}
+            >
+              <p className="text-sm font-semibold">{opt.title}</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">{opt.hint}</p>
+            </button>
+          ))}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {isPatient
+            ? t("patient_account_section", "Patient account")
+            : t("doctor_account_section", "Doctor account")}
+        </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(
             ["first_name", "last_name", "username", "email", "phone_number"] as const
           ).map((field) => (
             <div key={field}>
-              <label className="block text-sm mb-1">{t(FIELD_KEYS[field])}</label>
+              <label className="block text-sm mb-1">{t(field)}</label>
               <Input
                 name={field}
                 dir="ltr"
                 value={formData[field]}
                 onChange={handleChange}
-                placeholder={t(FIELD_KEYS[field])}
-                aria-invalid={Boolean(fieldErrors[field])}
-                className={cn(
-                  field === "username" &&
-                    usernameCheck.status === "taken" &&
-                    "border-red-500 focus-visible:ring-red-500"
-                )}
+                placeholder={t(field)}
               />
               {field === "username" && usernameHint && (
                 <p
@@ -297,7 +371,6 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                 onChange={handleChange}
                 placeholder={t("enter_password")}
                 className="pe-10"
-                aria-invalid={Boolean(fieldErrors.password)}
               />
               <button
                 type="button"
@@ -312,11 +385,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
               <ul className="mt-1.5 space-y-0.5 text-[11px]">
                 {(
                   [
-                    ["length", t("pw_rule_length", "At least 8 characters")],
-                    ["upper", t("pw_rule_upper", "One uppercase letter")],
-                    ["lower", t("pw_rule_lower", "One lowercase letter")],
-                    ["digit", t("pw_rule_digit", "One number")],
-                    ["special", t("pw_rule_special", "One special character")],
+                    ["length", t("pw_rule_length")],
+                    ["upper", t("pw_rule_upper")],
+                    ["lower", t("pw_rule_lower")],
+                    ["digit", t("pw_rule_digit")],
+                    ["special", t("pw_rule_special")],
                   ] as const
                 ).map(([key, label]) => (
                   <li
@@ -333,10 +406,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
               </ul>
             ) : (
               <p className="text-[11px] text-muted-foreground mt-1">
-                {t(
-                  "err_password_pattern",
-                  "Password must be 8–64 characters and include uppercase, lowercase, a number, and a special character."
-                )}
+                {t("err_password_pattern")}
               </p>
             )}
             {fieldErrors.password && (
@@ -355,7 +425,6 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                 onChange={handleChange}
                 placeholder={t("reenter_password")}
                 className="pe-10"
-                aria-invalid={Boolean(fieldErrors.confirmPassword)}
               />
               <button
                 type="button"
@@ -373,34 +442,87 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
             )}
           </div>
 
-          {isCaregiver ? (
-            <div>
-              <label className="block text-sm mb-1">
-                {t("relationship_to_patient")}
-              </label>
-              <Select
-                value={formData.relationship_to_user}
-                onValueChange={(val) =>
-                  setFormData((prev) => ({ ...prev, relationship_to_user: val }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={t("select_relationship")} />
-                </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-zinc-900 z-50">
-                  {relationships.map((rel) => (
-                    <SelectItem key={rel} value={rel}>
-                      {t(RELATION_KEYS[rel] || rel)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fieldErrors.relationship_to_user && (
-                <p className="text-[11px] text-red-500 mt-1">
-                  {fieldErrors.relationship_to_user}
-                </p>
-              )}
-            </div>
+          {isPatient ? (
+            <>
+              <div>
+                <label className="block text-sm mb-1">
+                  {t("national_code", "National code")}
+                </label>
+                <Input
+                  name="national_code"
+                  dir="ltr"
+                  value={formData.national_code}
+                  onChange={handleChange}
+                />
+                {fieldErrors.national_code && (
+                  <p className="text-[11px] text-red-500 mt-1">
+                    {fieldErrors.national_code}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm mb-1">
+                  {t("date_of_birth", "Date of birth")}
+                </label>
+                <Input
+                  name="dob"
+                  type="date"
+                  dir="ltr"
+                  value={formData.dob}
+                  onChange={handleChange}
+                />
+                {fieldErrors.dob && (
+                  <p className="text-[11px] text-red-500 mt-1">{fieldErrors.dob}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm mb-1">{t("gender", "Gender")}</label>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(val) =>
+                    setFormData((prev) => ({ ...prev, gender: val }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("select_gender", "Select gender")} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-zinc-900 z-50">
+                    {genders.map((g) => (
+                      <SelectItem key={g} value={g}>
+                        {g}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldErrors.gender && (
+                  <p className="text-[11px] text-red-500 mt-1">{fieldErrors.gender}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm mb-1">
+                  {t("weight", "Weight (kg)")}{" "}
+                  <span className="text-muted-foreground">({t("optional", "optional")})</span>
+                </label>
+                <Input
+                  name="weight"
+                  dir="ltr"
+                  value={formData.weight || ""}
+                  onChange={handleChange}
+                />
+              </div>
+              <div>
+                <label className="block text-sm mb-1">
+                  {t("height", "Height (cm)")}{" "}
+                  <span className="text-muted-foreground">({t("optional", "optional")})</span>
+                </label>
+                <Input
+                  name="height"
+                  dir="ltr"
+                  value={formData.height || ""}
+                  onChange={handleChange}
+                />
+              </div>
+            </>
           ) : (
             <div>
               <label className="block text-sm mb-1">
@@ -440,15 +562,134 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
           )}
         </div>
 
+        {withCaregiver && formData.caregiver && (
+          <div className="space-y-4 border-t pt-4 mt-2">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {t("caregiver_account_section", "Caregiver account")}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {(
+                [
+                  "first_name",
+                  "last_name",
+                  "username",
+                  "email",
+                  "phone_number",
+                ] as const
+              ).map((field) => (
+                <div key={`cg_${field}`}>
+                  <label className="block text-sm mb-1">{t(field)}</label>
+                  <Input
+                    name={field}
+                    dir="ltr"
+                    value={formData.caregiver![field]}
+                    onChange={handleCaregiverChange}
+                  />
+                  {field === "username" && cgUsernameCheck.status === "available" && (
+                    <p className="text-[11px] text-emerald-600 mt-1">
+                      {t("username_available")}
+                    </p>
+                  )}
+                  {fieldErrors[`cg_${field}`] && (
+                    <p className="text-[11px] text-red-500 mt-1">
+                      {fieldErrors[`cg_${field}`]}
+                    </p>
+                  )}
+                </div>
+              ))}
+              <div>
+                <label className="block text-sm mb-1">{t("password")}</label>
+                <div className="relative">
+                  <Input
+                    name="password"
+                    dir="ltr"
+                    type={showCgPassword ? "text" : "password"}
+                    value={formData.caregiver.password}
+                    onChange={handleCaregiverChange}
+                    className="pe-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCgPassword(!showCgPassword)}
+                    className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground"
+                    tabIndex={-1}
+                  >
+                    {showCgPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {fieldErrors.cg_password && (
+                  <p className="text-[11px] text-red-500 mt-1">
+                    {fieldErrors.cg_password}
+                  </p>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm mb-1">{t("confirm_password")}</label>
+                <Input
+                  name="confirmPassword"
+                  dir="ltr"
+                  type="password"
+                  value={formData.caregiver.confirmPassword || ""}
+                  onChange={handleCaregiverChange}
+                />
+                {fieldErrors.cg_confirmPassword && (
+                  <p className="text-[11px] text-red-500 mt-1">
+                    {fieldErrors.cg_confirmPassword}
+                  </p>
+                )}
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-sm mb-1">
+                  {t("relationship_to_patient")}
+                </label>
+                <Select
+                  value={formData.caregiver.relationship_to_patient}
+                  onValueChange={(val) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      caregiver: {
+                        ...(prev.caregiver || emptyCaregiver()),
+                        relationship_to_patient: val,
+                      },
+                    }))
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t("select_relationship")} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-white dark:bg-zinc-900 z-50">
+                    {relationships.map((rel) => (
+                      <SelectItem key={rel} value={rel}>
+                        {t(RELATION_KEYS[rel] || rel)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldErrors.cg_relationship && (
+                  <p className="text-[11px] text-red-500 mt-1">
+                    {fieldErrors.cg_relationship}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <Button
           type="submit"
           className="w-full"
-          disabled={isPending || usernameCheck.status === "checking"}
+          disabled={
+            isPending ||
+            usernameCheck.status === "checking" ||
+            (withCaregiver && cgUsernameCheck.status === "checking")
+          }
         >
           {isPending
             ? t("creating_account")
-            : isCaregiver
-              ? t("create_caregiver_account")
+            : isPatient
+              ? withCaregiver
+                ? t("create_patient_caregiver_accounts", "Create patient & caregiver")
+                : t("create_patient_account", "Create patient account")
               : t("create_doctor_account", "Create doctor account")}
         </Button>
         <Button

@@ -27,8 +27,8 @@ export type CaregiverApplicationInput = {
   password: string;
   first_name: string;
   last_name: string;
-  email?: string;
-  phone_number?: string;
+  email: string;
+  phone_number: string;
   relationship_to_patient: string;
 };
 
@@ -142,4 +142,5 @@ export const APPLICATION_TIMELINE: ApplicationStatus[] = [
 export const GENDERS: Gender[] = ['Male', 'Female', 'Other'];
 
 export const MAX_RECEIPT_BYTES = 5 * 1024 * 1024;
-export const RECEIPT_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf';
+export const RECEIPT_ACCEPT =
+  'image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf';
