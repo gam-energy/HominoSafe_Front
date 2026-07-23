@@ -16,6 +16,8 @@ import { useHistory } from "@/features/dashboard/api/patient/useGetHistory";
 import { useLatestPatientState } from "@/features/predictions/api/useLatestPatientState";
 import { useCnnPredictions } from "@/features/predictions/api/useCnnPredictions";
 import { useGetOVerview } from "@/features/dashboard/api/patient/useGetOverview";
+import { useMyDevices } from "@/features/dashboard/api/patient/useDeviceLogin";
+import { ActivityMeter, activityIntensity } from "@/features/dashboard/components/patient/ActivityMeter";
 import { fetchActiveAlerts } from "@/features/alert/api/alertApi";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -233,6 +235,8 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
 
   // Real data hooks
   const { data: summary } = useSummary(userId);
+  const isOwnProfile = !userIdProp || userIdProp === user?.id;
+  const { data: myDevices } = useMyDevices(isOwnProfile);
   const { data: historyData } = useHistory(
     userId,
     [
@@ -258,6 +262,20 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
     enabled: !!userId,
   });
 
+  const watchOnline =
+    myDevices?.devices?.some((d) => d.online) || !!cnn?.watch_connected;
+  const watchActivity =
+    myDevices?.devices?.find((d) => d.activity)?.activity ||
+    summary?.latest_activity ||
+    overview?.wearable?.activity ||
+    null;
+  const watchIntensity =
+    myDevices?.devices?.find((d) => (d.activity_intensity ?? 0) > 0)
+      ?.activity_intensity ?? activityIntensity(watchActivity);
+  const watchBodyPosition =
+    myDevices?.devices?.find((d) => d.body_position)?.body_position ||
+    (overview?.wearable as { body_position?: string } | undefined)?.body_position ||
+    null;
   // Build chart data from real history (bucketed for mobile readability)
   const { vitalsData, envData } = useMemo(() => {
     const raw = historyData?.data as unknown as
@@ -540,10 +558,12 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
   ];
 
   const activityLabel =
+    watchActivity ||
     summary?.latest_activity ||
     overview?.wearable?.activity ||
     t("unknown", "Unknown");
   const bodyPosition =
+    watchBodyPosition ||
     (overview?.wearable as { body_position?: string } | undefined)?.body_position ||
     activityLabel;
 
@@ -782,6 +802,30 @@ export function HealthKpisPanel({ patientName: patientNameProp, userId: userIdPr
               </CardDescription>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 rounded-xl border border-border/80 p-4 space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs uppercase text-muted-foreground">
+                    {t("body_activity_meter", "Body activity (watch)")}
+                  </p>
+                  <span
+                    className={cn(
+                      "text-[11px] font-medium rounded-full px-2 py-0.5",
+                      watchOnline
+                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400"
+                        : "bg-zinc-500/15 text-zinc-600 dark:text-zinc-400"
+                    )}
+                  >
+                    {watchOnline
+                      ? t("watch_online", "Online")
+                      : t("watch_offline", "Watch offline")}
+                  </span>
+                </div>
+                <ActivityMeter
+                  activity={activityLabel === t("unknown", "Unknown") ? null : activityLabel}
+                  intensity={watchIntensity}
+                  bodyPosition={bodyPosition}
+                />
+              </div>
               <div className="rounded-xl border border-border/80 p-4">
                 <p className="text-xs uppercase text-muted-foreground">
                   {t("activity", "Activity")}

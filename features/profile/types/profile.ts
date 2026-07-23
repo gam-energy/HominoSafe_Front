@@ -28,5 +28,18 @@ export interface DevicePairResponse {
   code?: string;
   expires_at?: string;
   expires_in?: number;
+  expires_in_seconds?: number;
   message?: string;
+}
+
+export interface PairedDevice {
+  id: number;
+  device_id: string;
+  mqtt_username?: string | null;
+  created_at: string;
+  last_seen_at: string | null;
+  online: boolean;
+  activity?: string | null;
+  body_position?: string | null;
+  activity_intensity?: number;
 }

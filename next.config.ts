@@ -79,6 +79,7 @@ const nextConfig: NextConfig = {
       { source: "/ehr", destination: `${t}/ehr` },
       { source: "/ehr/:path*", destination: `${t}/ehr/:path*` },
       { source: "/medical/:path*", destination: `${t}/medical/:path*` },
+      { source: "/device", destination: `${t}/device` },
       { source: "/device/:path*", destination: `${t}/device/:path*` },
       { source: "/doctor/:path*", destination: `${t}/doctor/:path*` },
       { source: "/causal/:path*", destination: `${t}/causal/:path*` },
