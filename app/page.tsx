@@ -154,7 +154,7 @@ export default function LandingPage() {
               </Button>
             )}
             <Button asChild size="sm" className="hidden sm:inline-flex">
-              <Link href="/apply">{t('apply_now', 'Apply now')}</Link>
+              <Link href="/auth/sign-up">{t("create_account", "Create account")}</Link>
             </Button>
           </div>
         </div>

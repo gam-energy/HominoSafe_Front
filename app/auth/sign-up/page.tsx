@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { SignUpForm } from "@/features/auth/components/SignupForm";
 import { SignUpFormValues } from "@/features/auth/types/auth";
 import { useSignup } from "@/features/auth/api/use-sign-up";
@@ -11,36 +10,18 @@ import { Loader2 } from "lucide-react";
 
 const SignUpInner = () => {
   const signup = useSignup();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const code = (searchParams.get("code") || "").trim();
-
-  useEffect(() => {
-    // Prefer the public /apply journey unless a doctor referral code is present.
-    if (!code) {
-      router.replace("/apply");
-    }
-  }, [code, router]);
 
   const handleSubmit = (values: SignUpFormValues) => {
     signup.mutate(values);
   };
 
-  if (!code) {
-    return (
-      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
-  }
-
   return (
     <section
-      style={{ paddingTop: 'calc(1rem + var(--app-sat, 0px))' }}
+      style={{ paddingTop: "calc(1rem + var(--app-sat, 0px))" }}
       className="w-full min-h-screen flex flex-col justify-center items-center bg-secondary p-4 relative"
     >
       <div
-        style={{ top: 'calc(1rem + var(--app-sat, 0px))' }}
+        style={{ top: "calc(1rem + var(--app-sat, 0px))" }}
         className="absolute end-4 z-20 flex items-center gap-2"
       >
         <ModeToggle />

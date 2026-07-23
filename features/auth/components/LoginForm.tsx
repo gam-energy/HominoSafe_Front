@@ -151,9 +151,17 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSubmit }) => {
             type="button"
             variant="outline"
             className="w-full h-12 rounded-xl border-gray-200 dark:border-zinc-800 font-semibold hover:bg-gray-50 dark:hover:bg-zinc-800 transition-all"
+            onClick={() => router.push("/auth/sign-up")}
+          >
+            {t("create_account", "Create account")}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            className="w-full h-11 rounded-xl font-semibold text-muted-foreground"
             onClick={() => router.push("/apply")}
           >
-            {t('apply_now', 'Apply now')}
+            {t("apply_with_clinic", "Apply with a clinic & patient")}
           </Button>
         </form>
       </Form>
