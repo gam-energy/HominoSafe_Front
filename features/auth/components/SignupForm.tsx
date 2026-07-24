@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Package } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,7 @@ import {
   isValidUsername,
 } from "../lib/credentials";
 import { useUsernameAvailability } from "../api/use-username-availability";
+import { useSetupEligibility } from "@/features/orders/api/use-orders";
 
 interface SignUpFormProps {
   onSubmit: (values: SignUpFormValues) => void;
@@ -66,6 +68,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
   const router = useRouter();
   const searchParams = useSearchParams();
   const roleFromUrl = (searchParams.get("role") || "").toLowerCase();
+  const orderFromUrl = (searchParams.get("order") || "").trim();
 
   const initialRole: SignUpRole =
     roleFromUrl === "doctor" ? "doctor" : "patient";
@@ -73,6 +76,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
   const [formData, setFormData] = useState<SignUpFormValues>({
     role: initialRole,
     patient_mode: "alone",
+    order_number: orderFromUrl,
     username: "",
     password: "",
     confirmPassword: "",
@@ -93,6 +97,29 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showCgPassword, setShowCgPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [orderUnlocked, setOrderUnlocked] = useState(!!orderFromUrl);
+
+  const eligibility = useSetupEligibility(
+    formData.role === "patient" && orderUnlocked ? formData.order_number || null : null
+  );
+
+  useEffect(() => {
+    if (!eligibility.data?.eligible) return;
+    const d = eligibility.data;
+    setFormData((prev) => ({
+      ...prev,
+      first_name: prev.first_name || d.first_name || "",
+      last_name: prev.last_name || d.last_name || "",
+      email: prev.email || d.email || "",
+      national_code:
+        prev.national_code ||
+        (d.national_code && !String(d.national_code).startsWith("PENDING-")
+          ? d.national_code
+          : ""),
+      dob: prev.dob || d.dob || "",
+      gender: prev.gender || d.gender || "",
+    }));
+  }, [eligibility.data]);
 
   const usernameCheck = useUsernameAvailability(formData.username);
   const cgUsernameCheck = useUsernameAvailability(
@@ -167,6 +194,17 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
     }
 
     if (formData.role === "patient") {
+      if (!formData.order_number?.trim() || formData.order_number.trim().length < 4) {
+        errors.order_number = t(
+          "err_nest_order_required",
+          "Buy Senio Nest and enter your paid order number before setup."
+        );
+      } else if (eligibility.isError || eligibility.data?.eligible === false) {
+        errors.order_number = t(
+          "err_nest_order_unpaid",
+          "Complete Nest purchase (payment confirmed) before setting up your account."
+        );
+      }
       if (!formData.national_code.trim() || formData.national_code.trim().length < 5) {
         errors.national_code = t(
           "err_national_code_required",
@@ -230,6 +268,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
 
   const isPatient = formData.role === "patient";
   const withCaregiver = isPatient && formData.patient_mode === "with_caregiver";
+  const nestReady = !isPatient || eligibility.data?.eligible === true;
 
   const usernameHint =
     usernameCheck.status === "checking"
@@ -250,7 +289,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
       <p className="text-sm text-muted-foreground text-center mb-6">
         {t(
           "signup_b2c_subtitle",
-          "Register as a patient (alone or with a caregiver), or as an independent doctor."
+          "Patients must buy Senio Nest first. Doctors can register independently."
         )}
       </p>
 
@@ -260,7 +299,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
             {
               role: "patient" as const,
               title: t("role_patient", "Patient"),
-              hint: t("role_patient_hint", "B2C — alone or with caregiver"),
+              hint: t("role_patient_hint", "Requires Nest purchase"),
             },
             {
               role: "doctor" as const,
@@ -286,7 +325,79 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
         ))}
       </div>
 
-      {isPatient && (
+      {isPatient && !nestReady && (
+        <div className="mb-6 rounded-2xl border border-primary/25 bg-primary/5 p-4 space-y-3">
+          <div className="flex items-start gap-2">
+            <Package className="h-5 w-5 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold">
+                {t("nest_required_title", "Buy Senio Nest before setup")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {t(
+                  "nest_required_body",
+                  "Patient accounts unlock only after a paid Nest order (€780). Order on the marketplace, then enter your order number here."
+                )}
+              </p>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm mb-1">
+              {t("nest_order_number", "Nest order number")}
+            </label>
+            <Input
+              name="order_number"
+              dir="ltr"
+              value={formData.order_number || ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData((prev) => ({ ...prev, order_number: value }));
+                setOrderUnlocked(value.trim().length >= 4);
+                setFieldErrors((prev) => {
+                  if (!prev.order_number) return prev;
+                  const next = { ...prev };
+                  delete next.order_number;
+                  return next;
+                });
+              }}
+              placeholder="e.g. SN-XXXX"
+            />
+            {fieldErrors.order_number && (
+              <p className="text-xs text-destructive mt-1">{fieldErrors.order_number}</p>
+            )}
+            {eligibility.isFetching && (
+              <p className="text-xs text-muted-foreground mt-1">
+                {t("checking_order", "Checking order…")}
+              </p>
+            )}
+            {eligibility.isError && (
+              <p className="text-xs text-destructive mt-1">
+                {(eligibility.error as any)?.response?.data?.detail ||
+                  t(
+                    "err_nest_order_unpaid",
+                    "Complete Nest purchase (payment confirmed) before setting up your account."
+                  )}
+              </p>
+            )}
+          </div>
+          <Button asChild className="w-full">
+            <Link href="/order">
+              {t("buy_nest_cta", "Buy Senio Nest — €780")}
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {isPatient && nestReady && (
+        <div className="mb-4 rounded-xl border border-emerald-500/30 bg-emerald-50/80 dark:bg-emerald-950/20 px-3 py-2 text-xs text-emerald-800 dark:text-emerald-200">
+          {t("nest_order_unlocked", "Nest order verified")}:{" "}
+          <span className="font-mono font-semibold ltr-nums">
+            {formData.order_number}
+          </span>
+        </div>
+      )}
+
+      {isPatient && nestReady && (
         <div className="grid grid-cols-2 gap-2 mb-6">
           {(
             [
@@ -320,6 +431,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
         </div>
       )}
 
+      {(!isPatient || nestReady) && (
       <form onSubmit={handleSubmit} className="space-y-4" noValidate>
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
           {isPatient
@@ -446,14 +558,24 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
             <>
               <div>
                 <label className="block text-sm mb-1">
-                  {t("national_code", "National code")}
+                  {t("national_code", "National / social-security code")}
                 </label>
                 <Input
                   name="national_code"
                   dir="ltr"
                   value={formData.national_code}
                   onChange={handleChange}
+                  placeholder={t(
+                    "national_code_patient_hint",
+                    "Your personal ID — not a clinic or business code"
+                  )}
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  {t(
+                    "national_code_patient_only",
+                    "Patients only — used to match your health record, not business EHR codes."
+                  )}
+                </p>
                 {fieldErrors.national_code && (
                   <p className="text-[11px] text-red-500 mt-1">
                     {fieldErrors.national_code}
@@ -712,6 +834,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
           )}
         </Button>
       </form>
+      )}
     </div>
   );
 };

@@ -21,6 +21,8 @@ export type SignUpFormValues = {
   role: SignUpRole;
   /** Patient B2C mode; ignored when role is doctor. */
   patient_mode: PatientSignupMode;
+  /** Paid Nest order number required for patient setup. */
+  order_number?: string;
   username: string;
   password: string;
   confirmPassword?: string;
@@ -28,7 +30,7 @@ export type SignUpFormValues = {
   phone_number: string;
   first_name: string;
   last_name: string;
-  /** Patient-only */
+  /** Patient-only national / social-security code (not a business EHR code). */
   national_code: string;
   dob: string;
   gender: string;

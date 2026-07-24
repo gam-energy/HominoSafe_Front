@@ -16,6 +16,7 @@ type DoctorPayload = {
 };
 
 type B2CPayload = {
+  order_number: string;
   username: string;
   password: string;
   email?: string;
@@ -83,7 +84,11 @@ export const useSignup = () => {
 
       const weight = data.weight?.trim() ? Number(data.weight) : undefined;
       const height = data.height?.trim() ? Number(data.height) : undefined;
+      if (!data.order_number?.trim()) {
+        throw new Error('A paid Nest order number is required before patient setup.');
+      }
       const payload: B2CPayload = {
+        order_number: data.order_number.trim(),
         username: data.username,
         password: data.password,
         email: data.email || undefined,

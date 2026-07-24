@@ -90,6 +90,32 @@ export interface OrderCreatePayload {
   device_amount?: number;
   currency?: string;
   notes?: string;
+  product_sku?: string;
+}
+
+export interface MarketplaceProduct {
+  sku: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  includes_year_monitoring: boolean;
+}
+
+export interface MarketplaceCatalog {
+  products: MarketplaceProduct[];
+}
+
+export interface SetupEligibility {
+  eligible: boolean;
+  order_number: string;
+  status: OrderStatus;
+  email: string;
+  first_name: string;
+  last_name: string;
+  national_code?: string | null;
+  dob?: string | null;
+  gender?: Gender | null;
 }
 
 export interface OrderUpdatePayload {
@@ -118,6 +144,34 @@ export interface ShipmentUpdatePayload {
 }
 
 // ---------------- Public ---------------- //
+
+export function useMarketplaceCatalog() {
+  return useQuery({
+    queryKey: ['marketplace-catalog'],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<MarketplaceCatalog>('/orders/catalog');
+      return data;
+    },
+    staleTime: 60_000,
+  });
+}
+
+export function useSetupEligibility(orderNumber: string | null, email?: string | null) {
+  return useQuery({
+    queryKey: ['setup-eligibility', orderNumber, email],
+    enabled: !!orderNumber && orderNumber.length >= 4,
+    retry: false,
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<SetupEligibility>('/orders/setup-eligibility', {
+        params: {
+          order_number: orderNumber,
+          ...(email ? { email } : {}),
+        },
+      });
+      return data;
+    },
+  });
+}
 
 export function useCreateOrder() {
   return useMutation({
