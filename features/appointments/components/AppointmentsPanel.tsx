@@ -109,6 +109,15 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
   const canManageBoard =
     role === 'doctor' || role === 'clinic_admin' || role === 'admin';
 
+  const appointmentActionLabel =
+    role === 'doctor'
+      ? t('set_appointment', 'Set an appointment')
+      : t('book_appointment', 'Book appointment');
+  const appointmentBlurb =
+    role === 'doctor'
+      ? t('set_appointment_blurb', 'Set and manage appointments')
+      : t('book_appointment', 'Book and manage your appointments');
+
   const myAppointments = useMyAppointments(
     viewMode === 'list'
       ? { upcomingOnly: true }
@@ -153,7 +162,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
         <div>
           <h1 className="text-2xl font-bold">{t('appointments', 'Appointments')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('book_appointment', 'Book and manage your appointments')}
+            {appointmentBlurb}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -233,7 +242,7 @@ const AppointmentsPanel: FC<AppointmentsPanelProps> = ({ role }) => {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="me-2 h-4 w-4" />
-                {t('book_appointment', 'Book appointment')}
+                {appointmentActionLabel}
               </Button>
             </DialogTrigger>
             <BookingDialog
@@ -724,7 +733,11 @@ const BookingDialog: FC<BookingDialogProps> = ({ role, currentUserId, assignedDo
   return (
     <DialogContent className="sm:max-w-md">
       <DialogHeader>
-        <DialogTitle>{t('book_appointment', 'Book appointment')}</DialogTitle>
+        <DialogTitle>
+          {role === 'doctor'
+            ? t('set_appointment', 'Set an appointment')
+            : t('book_appointment', 'Book appointment')}
+        </DialogTitle>
       </DialogHeader>
       <div className="space-y-3">
         {openSlots.length > 0 && (

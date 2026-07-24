@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from 'react-i18next';
+import { Suspense } from 'react';
 import { useUser } from '@/context/UserContext';
 import { AdminBillingOverview } from '@/features/admin/components/AdminBillingOverview';
 import { ClinicAppointmentBilling } from '@/features/admin/components/ClinicAppointmentBilling';
@@ -8,8 +8,21 @@ import { MyAppointmentDebtsBilling } from '@/features/admin/components/MyAppoint
 import { LoaderIcon } from '@/components/chat/icons';
 import PageContainer from '@/components/layout/page-container';
 
+function AdminBillingSuspense() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-[40vh] items-center justify-center">
+          <LoaderIcon size={32} />
+        </div>
+      }
+    >
+      <AdminBillingOverview />
+    </Suspense>
+  );
+}
+
 export default function BillingPage() {
-  const { t } = useTranslation();
   const { user } = useUser();
 
   if (!user) {
@@ -25,7 +38,7 @@ export default function BillingPage() {
   if (role === 'admin') {
     return (
       <PageContainer scrollable>
-        <AdminBillingOverview />
+        <AdminBillingSuspense />
       </PageContainer>
     );
   }
@@ -39,24 +52,7 @@ export default function BillingPage() {
 
   return (
     <PageContainer scrollable>
-      <MyAppointmentDebtsBilling
-        title={
-          role === 'patient'
-            ? t('my_billing', 'My billing')
-            : t('appointment_billing', 'Appointment billing')
-        }
-        description={
-          role === 'patient'
-            ? t(
-                'billing_with_plan_desc',
-                'Your subscription plan and charges from completed appointments.',
-              )
-            : t(
-                'appointment_billing_desc',
-                'Visit charges linked to your appointments.',
-              )
-        }
-      />
+      <MyAppointmentDebtsBilling />
     </PageContainer>
   );
 }

@@ -43,7 +43,7 @@ import {
   IconUserCircle,
 } from '@tabler/icons-react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
 import { OrgSwitcher } from '../org-switcher';
@@ -65,10 +65,36 @@ const tenants = [
   { id: '3', name: 'Gamma Ltd' },
 ];
 
+function navUrlMatches(
+  url: string,
+  pathname: string | null,
+  searchParams: URLSearchParams
+): boolean {
+  if (!pathname || !url || url === '#') return false;
+  const [path, qs] = url.split('?');
+  const pathOk =
+    pathname === path || (path !== '/' && pathname.startsWith(`${path}/`));
+  if (!pathOk) return false;
+  if (!qs) {
+    // Avoid highlighting the generic path when a tabbed sibling is active.
+    return !searchParams.get('tab') || path !== '/dashboard/billing';
+  }
+  const want = new URLSearchParams(qs);
+  for (const [key, value] of want.entries()) {
+    if (searchParams.get(key) !== value) return false;
+  }
+  return true;
+}
+
+function childActive(item: NavItem, pathname: string | null, searchParams: URLSearchParams) {
+  return (item.items ?? []).some((sub) => navUrlMatches(sub.url, pathname, searchParams));
+}
+
 export default function AppSidebar() {
   const { t, i18n } = useTranslation();
   const isRtl = (i18n.language || 'en').startsWith('fa');
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isDesktop } = useIsDesktop();
   const logoutMutation = useSignOut();
   const router = useRouter();
@@ -111,19 +137,20 @@ export default function AppSidebar() {
           <SidebarMenu>
             {navItems.map((item) => {
               const Icon = item.icon ? Icons[item.icon] : Icons.logo;
+              const groupOpen = childActive(item, pathname, searchParams);
 
               return item?.items && item?.items?.length > 0 ? (
                 <Collapsible
                   key={item.title}
                   asChild
-                  defaultOpen={item.isActive}
+                  defaultOpen={item.isActive || groupOpen}
                   className="group/collapsible"
                 >
                   <SidebarMenuItem>
                     <CollapsibleTrigger asChild>
                       <SidebarMenuButton
                         tooltip={t(item.title.toLowerCase().replace(/\s+/g, '_'), item.title)}
-                        isActive={pathname === item.url}
+                        isActive={groupOpen}
                       >
                         {Icon && <Icon />}
                         <span>{t(item.title.toLowerCase().replace(/\s+/g, '_'), item.title)}</span>
@@ -143,7 +170,7 @@ export default function AppSidebar() {
                           <SidebarMenuSubItem key={subItem.title}>
                             <SidebarMenuSubButton
                               asChild
-                              isActive={pathname === subItem.url}
+                              isActive={navUrlMatches(subItem.url, pathname, searchParams)}
                             >
                               <Link href={subItem.url}>
                                 {SubIcon ? <SubIcon /> : null}
@@ -162,7 +189,7 @@ export default function AppSidebar() {
                   <SidebarMenuButton
                     asChild
                     tooltip={t(item.title.toLowerCase().replace(/\s+/g, '_'), item.title)}
-                    isActive={pathname === item.url}
+                    isActive={navUrlMatches(item.url, pathname, searchParams)}
                   >
                     <Link href={item.url}>
                       {Icon && <Icon />}
@@ -226,6 +253,14 @@ export default function AppSidebar() {
                     <IconBell className="me-2 h-4 w-4" />
                     {t("notifications", "Notifications")}
                   </DropdownMenuItem>
+                  {String(user?.role || '').toLowerCase() === 'patient' ? (
+                    <DropdownMenuItem
+                      onClick={() => router.push('/dashboard/support-tickets')}
+                    >
+                      <IconUserCircle className="me-2 h-4 w-4" />
+                      {t('support_tickets', 'Support tickets')}
+                    </DropdownMenuItem>
+                  ) : null}
                   <DropdownMenuItem
                     onClick={() => router.push("/dashboard/settings")}
                   >

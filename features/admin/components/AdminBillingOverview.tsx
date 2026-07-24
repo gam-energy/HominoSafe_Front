@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertTriangle,
   BadgeCheck,
@@ -26,6 +27,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { cn } from '@/lib/utils';
 
 import {
   useAllBillings,
@@ -39,6 +41,8 @@ import {
 import { useAdminSubscriptions } from '@/features/orders/api/use-orders';
 import { BillingDialog } from './BillingDialog';
 import { Badge } from '@/components/ui/badge';
+
+type BillingTab = 'all' | 'b2c' | 'b2b' | 'debts';
 
 function planLabel(plan?: string) {
   if (plan === 'b2c_annual') return 'Annual · €780/year';
@@ -76,6 +80,27 @@ function formatWhen(iso?: string | null) {
 }
 
 export function AdminBillingOverview() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const tabParam = searchParams.get('tab');
+  const tab: BillingTab =
+    tabParam === 'b2c' || tabParam === 'b2b' || tabParam === 'debts' || tabParam === 'all'
+      ? tabParam
+      : 'all';
+
+  const setTab = (next: BillingTab) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (next === 'all') params.delete('tab');
+    else params.set('tab', next);
+    const qs = params.toString();
+    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+  };
+
+  const showB2c = tab === 'all' || tab === 'b2c';
+  const showB2b = tab === 'all' || tab === 'b2b';
+  const showDebts = tab === 'all' || tab === 'debts';
+
   const { data, isLoading, error } = useAllBillings();
   const update = useUpdateBilling();
   const debtsQuery = useAllAppointmentDebts();
@@ -148,6 +173,13 @@ export function AdminBillingOverview() {
     }
   };
 
+  const tabs: { id: BillingTab; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'b2c', label: 'B2C subscriptions' },
+    { id: 'b2b', label: 'B2B clinic invoices' },
+    { id: 'debts', label: 'Appointment debts' },
+  ];
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -159,6 +191,25 @@ export function AdminBillingOverview() {
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        {tabs.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => setTab(item.id)}
+            className={cn(
+              'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
+              tab === item.id
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'bg-background text-muted-foreground hover:text-foreground'
+            )}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      {showB2c ? (
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
@@ -227,7 +278,10 @@ export function AdminBillingOverview() {
           )}
         </CardContent>
       </Card>
+      ) : null}
 
+      {showB2b ? (
+      <>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Stat
           label="Total billed"
@@ -287,7 +341,7 @@ export function AdminBillingOverview() {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 gap-3 flex-wrap">
-          <CardTitle>All billing records</CardTitle>
+          <CardTitle>B2B clinic billing records</CardTitle>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -396,7 +450,10 @@ export function AdminBillingOverview() {
           )}
         </CardContent>
       </Card>
+      </>
+      ) : null}
 
+      {showDebts ? (
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 gap-3 flex-wrap">
           <div>
@@ -536,6 +593,7 @@ export function AdminBillingOverview() {
           )}
         </CardContent>
       </Card>
+      ) : null}
 
       {editing && (
         <BillingDialog

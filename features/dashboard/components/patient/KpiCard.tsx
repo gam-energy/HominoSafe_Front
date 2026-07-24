@@ -36,7 +36,7 @@ export function KpiCard({
           : 'gap-3 p-4 sm:gap-3.5 sm:p-5'
       )}
     >
-      <div className="absolute right-0 top-0 -z-10 h-16 w-16 rounded-bl-full bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="absolute end-0 top-0 -z-10 h-16 w-16 rounded-ss-full bg-gradient-to-bl from-primary/5 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100 rtl:bg-gradient-to-br" />
 
       <div
         className={cn(

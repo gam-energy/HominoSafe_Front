@@ -99,7 +99,7 @@ export function OverviewSection({
         compact={compact}
         title={t('heart_rate')}
         value={displayValue(wearable.heart_rate, '—', 1)}
-        unit="bpm"
+        unit={t('bpm')}
         icon={HeartPulse}
         color="text-rose-500"
         glowColor="bg-rose-500/10"
@@ -115,7 +115,7 @@ export function OverviewSection({
       />
       <KpiCard
         compact={compact}
-        title="SpO2"
+        title={t('spo2')}
         value={displayValue(wearable.spo2, '—', 1)}
         unit="%"
         icon={Droplets}
@@ -164,7 +164,7 @@ export function OverviewSection({
       />
       <KpiCard
         compact={compact}
-        title="MQ2"
+        title={t('gas_mq2', 'MQ2')}
         value={displayValue(gas, '—', 2)}
         unit="ppm"
         icon={Radiation}
@@ -173,7 +173,7 @@ export function OverviewSection({
       />
       <KpiCard
         compact={compact}
-        title="CO2"
+        title={t('co2', 'CO₂')}
         value={displayValue(environmental.CO2, '—', 2)}
         unit="ppm"
         icon={Cloud}

@@ -4,9 +4,9 @@ import MobileBottomNav from '@/components/layout/mobile-bottom-nav';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
+import { Suspense } from 'react';
 import { LayoutSidebarProvider } from '@/context/SidebarContext';
 import { NotificationProvider } from '@/context/NotificationContext';
-
 
 export const metadata: Metadata = {
   title: 'SenioSentry Dashboard',
@@ -20,20 +20,20 @@ export default async function DashboardLayout({
 }) {
   // Persisting the sidebar state in the cookie.
   const cookieStore = await cookies();
-  const defaultOpen = cookieStore.get("sidebar_state")?.value === "true"
+  const defaultOpen = cookieStore.get('sidebar_state')?.value === 'true';
   return (
     <SidebarProvider defaultOpen={defaultOpen}>
       <LayoutSidebarProvider>
         <NotificationProvider>
-      <AppSidebar />
-      <SidebarInset className="min-w-0 overflow-x-hidden pb-24 md:pb-0">
-        <Header />
-        {/* page main content */}
-        {children}
-        {/* page main content ends */}
-        <MobileBottomNav />
-      </SidebarInset>
-      </NotificationProvider>
+          <Suspense fallback={null}>
+            <AppSidebar />
+          </Suspense>
+          <SidebarInset className="min-w-0 overflow-x-hidden pb-24 md:pb-0">
+            <Header />
+            {children}
+            <MobileBottomNav />
+          </SidebarInset>
+        </NotificationProvider>
       </LayoutSidebarProvider>
     </SidebarProvider>
   );

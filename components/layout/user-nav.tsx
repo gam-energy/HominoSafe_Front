@@ -53,6 +53,13 @@ export function UserNav() {
                 Billing
               </DropdownMenuItem>
             ) : null}
+            {String(user.role || '').toLowerCase() === 'patient' ? (
+              <DropdownMenuItem
+                onClick={() => router.push('/dashboard/support-tickets')}
+              >
+                Support tickets
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
               Settings
             </DropdownMenuItem>

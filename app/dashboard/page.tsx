@@ -18,7 +18,7 @@ export default function Page() {
 
     switch (user.role) {
       case "admin":
-        router.replace("/dashboard/users");
+        router.replace("/dashboard/insights");
         break;
       case "patient":
         router.replace("/dashboard/overview");

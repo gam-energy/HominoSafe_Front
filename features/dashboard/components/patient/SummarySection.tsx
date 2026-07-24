@@ -146,14 +146,23 @@ function dedupeRecentAlerts(alerts: RecentAlert[], windowMs = 15 * 60 * 1000): R
   return out;
 }
 
-function formatTrendLabel(trend: string | null | undefined): string {
-  if (!trend) return "Stable";
+function formatTrendLabel(
+  trend: string | null | undefined,
+  t: (key: string, fallback?: string) => string
+): string {
+  if (!trend) return t("stable", "Stable");
   const key = trend.toLowerCase().replace(/-/g, "_");
-  if (key === "not_enough_data" || key === "insufficient_data") return "Limited data";
-  if (key.includes("increasing") || key.includes("rising")) return "Rising";
-  if (key.includes("decreasing") || key.includes("falling")) return "Falling";
-  if (key.includes("stable")) return "Stable";
-  return trend.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  if (key === "not_enough_data" || key === "insufficient_data") {
+    return t("limited_data", "Limited data");
+  }
+  if (key.includes("increasing") || key.includes("rising")) {
+    return t("rising", "Rising");
+  }
+  if (key.includes("decreasing") || key.includes("falling")) {
+    return t("falling", "Falling");
+  }
+  if (key.includes("stable")) return t("stable", "Stable");
+  return trend.replace(/_/g, " ");
 }
 
 function buildBpKpi(syncedKpis: ReturnType<typeof useSyncedKpis>): KPI {
@@ -263,7 +272,7 @@ export const SummarySection: FC<SummarySectionProps> = ({
           {activity && (
             <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full">
               <Footprints className="h-3.5 w-3.5" />
-              {activity}
+              {t(`activity_${String(activity).toLowerCase()}`, activity)}
             </div>
           )}
         </div>
@@ -491,8 +500,8 @@ export const SummarySection: FC<SummarySectionProps> = ({
   );
 };
 
-const roundValue = (val: number | null | undefined): number | string => {
-  if (val === null || val === undefined) return "N/A";
+const roundValue = (val: number | null | undefined): number | null => {
+  if (val === null || val === undefined) return null;
   return Math.round(val);
 };
 
@@ -511,6 +520,7 @@ const KpiItemCard = ({
   color: string;
   bg: string;
 }) => {
+  const { t } = useTranslation();
   let TrendIcon = Minus;
   let trendTheme = "text-muted-foreground bg-muted/60";
 
@@ -518,7 +528,7 @@ const KpiItemCard = ({
   const trendKey = (rawTrend ?? "").toLowerCase().replace(/-/g, "_");
   const isLimited =
     trendKey === "not_enough_data" || trendKey === "insufficient_data";
-  const trendLabel = formatTrendLabel(rawTrend);
+  const trendLabel = formatTrendLabel(rawTrend, t);
 
   if (!isLimited && rawTrend) {
     if (
@@ -545,31 +555,36 @@ const KpiItemCard = ({
         ? Number(kpi.value).toFixed(1)
         : kpi.value;
 
-  const displayAvg24h =
+  const rawAvg24h =
     name === "blood_pressure" && kpi.average_last_24h
       ? `${Math.round((kpi.average_last_24h as { systolic?: number }).systolic ?? 0)} / ${Math.round((kpi.average_last_24h as { diastolic?: number }).diastolic ?? 0)}`
       : roundValue(kpi.average_last_24h as number);
 
-  const displayAvg7d =
+  const rawAvg7d =
     name === "blood_pressure" && kpi.average_last_7d
       ? `${Math.round((kpi.average_last_7d as { systolic?: number }).systolic ?? 0)} / ${Math.round((kpi.average_last_7d as { diastolic?: number }).diastolic ?? 0)}`
       : roundValue(kpi.average_last_7d as number);
 
+  const na = t("na", "N/A");
+  const displayAvg24h = rawAvg24h == null ? na : rawAvg24h;
+  const displayAvg7d = rawAvg7d == null ? na : rawAvg7d;
+
   // Prefer 24h; if missing, fall back to 7d so cards don't look broken.
-  const avg24hLabel =
-    displayAvg24h === "N/A" && displayAvg7d !== "N/A" ? displayAvg7d : displayAvg24h;
-  const avg24hHint =
-    displayAvg24h === "N/A" && displayAvg7d !== "N/A" ? " (7d)" : "";
+  const using7dFallback = rawAvg24h == null && rawAvg7d != null;
+  const avg24hLabel = using7dFallback ? displayAvg7d : displayAvg24h;
+  const avg24hTitle = using7dFallback
+    ? t("avg_7d", "7d Average")
+    : t("avg_24h", "24h Average");
 
   return (
     <div className="border border-zinc-200/80 dark:border-zinc-800/80 rounded-2xl p-4 bg-background dark:bg-zinc-900/60 shadow-sm flex flex-col transition-all duration-300 hover:shadow hover:-translate-y-0.5 group h-full">
-      <div className="flex items-center justify-between mb-3.5">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+      <div className="flex items-center justify-between gap-2 mb-3.5">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground text-start">
           {title}
         </h3>
         <div
           className={cn(
-            "p-2 rounded-xl transition-transform duration-300 group-hover:scale-110",
+            "p-2 rounded-xl transition-transform duration-300 group-hover:scale-110 shrink-0",
             color,
             bg
           )}
@@ -577,34 +592,37 @@ const KpiItemCard = ({
           <Icon className="w-4 h-4" />
         </div>
       </div>
-      <div className="text-2xl font-black tracking-tight flex items-baseline gap-1.5 text-gray-900 dark:text-zinc-100 ltr-nums">
-        {displayValue}{" "}
-        <span className="text-xs font-semibold text-muted-foreground lowercase">
+      <div
+        className="text-2xl font-black tracking-tight flex items-baseline gap-1.5 text-gray-900 dark:text-zinc-100"
+        dir="ltr"
+      >
+        <span className="ltr-nums">{displayValue}</span>
+        <span className="text-xs font-semibold text-muted-foreground">
           {kpi.unit}
         </span>
       </div>
       <div className="mt-4 pt-3 border-t border-dashed border-zinc-100 dark:border-zinc-800 flex flex-col gap-2 text-xs text-muted-foreground font-semibold">
-        <div className="flex justify-between items-center">
-          <span>24h Average{avg24hHint}:</span>
-          <span className="text-gray-700 dark:text-zinc-300 ltr-nums">
+        <div className="flex justify-between items-center gap-2">
+          <span className="text-start">{avg24hTitle}:</span>
+          <span className="text-gray-700 dark:text-zinc-300 ltr-nums shrink-0" dir="ltr">
             {avg24hLabel}
           </span>
         </div>
-        <div className="flex justify-between items-center">
-          <span>7d Average:</span>
-          <span className="text-gray-700 dark:text-zinc-300 ltr-nums">
+        <div className="flex justify-between items-center gap-2">
+          <span className="text-start">{t("avg_7d", "7d Average")}:</span>
+          <span className="text-gray-700 dark:text-zinc-300 ltr-nums shrink-0" dir="ltr">
             {displayAvg7d}
           </span>
         </div>
-        <div className="flex justify-between items-center mt-0.5">
-          <span>Trend:</span>
+        <div className="flex justify-between items-center gap-2 mt-0.5">
+          <span className="text-start">{t("trend", "Trend")}:</span>
           <div
             className={cn(
               "flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold tracking-wide",
               trendTheme
             )}
           >
-            <TrendIcon className="w-3 h-3" />
+            <TrendIcon className="w-3 h-3 shrink-0" />
             <span>{trendLabel}</span>
           </div>
         </div>
