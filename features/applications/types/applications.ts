@@ -35,13 +35,15 @@ export type CaregiverApplicationInput = {
 export type PatientApplicationInput = {
   username: string;
   password: string;
-  first_name: string;
-  last_name: string;
-  email?: string;
-  phone_number?: string;
-  national_code: string;
-  dob: string;
-  gender: Gender;
+  email: string;
+  phone_number: string;
+  /** When set, demographics are filled from local EHR seed data. */
+  ehr_code?: string;
+  first_name?: string;
+  last_name?: string;
+  national_code?: string;
+  dob?: string;
+  gender?: Gender;
   weight?: number;
   height?: number;
 };
@@ -49,8 +51,17 @@ export type PatientApplicationInput = {
 export type CreateApplicationPayload = {
   clinic_id: number;
   doctor_id: number;
-  caregiver: CaregiverApplicationInput;
+  caregiver?: CaregiverApplicationInput;
   patient: PatientApplicationInput;
+};
+
+export type EhrSeedPreview = {
+  code: string;
+  first_name: string;
+  last_name: string;
+  dob: string;
+  gender: string;
+  diagnosis?: string | null;
 };
 
 export type PersonSummary = {
@@ -85,6 +96,7 @@ export type ApplicationSummary = {
   doctor_id?: number | null;
   caregiver?: PersonSummary | null;
   patient?: PersonSummary | null;
+  ehr_code?: string | null;
   payment_amount?: number | null;
   currency?: string | null;
   payment_instructions?: string | null;
@@ -105,6 +117,45 @@ export type ApplicationSummary = {
   approved_at?: string | null;
   rejected_at?: string | null;
 };
+
+export type SupportTicketCategory =
+  | 'caregiver_request'
+  | 'billing'
+  | 'technical'
+  | 'account'
+  | 'nest_device'
+  | 'medical_data'
+  | 'other';
+
+export type CaregiverRequestStatus = 'open' | 'in_review' | 'answered' | 'closed';
+
+export type CaregiverRequestTicket = {
+  id: number;
+  patient_id: number;
+  patient_username?: string | null;
+  patient_name?: string | null;
+  category?: SupportTicketCategory | string;
+  subject?: string | null;
+  message: string;
+  status: CaregiverRequestStatus | string;
+  admin_response?: string | null;
+  responded_by_id?: number | null;
+  responded_at?: string | null;
+  created_at: string;
+};
+
+export const SUPPORT_TICKET_CATEGORIES: {
+  value: SupportTicketCategory;
+  label: string;
+}[] = [
+  { value: 'caregiver_request', label: 'Caregiver request' },
+  { value: 'billing', label: 'Billing' },
+  { value: 'technical', label: 'Technical issue' },
+  { value: 'account', label: 'Account' },
+  { value: 'nest_device', label: 'Nest device' },
+  { value: 'medical_data', label: 'Medical data' },
+  { value: 'other', label: 'Other' },
+];
 
 export type ReviewAction =
   | 'under_review'

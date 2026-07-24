@@ -271,12 +271,17 @@ export function ApplicationsReviewPanel() {
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h2 className="font-semibold">
-                    {personDisplayName(app.caregiver)}
+                    {app.caregiver
+                      ? personDisplayName(app.caregiver)
+                      : personDisplayName(app.patient)}
                   </h2>
                   <ApplicationStatusBadge status={app.status as ApplicationStatus} />
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {t('patient', 'Patient')}: {personDisplayName(app.patient)}
+                  {app.caregiver
+                    ? `${t('patient', 'Patient')}: ${personDisplayName(app.patient)}`
+                    : t('no_caregiver', 'Patient-only application')}
+                  {app.ehr_code ? ` · EHR ${app.ehr_code}` : ''}
                   {app.patient?.national_code ? ` · ${app.patient.national_code}` : ''}
                 </p>
                 <p className="mt-0.5 text-sm text-muted-foreground">

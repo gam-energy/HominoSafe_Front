@@ -184,3 +184,120 @@ export function usePaymentReceipt(id: number | null, enabled = true) {
     staleTime: 60_000,
   });
 }
+
+export async function fetchEhrSeedPreview(code: string) {
+  const { data } = await axiosInstance.get<import('../types/applications').EhrSeedPreview>(
+    `/applications/ehr-seeds/${encodeURIComponent(code.trim())}`
+  );
+  return data;
+}
+
+export function useEhrSeedPreview(code: string | null) {
+  return useQuery({
+    queryKey: ['applications', 'ehr-seed', code],
+    queryFn: () => fetchEhrSeedPreview(code!),
+    enabled: !!code && code.trim().length >= 4,
+    retry: false,
+  });
+}
+
+export async function fetchMyCaregiverRequests(category?: string) {
+  const { data } = await axiosInstance.get<
+    import('../types/applications').CaregiverRequestTicket[]
+  >('/applications/me/caregiver-requests', {
+    params: category ? { category } : undefined,
+  });
+  return data;
+}
+
+export function useMyCaregiverRequests(category?: string, enabled = true) {
+  return useQuery({
+    queryKey: ['applications', 'my-caregiver-requests', category ?? 'all'],
+    queryFn: () => fetchMyCaregiverRequests(category),
+    enabled,
+  });
+}
+
+export function useCreateCaregiverRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: {
+      message: string;
+      category?: import('../types/applications').SupportTicketCategory;
+      subject?: string;
+    }) => {
+      const { data } = await axiosInstance.post<
+        import('../types/applications').CaregiverRequestTicket
+      >('/applications/me/caregiver-requests', payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['applications', 'my-caregiver-requests'] });
+      toast.success('Ticket submitted');
+    },
+    onError: (error: AxiosError<{ detail?: string }>) => {
+      const detail = error.response?.data?.detail;
+      toast.error(
+        typeof detail === 'string' ? detail : error.message || 'Failed to submit ticket'
+      );
+    },
+  });
+}
+
+export async function fetchAdminCaregiverRequests(status?: string, category?: string) {
+  const { data } = await axiosInstance.get<
+    import('../types/applications').CaregiverRequestTicket[]
+  >('/applications/caregiver-requests', {
+    params: {
+      ...(status ? { status } : {}),
+      ...(category ? { category } : {}),
+    },
+  });
+  return data;
+}
+
+export function useAdminCaregiverRequests(status?: string, category?: string) {
+  return useQuery({
+    queryKey: [
+      'applications',
+      'admin-caregiver-requests',
+      status ?? 'all',
+      category ?? 'all',
+    ],
+    queryFn: () => fetchAdminCaregiverRequests(status, category),
+  });
+}
+
+export function useRespondCaregiverRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      response,
+      status,
+    }: {
+      id: number;
+      response: string;
+      status?: 'answered' | 'closed' | 'in_review';
+    }) => {
+      const { data } = await axiosInstance.patch<
+        import('../types/applications').CaregiverRequestTicket
+      >(`/applications/caregiver-requests/${id}`, {
+        response,
+        status: status ?? 'answered',
+      });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['applications', 'admin-caregiver-requests'] });
+      queryClient.invalidateQueries({ queryKey: ['applications', 'my-caregiver-requests'] });
+      toast.success('Response sent');
+    },
+    onError: (error: AxiosError<{ detail?: string }>) => {
+      const detail = error.response?.data?.detail;
+      toast.error(
+        typeof detail === 'string' ? detail : error.message || 'Failed to respond'
+      );
+    },
+  });
+}

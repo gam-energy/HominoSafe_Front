@@ -86,6 +86,8 @@ const nextConfig: NextConfig = {
       { source: "/synapse/:path*", destination: `${t}/synapse/:path*` },
       { source: "/support", destination: `${t}/support` },
       { source: "/support/:path*", destination: `${t}/support/:path*` },
+      { source: "/applications", destination: `${t}/applications` },
+      { source: "/applications/:path*", destination: `${t}/applications/:path*` },
       { source: "/notifications", destination: `${t}/notifications` },
       { source: "/notifications/:path*", destination: `${t}/notifications/:path*` },
       { source: "/api/:path*", destination: `${t}/api/:path*` },
