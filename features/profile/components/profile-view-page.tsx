@@ -290,7 +290,7 @@ export default function ProfileViewPage() {
                               >
                                 <SelectValue placeholder={t("select_gender", "Select Gender")} />
                               </SelectTrigger>
-                              <SelectContent className="rounded-2xl border-zinc-200 dark:border-zinc-800 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl">
+                              <SelectContent className="rounded-2xl border-zinc-200 bg-popover text-popover-foreground backdrop-blur-xl dark:border-zinc-800">
                                 <SelectItem value="Male">{t("male", "Male")}</SelectItem>
                                 <SelectItem value="Female">{t("female", "Female")}</SelectItem>
                                 <SelectItem value="Other">{t("other", "Other")}</SelectItem>

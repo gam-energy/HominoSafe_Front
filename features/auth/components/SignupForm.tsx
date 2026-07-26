@@ -608,7 +608,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={t("select_gender", "Select gender")} />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-zinc-900 z-50">
+                  <SelectContent className="z-50 bg-popover text-popover-foreground">
                     {genders.map((g) => (
                       <SelectItem key={g} value={g}>
                         {g}
@@ -661,7 +661,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                     placeholder={t("select_specialization", "Select specialization")}
                   />
                 </SelectTrigger>
-                <SelectContent className="bg-white dark:bg-zinc-900 z-50">
+                <SelectContent className="z-50 bg-popover text-popover-foreground">
                   {specializations.map((s) => (
                     <SelectItem key={s} value={s}>
                       {s}
@@ -779,7 +779,7 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={t("select_relationship")} />
                   </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-zinc-900 z-50">
+                  <SelectContent className="z-50 bg-popover text-popover-foreground">
                     {relationships.map((rel) => (
                       <SelectItem key={rel} value={rel}>
                         {t(RELATION_KEYS[rel] || rel)}

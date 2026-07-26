@@ -49,6 +49,7 @@
 
 :root {
   --radius: 0.75rem;
+  color-scheme: light;
 
   /* Surfaces */
   --background: hsl(210 40% 98.5%);
@@ -102,6 +103,9 @@
 }
 
 .dark {
+  /* Native <select>/<option> menus stay readable (avoid white-on-white). */
+  color-scheme: dark;
+
   /* Surfaces — deep neutral slate, NOT a flat blue */
   --background: hsl(222 28% 8%);
   --foreground: hsl(210 40% 96%);
@@ -159,6 +163,19 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+
+  /*
+   * Native form controls: without an explicit surface + color, dark mode inherits
+   * light text while the OS option list stays white → invisible labels.
+   */
+  select {
+    @apply bg-background text-foreground;
+  }
+  select option,
+  select optgroup {
+    background-color: var(--card);
+    color: var(--foreground);
   }
 }
 
