@@ -170,13 +170,28 @@
    * light text while the OS option list stays white → invisible labels.
    */
   select {
-    @apply bg-background text-foreground;
+    background-color: var(--background);
+    color: var(--foreground);
+    border-color: var(--border);
   }
   select option,
   select optgroup {
     background-color: var(--card);
     color: var(--foreground);
   }
+}
+
+/* Extra hardening for dark mode native menus (some engines ignore option CSS). */
+.dark select {
+  background-color: hsl(222 24% 14%);
+  color: hsl(210 40% 96%);
+  border-color: hsl(217 20% 28%);
+  color-scheme: dark;
+}
+.dark select option,
+.dark select optgroup {
+  background-color: hsl(222 24% 14%);
+  color: hsl(210 40% 96%);
 }
 
 /* ===================== RTL / Farsi support ===================== */
