@@ -37,6 +37,7 @@ export interface CustomerOrder {
   activated_at?: string | null;
   notes?: string | null;
   created_at: string;
+  payment_url?: string | null;
 }
 
 export interface OrderSummary {
@@ -176,7 +177,53 @@ export function useSetupEligibility(orderNumber: string | null, email?: string |
 export function useCreateOrder() {
   return useMutation({
     mutationFn: async (payload: OrderCreatePayload) => {
-      const { data } = await axiosInstance.post<CustomerOrder>('/orders', payload);
+      const { data } = await axiosInstance.post<CustomerOrder>('/orders', payload, {
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return data;
+    },
+  });
+}
+
+export interface PaymentCheckout {
+  order_number: string;
+  first_name: string;
+  email: string;
+  total_amount: number;
+  currency: string;
+  status: OrderStatus;
+  already_paid: boolean;
+  manual_url?: string | null;
+  setup_url?: string | null;
+}
+
+export interface PaymentConfirmResult {
+  order_number: string;
+  status: OrderStatus;
+  paid_at?: string | null;
+  message: string;
+  setup_url?: string | null;
+}
+
+export function usePaymentCheckout(token: string | null) {
+  return useQuery({
+    queryKey: ['payment-checkout', token],
+    enabled: !!token,
+    queryFn: async () => {
+      const { data } = await axiosInstance.get<PaymentCheckout>(
+        `/orders/pay/${token}`,
+      );
+      return data;
+    },
+  });
+}
+
+export function useConfirmSandboxPayment() {
+  return useMutation({
+    mutationFn: async (token: string) => {
+      const { data } = await axiosInstance.post<PaymentConfirmResult>(
+        `/orders/pay/${token}/confirm`,
+      );
       return data;
     },
   });

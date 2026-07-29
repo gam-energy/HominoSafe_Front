@@ -26,6 +26,7 @@ import {
 import { LanguageToggle } from '@/components/layout/language-toggle';
 import { ModeToggle } from '@/components/layout/ThemeToggle/theme-toggle';
 import { AuthBrand } from '@/features/auth/components/AuthBrand';
+import { extractErrorMessage } from '@/features/admin/utils/adminErrors';
 
 const FALLBACK_PRICE = 780;
 
@@ -79,28 +80,40 @@ export default function OrderPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.first_name.trim() || !form.last_name.trim()) {
+      toast.error('First and last name are required');
+      return;
+    }
+    if (!form.email.trim()) {
+      toast.error('Email is required');
+      return;
+    }
+    if (!form.dob) {
+      toast.error('Date of birth is required');
+      return;
+    }
     if (!form.gender) {
       toast.error('Please select a gender');
       return;
     }
     try {
       const order = await createOrder.mutateAsync({
-        first_name: form.first_name,
-        last_name: form.last_name,
-        email: form.email,
-        phone_number: form.phone_number || undefined,
-        national_code: form.national_code || undefined,
+        first_name: form.first_name.trim(),
+        last_name: form.last_name.trim(),
+        email: form.email.trim(),
+        phone_number: form.phone_number.trim() || undefined,
+        national_code: form.national_code.trim() || undefined,
         dob: form.dob,
         gender: form.gender,
         plan: 'b2c_annual',
         product_sku: product?.sku ?? 'nest',
         currency,
-        notes: form.notes || undefined,
+        notes: form.notes.trim() || undefined,
       });
       setPlaced(order);
-      toast.success('Order placed');
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed to place order');
+      toast.success('Order placed — check your email for payment & manuals');
+    } catch (err: unknown) {
+      toast.error(extractErrorMessage(err, 'Failed to place order'));
     }
   };
 
@@ -116,8 +129,8 @@ export default function OrderPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Thank you, {placed.first_name}. Your Senio Nest order has been received. We will
-              email payment instructions and shipping updates to <b>{placed.email}</b>.
+              Thank you, {placed.first_name}. We emailed a payment link and Nest
+              manuals to <b>{placed.email}</b>.
             </p>
             <div className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-1">
               <p className="text-xs uppercase font-bold tracking-wider text-muted-foreground">
@@ -127,7 +140,7 @@ export default function OrderPage() {
                 {placed.order_number}
               </p>
               <p className="text-xs text-muted-foreground">
-                Save this number — after payment is confirmed you will use it to set up your
+                Save this number — after payment you will use it to set up your
                 account.
               </p>
             </div>
@@ -138,25 +151,42 @@ export default function OrderPage() {
               </span>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row">
+              {placed.payment_url && placed.status === 'pending_payment' && (
+                <Button
+                  className="flex-1 h-11"
+                  onClick={() => window.location.assign(placed.payment_url!)}
+                >
+                  Pay now (sandbox)
+                  <ArrowRight className="h-4 w-4 ms-2" />
+                </Button>
+              )}
               <Button
+                variant="outline"
                 className="flex-1"
                 onClick={() => router.push(`/order-status?ref=${placed.order_number}`)}
               >
                 Track order
-                <ArrowRight className="h-4 w-4 ms-2" />
+              </Button>
+            </div>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button variant="ghost" className="flex-1" asChild>
+                <Link href="/guides/nest">Install manual</Link>
               </Button>
               <Button
-                variant="outline"
+                variant="ghost"
                 className="flex-1"
                 onClick={() =>
-                  router.push(`/auth/sign-up?order=${encodeURIComponent(placed.order_number)}`)
+                  router.push(
+                    `/auth/sign-up?order=${encodeURIComponent(placed.order_number)}`,
+                  )
                 }
               >
                 Set up account
               </Button>
             </div>
             <p className="text-xs text-muted-foreground text-center">
-              Account setup unlocks only after our team confirms payment for this Nest order.
+              Sandbox payment: opening the pay link and confirming marks the order
+              paid. Account setup unlocks after that.
             </p>
           </CardContent>
         </Card>
@@ -346,8 +376,8 @@ export default function OrderPage() {
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground text-center">
-                Payment is confirmed manually. After payment, use your order number to set up
-                your patient account.
+                After placing the order you will get an email with a sandbox payment
+                link and Nest manuals. Paying unlocks account setup.
               </p>
             </form>
           </CardContent>
