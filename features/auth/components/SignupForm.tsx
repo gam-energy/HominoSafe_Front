@@ -22,7 +22,9 @@ import {
   type SignUpFormValues,
   type SignUpRole,
   type PatientSignupMode,
+  type PatientRecordsMode,
   type CaregiverSignupValues,
+  type PasswordDelivery,
 } from "../types/auth";
 import { cn } from "@/lib/utils";
 import {
@@ -32,6 +34,7 @@ import {
 } from "../lib/credentials";
 import { useUsernameAvailability } from "../api/use-username-availability";
 import { useSetupEligibility } from "@/features/orders/api/use-orders";
+import { useEhrSeedPreview } from "@/features/applications/api/use-applications";
 
 interface SignUpFormProps {
   onSubmit: (values: SignUpFormValues) => void;
@@ -51,8 +54,6 @@ const RELATION_KEYS: Record<string, string> = {
 
 const emptyCaregiver = (): CaregiverSignupValues => ({
   username: "",
-  password: "",
-  confirmPassword: "",
   email: "",
   phone_number: "",
   first_name: "",
@@ -76,7 +77,10 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
   const [formData, setFormData] = useState<SignUpFormValues>({
     role: initialRole,
     patient_mode: "alone",
+    records_mode: "ehr",
+    ehr_code: "",
     order_number: orderFromUrl,
+    password_delivery: "choose",
     username: "",
     password: "",
     confirmPassword: "",
@@ -95,7 +99,6 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [showCgPassword, setShowCgPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [orderUnlocked, setOrderUnlocked] = useState(!!orderFromUrl);
 
@@ -126,6 +129,12 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
     formData.caregiver?.username || ""
   );
   const passwordChecks = getPasswordChecks(formData.password);
+  const recordsMode = formData.records_mode || "manual";
+  const ehrPreview = useEhrSeedPreview(
+    formData.role === "patient" && recordsMode === "ehr"
+      ? formData.ehr_code || null
+      : null
+  );
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -172,7 +181,13 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
       formData.role === "patient" && formData.patient_mode === "with_caregiver";
 
     if (!formData.first_name || !formData.last_name) {
-      errors.first_name = t("err_name_required");
+      // Names come from EHR seed when records_mode is ehr.
+      if (
+        formData.role !== "patient" ||
+        (formData.records_mode || "manual") === "manual"
+      ) {
+        errors.first_name = t("err_name_required");
+      }
     }
     if (!formData.username.trim()) {
       errors.username = t("err_username_password_required");
@@ -182,15 +197,24 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
       errors.username = t("err_username_taken");
     }
 
-    if (!formData.password) {
-      errors.password = t("err_username_password_required");
-    } else if (!isValidPassword(formData.password)) {
-      errors.password = t("err_password_pattern");
+    if (!formData.email.trim()) {
+      errors.email = t("err_email_required", "Email is required");
     }
-    if (!formData.confirmPassword) {
-      errors.confirmPassword = t("err_username_password_required");
-    } else if (formData.password !== formData.confirmPassword) {
-      errors.confirmPassword = t("err_password_mismatch");
+
+    const delivery = formData.password_delivery || "choose";
+    if (formData.role === "patient" && delivery === "email") {
+      // Password fields not required — emailed later.
+    } else {
+      if (!formData.password) {
+        errors.password = t("err_username_password_required");
+      } else if (!isValidPassword(formData.password)) {
+        errors.password = t("err_password_pattern");
+      }
+      if (!formData.confirmPassword) {
+        errors.confirmPassword = t("err_username_password_required");
+      } else if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = t("err_password_mismatch");
+      }
     }
 
     if (formData.role === "patient") {
@@ -205,17 +229,38 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
           "Complete Nest purchase (payment confirmed) before setting up your account."
         );
       }
-      if (!formData.national_code.trim() || formData.national_code.trim().length < 5) {
-        errors.national_code = t(
-          "err_national_code_required",
-          "National code is required (min 5 characters)"
-        );
-      }
-      if (!formData.dob) {
-        errors.dob = t("err_dob_required", "Date of birth is required");
-      }
-      if (!formData.gender) {
-        errors.gender = t("err_gender_required", "Please select gender");
+
+      const mode = formData.records_mode || "manual";
+      if (mode === "ehr") {
+        const code = (formData.ehr_code || "").trim();
+        if (!code || code.length < 4) {
+          errors.ehr_code = t("err_ehr_code_required", "Enter a valid EHR code");
+        } else if (ehrPreview.isError) {
+          errors.ehr_code = t(
+            "err_ehr_code_unknown",
+            "Unknown EHR code — try EHR-DEMO-001"
+          );
+        } else if (ehrPreview.isFetching || ehrPreview.isLoading) {
+          errors.ehr_code = t("err_ehr_code_checking", "Looking up EHR code…");
+        } else if (!ehrPreview.data) {
+          errors.ehr_code = t(
+            "err_ehr_code_unknown",
+            "Unknown EHR code — try EHR-DEMO-001"
+          );
+        }
+      } else {
+        if (!formData.national_code.trim() || formData.national_code.trim().length < 5) {
+          errors.national_code = t(
+            "err_national_code_required",
+            "National code is required (min 5 characters)"
+          );
+        }
+        if (!formData.dob) {
+          errors.dob = t("err_dob_required", "Date of birth is required");
+        }
+        if (!formData.gender) {
+          errors.gender = t("err_gender_required", "Please select gender");
+        }
       }
     }
 
@@ -245,13 +290,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
           "Caregiver and patient usernames must differ."
         );
       }
-      if (!c.password) {
-        errors.cg_password = t("err_username_password_required");
-      } else if (!isValidPassword(c.password)) {
-        errors.cg_password = t("err_password_pattern");
-      }
-      if (c.password !== c.confirmPassword) {
-        errors.cg_confirmPassword = t("err_password_mismatch");
+      if (!c.email?.trim()) {
+        errors.cg_email = t(
+          "err_cg_email_required",
+          "Caregiver email is required — we email their password"
+        );
       }
       if (!c.relationship_to_patient) {
         errors.cg_relationship = t("err_relationship_required");
@@ -441,7 +484,11 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {(
-            ["first_name", "last_name", "username", "email", "phone_number"] as const
+            (
+              isPatient && recordsMode === "ehr"
+                ? (["username", "email", "phone_number"] as const)
+                : (["first_name", "last_name", "username", "email", "phone_number"] as const)
+            )
           ).map((field) => (
             <div key={field}>
               <label className="block text-sm mb-1">{t(field)}</label>
@@ -472,178 +519,373 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
             </div>
           ))}
 
-          <div>
-            <label className="block text-sm mb-1">{t("password")}</label>
-            <div className="relative">
-              <Input
-                name="password"
-                dir="ltr"
-                type={showPassword ? "text" : "password"}
-                value={formData.password}
-                onChange={handleChange}
-                placeholder={t("enter_password")}
-                className="pe-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground"
-                tabIndex={-1}
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-            {formData.password ? (
-              <ul className="mt-1.5 space-y-0.5 text-[11px]">
+          {isPatient && (
+            <div className="sm:col-span-2 space-y-2">
+              <label className="block text-sm mb-1">
+                {t("password_delivery_label", "How should we set your password?")}
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {(
                   [
-                    ["length", t("pw_rule_length")],
-                    ["upper", t("pw_rule_upper")],
-                    ["lower", t("pw_rule_lower")],
-                    ["digit", t("pw_rule_digit")],
-                    ["special", t("pw_rule_special")],
+                    {
+                      value: "choose" as PasswordDelivery,
+                      title: t("password_delivery_choose", "I will create my password"),
+                      hint: t(
+                        "password_delivery_choose_hint",
+                        "Choose and confirm a password now"
+                      ),
+                    },
+                    {
+                      value: "email" as PasswordDelivery,
+                      title: t("password_delivery_email", "Email me a password"),
+                      hint: t(
+                        "password_delivery_email_hint",
+                        "We generate a secure password and send it to your email"
+                      ),
+                    },
                   ] as const
-                ).map(([key, label]) => (
-                  <li
-                    key={key}
-                    className={
-                      passwordChecks[key]
-                        ? "text-emerald-600"
-                        : "text-muted-foreground"
-                    }
-                  >
-                    {passwordChecks[key] ? "✓" : "○"} {label}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-[11px] text-muted-foreground mt-1">
-                {t("err_password_pattern")}
-              </p>
-            )}
-            {fieldErrors.password && (
-              <p className="text-[11px] text-red-500 mt-1">{fieldErrors.password}</p>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm mb-1">{t("confirm_password")}</label>
-            <div className="relative">
-              <Input
-                name="confirmPassword"
-                dir="ltr"
-                type={showConfirmPassword ? "text" : "password"}
-                value={formData.confirmPassword || ""}
-                onChange={handleChange}
-                placeholder={t("reenter_password")}
-                className="pe-10"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground"
-                tabIndex={-1}
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
+                ).map((opt) => {
+                  const selected =
+                    (formData.password_delivery || "choose") === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          password_delivery: opt.value,
+                          ...(opt.value === "email"
+                            ? { password: "", confirmPassword: "" }
+                            : {}),
+                        }))
+                      }
+                      className={`rounded-xl border p-3 text-start transition ${
+                        selected
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          : "border-border hover:bg-muted/40"
+                      }`}
+                    >
+                      <p className="text-sm font-medium">{opt.title}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {opt.hint}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            {fieldErrors.confirmPassword && (
-              <p className="text-[11px] text-red-500 mt-1">
-                {fieldErrors.confirmPassword}
-              </p>
-            )}
-          </div>
+          )}
 
-          {isPatient ? (
+          {(!isPatient ||
+            (formData.password_delivery || "choose") === "choose") && (
             <>
               <div>
-                <label className="block text-sm mb-1">
-                  {t("national_code", "National / social-security code")}
-                </label>
-                <Input
-                  name="national_code"
-                  dir="ltr"
-                  value={formData.national_code}
-                  onChange={handleChange}
-                  placeholder={t(
-                    "national_code_patient_hint",
-                    "Your personal ID — not a clinic or business code"
-                  )}
-                />
-                <p className="text-[11px] text-muted-foreground mt-1">
-                  {t(
-                    "national_code_patient_only",
-                    "Patients only — used to match your health record, not business EHR codes."
-                  )}
-                </p>
-                {fieldErrors.national_code && (
+                <label className="block text-sm mb-1">{t("password")}</label>
+                <div className="relative">
+                  <Input
+                    name="password"
+                    dir="ltr"
+                    type={showPassword ? "text" : "password"}
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder={t("enter_password")}
+                    className="pe-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+                {formData.password ? (
+                  <ul className="mt-1.5 space-y-0.5 text-[11px]">
+                    {(
+                      [
+                        ["length", t("pw_rule_length")],
+                        ["upper", t("pw_rule_upper")],
+                        ["lower", t("pw_rule_lower")],
+                        ["digit", t("pw_rule_digit")],
+                        ["special", t("pw_rule_special")],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <li
+                        key={key}
+                        className={
+                          passwordChecks[key]
+                            ? "text-emerald-600"
+                            : "text-muted-foreground"
+                        }
+                      >
+                        {passwordChecks[key] ? "✓" : "○"} {label}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    {t("err_password_pattern")}
+                  </p>
+                )}
+                {fieldErrors.password && (
                   <p className="text-[11px] text-red-500 mt-1">
-                    {fieldErrors.national_code}
+                    {fieldErrors.password}
                   </p>
                 )}
               </div>
+
               <div>
-                <label className="block text-sm mb-1">
-                  {t("date_of_birth", "Date of birth")}
-                </label>
-                <Input
-                  name="dob"
-                  type="date"
-                  dir="ltr"
-                  value={formData.dob}
-                  onChange={handleChange}
-                />
-                {fieldErrors.dob && (
-                  <p className="text-[11px] text-red-500 mt-1">{fieldErrors.dob}</p>
+                <label className="block text-sm mb-1">{t("confirm_password")}</label>
+                <div className="relative">
+                  <Input
+                    name="confirmPassword"
+                    dir="ltr"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={formData.confirmPassword || ""}
+                    onChange={handleChange}
+                    placeholder={t("reenter_password")}
+                    className="pe-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground"
+                    tabIndex={-1}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff size={20} />
+                    ) : (
+                      <Eye size={20} />
+                    )}
+                  </button>
+                </div>
+                {fieldErrors.confirmPassword && (
+                  <p className="text-[11px] text-red-500 mt-1">
+                    {fieldErrors.confirmPassword}
+                  </p>
                 )}
               </div>
-              <div>
-                <label className="block text-sm mb-1">{t("gender", "Gender")}</label>
-                <Select
-                  value={formData.gender}
-                  onValueChange={(val) =>
-                    setFormData((prev) => ({ ...prev, gender: val }))
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={t("select_gender", "Select gender")} />
-                  </SelectTrigger>
-                  <SelectContent className="z-50 bg-popover text-popover-foreground">
-                    {genders.map((g) => (
-                      <SelectItem key={g} value={g}>
-                        {g}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {fieldErrors.gender && (
-                  <p className="text-[11px] text-red-500 mt-1">{fieldErrors.gender}</p>
-                )}
-              </div>
-              <div>
+            </>
+          )}
+
+          {isPatient ? (
+            <>
+              <div className="sm:col-span-2 space-y-2">
                 <label className="block text-sm mb-1">
-                  {t("weight", "Weight (kg)")}{" "}
-                  <span className="text-muted-foreground">({t("optional", "optional")})</span>
+                  {t(
+                    "records_mode_label",
+                    "How should we fill your medical profile?"
+                  )}
                 </label>
-                <Input
-                  name="weight"
-                  dir="ltr"
-                  value={formData.weight || ""}
-                  onChange={handleChange}
-                />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {(
+                    [
+                      {
+                        value: "ehr" as PatientRecordsMode,
+                        title: t("patient_mode_ehr", "EHR code"),
+                        hint: t(
+                          "patient_mode_ehr_hint_b2c",
+                          "Enter a code — we load full demographics, diagnosis, allergies, and meds"
+                        ),
+                      },
+                      {
+                        value: "manual" as PatientRecordsMode,
+                        title: t("patient_mode_manual", "Fill the form"),
+                        hint: t(
+                          "patient_mode_manual_hint_b2c",
+                          "Enter your name, national code, DOB, and vitals yourself"
+                        ),
+                      },
+                    ] as const
+                  ).map((opt) => {
+                    const selected = recordsMode === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            records_mode: opt.value,
+                            ...(opt.value === "ehr"
+                              ? {
+                                  national_code: "",
+                                  dob: "",
+                                  gender: "",
+                                  weight: "",
+                                  height: "",
+                                }
+                              : { ehr_code: "" }),
+                          }))
+                        }
+                        className={cn(
+                          "rounded-xl border p-3 text-start transition",
+                          selected
+                            ? "border-emerald-600 bg-emerald-50 ring-1 ring-emerald-600 dark:bg-emerald-950/30"
+                            : "border-border hover:bg-muted/40"
+                        )}
+                      >
+                        <p className="text-sm font-medium">{opt.title}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          {opt.hint}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <div>
-                <label className="block text-sm mb-1">
-                  {t("height", "Height (cm)")}{" "}
-                  <span className="text-muted-foreground">({t("optional", "optional")})</span>
-                </label>
-                <Input
-                  name="height"
-                  dir="ltr"
-                  value={formData.height || ""}
-                  onChange={handleChange}
-                />
-              </div>
+
+              {recordsMode === "ehr" ? (
+                <div className="sm:col-span-2 space-y-1.5">
+                  <label className="block text-sm mb-1">
+                    {t("ehr_code", "EHR code")}
+                  </label>
+                  <Input
+                    name="ehr_code"
+                    dir="ltr"
+                    value={formData.ehr_code || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        ehr_code: e.target.value.toUpperCase(),
+                      }))
+                    }
+                    placeholder="EHR-DEMO-001"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    {t(
+                      "ehr_seed_hint",
+                      "Demo codes: EHR-DEMO-001, EHR-DEMO-002, EHR-DEMO-003 — full medical seed data"
+                    )}
+                  </p>
+                  {ehrPreview.isFetching && (
+                    <p className="text-[11px] text-muted-foreground">
+                      {t("checking_ehr", "Looking up…")}
+                    </p>
+                  )}
+                  {ehrPreview.data && (
+                    <div className="rounded-xl border border-emerald-500/30 bg-emerald-50/80 p-3 text-sm dark:bg-emerald-950/20">
+                      <p className="font-semibold">
+                        {ehrPreview.data.first_name} {ehrPreview.data.last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        DOB {ehrPreview.data.dob} · {ehrPreview.data.gender}
+                        {ehrPreview.data.diagnosis
+                          ? ` · ${ehrPreview.data.diagnosis}`
+                          : ""}
+                      </p>
+                      <p className="text-[11px] text-emerald-700 dark:text-emerald-400 mt-1">
+                        {t(
+                          "ehr_seed_will_fill",
+                          "Account will be created with this seed profile, including allergies and medications."
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  {fieldErrors.ehr_code && (
+                    <p className="text-[11px] text-red-500">{fieldErrors.ehr_code}</p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm mb-1">
+                      {t("national_code", "National / social-security code")}
+                    </label>
+                    <Input
+                      name="national_code"
+                      dir="ltr"
+                      value={formData.national_code}
+                      onChange={handleChange}
+                      placeholder={t(
+                        "national_code_patient_hint",
+                        "Your personal ID — not a clinic or business code"
+                      )}
+                    />
+                    {fieldErrors.national_code && (
+                      <p className="text-[11px] text-red-500 mt-1">
+                        {fieldErrors.national_code}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">
+                      {t("date_of_birth", "Date of birth")}
+                    </label>
+                    <Input
+                      name="dob"
+                      type="date"
+                      dir="ltr"
+                      value={formData.dob}
+                      onChange={handleChange}
+                    />
+                    {fieldErrors.dob && (
+                      <p className="text-[11px] text-red-500 mt-1">
+                        {fieldErrors.dob}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">
+                      {t("gender", "Gender")}
+                    </label>
+                    <Select
+                      value={formData.gender}
+                      onValueChange={(val) =>
+                        setFormData((prev) => ({ ...prev, gender: val }))
+                      }
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue
+                          placeholder={t("select_gender", "Select gender")}
+                        />
+                      </SelectTrigger>
+                      <SelectContent className="z-50 bg-popover text-popover-foreground">
+                        {genders.map((g) => (
+                          <SelectItem key={g} value={g}>
+                            {g}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldErrors.gender && (
+                      <p className="text-[11px] text-red-500 mt-1">
+                        {fieldErrors.gender}
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">
+                      {t("weight", "Weight (kg)")}{" "}
+                      <span className="text-muted-foreground">
+                        ({t("optional", "optional")})
+                      </span>
+                    </label>
+                    <Input
+                      name="weight"
+                      dir="ltr"
+                      value={formData.weight || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm mb-1">
+                      {t("height", "Height (cm)")}{" "}
+                      <span className="text-muted-foreground">
+                        ({t("optional", "optional")})
+                      </span>
+                    </label>
+                    <Input
+                      name="height"
+                      dir="ltr"
+                      value={formData.height || ""}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </>
+              )}
             </>
           ) : (
             <div>
@@ -689,6 +931,12 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               {t("caregiver_account_section", "Caregiver account")}
             </p>
+            <p className="text-[11px] text-muted-foreground -mt-2">
+              {t(
+                "caregiver_password_email_hint",
+                "We generate a password and email it to the caregiver. No password fields here."
+              )}
+            </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {(
                 [
@@ -712,6 +960,14 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                       {t("username_available")}
                     </p>
                   )}
+                  {field === "email" && (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {t(
+                        "cg_email_required_hint",
+                        "Required — login password is sent here"
+                      )}
+                    </p>
+                  )}
                   {fieldErrors[`cg_${field}`] && (
                     <p className="text-[11px] text-red-500 mt-1">
                       {fieldErrors[`cg_${field}`]}
@@ -719,47 +975,6 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
                   )}
                 </div>
               ))}
-              <div>
-                <label className="block text-sm mb-1">{t("password")}</label>
-                <div className="relative">
-                  <Input
-                    name="password"
-                    dir="ltr"
-                    type={showCgPassword ? "text" : "password"}
-                    value={formData.caregiver.password}
-                    onChange={handleCaregiverChange}
-                    className="pe-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCgPassword(!showCgPassword)}
-                    className="absolute inset-y-0 end-0 flex items-center px-3 text-muted-foreground"
-                    tabIndex={-1}
-                  >
-                    {showCgPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {fieldErrors.cg_password && (
-                  <p className="text-[11px] text-red-500 mt-1">
-                    {fieldErrors.cg_password}
-                  </p>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm mb-1">{t("confirm_password")}</label>
-                <Input
-                  name="confirmPassword"
-                  dir="ltr"
-                  type="password"
-                  value={formData.caregiver.confirmPassword || ""}
-                  onChange={handleCaregiverChange}
-                />
-                {fieldErrors.cg_confirmPassword && (
-                  <p className="text-[11px] text-red-500 mt-1">
-                    {fieldErrors.cg_confirmPassword}
-                  </p>
-                )}
-              </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm mb-1">
                   {t("relationship_to_patient")}
@@ -803,7 +1018,10 @@ export const SignUpForm: React.FC<SignUpFormProps> = ({
           disabled={
             isPending ||
             usernameCheck.status === "checking" ||
-            (withCaregiver && cgUsernameCheck.status === "checking")
+            (withCaregiver && cgUsernameCheck.status === "checking") ||
+            (isPatient &&
+              recordsMode === "ehr" &&
+              (ehrPreview.isFetching || ehrPreview.isLoading))
           }
         >
           {isPending

@@ -7,6 +7,7 @@ import { cookies } from 'next/headers';
 import { Suspense } from 'react';
 import { LayoutSidebarProvider } from '@/context/SidebarContext';
 import { NotificationProvider } from '@/context/NotificationContext';
+import OnboardingGate from '@/features/auth/components/OnboardingGate';
 
 export const metadata: Metadata = {
   title: 'SenioSentry Dashboard',
@@ -30,7 +31,7 @@ export default async function DashboardLayout({
           </Suspense>
           <SidebarInset className="min-w-0 overflow-x-hidden pb-24 md:pb-0">
             <Header />
-            {children}
+            <OnboardingGate>{children}</OnboardingGate>
             <MobileBottomNav />
           </SidebarInset>
         </NotificationProvider>

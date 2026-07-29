@@ -5,11 +5,11 @@ export type LoginFormValues = {
 
 export type SignUpRole = "patient" | "doctor";
 export type PatientSignupMode = "alone" | "with_caregiver";
+/** How the patient medical profile is provided at B2C signup. */
+export type PatientRecordsMode = "ehr" | "manual";
 
 export type CaregiverSignupValues = {
   username: string;
-  password: string;
-  confirmPassword?: string;
   email: string;
   phone_number: string;
   first_name: string;
@@ -17,12 +17,19 @@ export type CaregiverSignupValues = {
   relationship_to_patient: string;
 };
 
+export type PasswordDelivery = 'choose' | 'email';
+
 export type SignUpFormValues = {
   role: SignUpRole;
   /** Patient B2C mode; ignored when role is doctor. */
   patient_mode: PatientSignupMode;
+  /** EHR seed vs manual demographics for Nest patient setup. */
+  records_mode?: PatientRecordsMode;
+  ehr_code?: string;
   /** Paid Nest order number required for patient setup. */
   order_number?: string;
+  /** Patient chooses password, or we email a generated one. */
+  password_delivery?: PasswordDelivery;
   username: string;
   password: string;
   confirmPassword?: string;
