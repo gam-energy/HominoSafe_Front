@@ -417,6 +417,11 @@ export default function CaregiverHome() {
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-sm font-medium">
                                 {f.displayName}
+                                {f.matched ? (
+                                  <span className="ms-2 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+                                    {t('matched_fall', 'Matched')}
+                                  </span>
+                                ) : null}
                               </p>
                               <p className="truncate text-xs text-muted-foreground">
                                 {formatWhen(f.timestamp)}

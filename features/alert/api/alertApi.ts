@@ -17,6 +17,9 @@ export interface FallReportSummary {
   alert_id?: number | null;
   severity?: string | null;
   status?: string | null;
+  fall_incident_id?: string | null;
+  /** Camera and watch falls share the same incident. */
+  matched?: boolean;
 }
 
 export interface AlertActionItem {

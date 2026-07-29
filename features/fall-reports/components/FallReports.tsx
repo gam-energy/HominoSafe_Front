@@ -12,6 +12,7 @@ import {
   ImageOff,
   LayoutGrid,
   LayoutList,
+  Link2,
   Radio,
   ShieldCheck,
   Smartphone,
@@ -42,7 +43,7 @@ import { usePatients } from '@/features/patients-list/api/useGetPatients';
 import { useUser } from '@/context/UserContext';
 
 const ALL = 'all';
-type SourceFilter = 'all' | 'vision_module' | 'watch';
+type SourceFilter = 'all' | 'vision_module' | 'watch' | 'matched';
 type ViewMode = 'gallery' | 'list';
 
 function frameSrc(report: {
@@ -73,6 +74,21 @@ function metadataNumber(
   return typeof value === 'number' ? value : null;
 }
 
+function MatchedBadge({ className }: { className?: string }) {
+  const { t } = useTranslation();
+  return (
+    <Badge
+      className={cn(
+        'rounded-full border-0 bg-emerald-600/90 text-white',
+        className,
+      )}
+    >
+      <Link2 className="me-1 h-3 w-3" />
+      {t('matched_fall', 'Matched')}
+    </Badge>
+  );
+}
+
 function FallDetail({
   id,
   onClose,
@@ -94,18 +110,24 @@ function FallDetail({
 
   const src = detail ? frameSrc(detail) : null;
   const isWatch = isWatchSource(detail?.source || '');
+  const matched = Boolean(detail?.matched);
   const analysis =
     typeof detail?.metadata?.analysis === 'string'
       ? detail.metadata.analysis
-      : isWatch
+      : matched
         ? t(
-            'watch_fall_analysis',
-            'Watch motion sensors detected a fall signature from acceleration and rotation.',
+            'matched_fall_analysis',
+            'Fall confirmed by both camera and watch — the same incident was detected on both devices.',
           )
-        : t(
-            'camera_fall_analysis',
-            'The vision detector classified a person in a floor-level posture.',
-          );
+        : isWatch
+          ? t(
+              'watch_fall_analysis',
+              'Watch motion sensors detected a fall signature from acceleration and rotation.',
+            )
+          : t(
+              'camera_fall_analysis',
+              'The vision detector classified a person in a floor-level posture.',
+            );
 
   return (
     <motion.div
@@ -197,6 +219,7 @@ function FallDetail({
                       sourceLabel(detail.source),
                     )}
                   </Badge>
+                  {matched && <MatchedBadge />}
                   <Badge
                     variant="outline"
                     className="rounded-full border-rose-500/30 text-rose-600"
@@ -222,6 +245,15 @@ function FallDetail({
                   {analysis}
                 </p>
               </div>
+
+              {matched && (
+                <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/10 px-3 py-2.5 text-sm text-emerald-800 dark:text-emerald-200">
+                  {t(
+                    'matched_fall_status',
+                    'Status: Matched — camera and watch agree on this fall.',
+                  )}
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-2">
                 <Metric
@@ -384,14 +416,18 @@ export default function FallReports() {
 
   const filtered = useMemo(
     () =>
-      reports.filter(
-        (report) =>
-          (source === 'all' ||
-            (source === 'watch'
+      reports.filter((report) => {
+        const sourceOk =
+          source === 'all' ||
+          (source === 'matched'
+            ? Boolean(report.matched)
+            : source === 'watch'
               ? isWatchSource(report.source)
-              : !isWatchSource(report.source))) &&
-          (patient === ALL || String(report.patient_id) === patient),
-      ),
+              : !isWatchSource(report.source));
+        const patientOk =
+          patient === ALL || String(report.patient_id) === patient;
+        return sourceOk && patientOk;
+      }),
     [reports, source, patient],
   );
 
@@ -401,6 +437,16 @@ export default function FallReports() {
   const watchCount = reports.filter((report) =>
     isWatchSource(report.source),
   ).length;
+  const matchedCount = useMemo(() => {
+    const ids = new Set<string>();
+    let withoutId = 0;
+    for (const report of reports) {
+      if (!report.matched) continue;
+      if (report.fall_incident_id) ids.add(report.fall_incident_id);
+      else withoutId += 1;
+    }
+    return ids.size + withoutId;
+  }, [reports]);
   const openCount = reports.filter(
     (report) =>
       !report.status ||
@@ -437,7 +483,7 @@ export default function FallReports() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
           <Stat
             icon={AlertTriangle}
             value={reports.length}
@@ -457,6 +503,12 @@ export default function FallReports() {
             className="bg-violet-500/10 text-violet-500"
           />
           <Stat
+            icon={Link2}
+            value={matchedCount}
+            label={t('matched_falls', 'Matched')}
+            className="bg-emerald-500/10 text-emerald-500"
+          />
+          <Stat
             icon={CheckCircle2}
             value={openCount}
             label={t('needs_review', 'Needs review')}
@@ -471,6 +523,7 @@ export default function FallReports() {
                 ['all', t('all', 'All'), Activity],
                 ['vision_module', t('camera', 'Camera'), Camera],
                 ['watch', t('watch', 'Watch'), Smartphone],
+                ['matched', t('matched_fall', 'Matched'), Link2],
               ] as const
             ).map(([value, label, Icon]) => (
               <button
@@ -478,7 +531,7 @@ export default function FallReports() {
                 type="button"
                 onClick={() => setSource(value)}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition sm:flex-none',
+                  'flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold transition sm:flex-none sm:px-4',
                   source === value
                     ? 'bg-background text-foreground shadow-sm'
                     : 'text-muted-foreground hover:text-foreground',
@@ -604,24 +657,27 @@ export default function FallReports() {
                         {t('posture', 'Posture')}: {report.posture || '—'}
                       </p>
                     </div>
-                    <Badge
-                      className={cn(
-                        'w-fit rounded-full border-0',
-                        isWatch
-                          ? 'bg-violet-600/85 text-white'
-                          : 'bg-sky-600/85 text-white',
-                      )}
-                    >
-                      {isWatch ? (
-                        <Smartphone className="me-1 h-3 w-3" />
-                      ) : (
-                        <Camera className="me-1 h-3 w-3" />
-                      )}
-                      {t(
-                        isWatch ? 'watch' : 'camera',
-                        sourceLabel(report.source),
-                      )}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <Badge
+                        className={cn(
+                          'w-fit rounded-full border-0',
+                          isWatch
+                            ? 'bg-violet-600/85 text-white'
+                            : 'bg-sky-600/85 text-white',
+                        )}
+                      >
+                        {isWatch ? (
+                          <Smartphone className="me-1 h-3 w-3" />
+                        ) : (
+                          <Camera className="me-1 h-3 w-3" />
+                        )}
+                        {t(
+                          isWatch ? 'watch' : 'camera',
+                          sourceLabel(report.source),
+                        )}
+                      </Badge>
+                      {report.matched && <MatchedBadge />}
+                    </div>
                     <span className="text-xs text-muted-foreground ltr-nums">
                       {new Date(report.timestamp).toLocaleString(i18n.language)}
                     </span>
@@ -654,9 +710,14 @@ export default function FallReports() {
               const analysis =
                 typeof report.metadata?.analysis === 'string'
                   ? report.metadata.analysis
-                  : isWatch
-                    ? t('watch_motion_analysis', 'Motion signature analyzed')
-                    : t('vision_posture_analysis', 'Floor posture analyzed');
+                  : report.matched
+                    ? t(
+                        'matched_fall_short',
+                        'Camera and watch both confirmed this fall.',
+                      )
+                    : isWatch
+                      ? t('watch_motion_analysis', 'Motion signature analyzed')
+                      : t('vision_posture_analysis', 'Floor posture analyzed');
               return (
                 <motion.button
                   key={report.vision_data_id}
@@ -705,24 +766,27 @@ export default function FallReports() {
                         )}
                       </div>
                     )}
-                    <Badge
-                      className={cn(
-                        'absolute start-2 top-2 rounded-full border-0 backdrop-blur',
-                        isWatch
-                          ? 'bg-violet-600/85 text-white'
-                          : 'bg-sky-600/85 text-white',
-                      )}
-                    >
-                      {isWatch ? (
-                        <Smartphone className="me-1 h-3 w-3" />
-                      ) : (
-                        <Camera className="me-1 h-3 w-3" />
-                      )}
-                      {t(
-                        isWatch ? 'watch' : 'camera',
-                        sourceLabel(report.source),
-                      )}
-                    </Badge>
+                    <div className="absolute start-2 top-2 flex flex-wrap gap-1">
+                      <Badge
+                        className={cn(
+                          'rounded-full border-0 backdrop-blur',
+                          isWatch
+                            ? 'bg-violet-600/85 text-white'
+                            : 'bg-sky-600/85 text-white',
+                        )}
+                      >
+                        {isWatch ? (
+                          <Smartphone className="me-1 h-3 w-3" />
+                        ) : (
+                          <Camera className="me-1 h-3 w-3" />
+                        )}
+                        {t(
+                          isWatch ? 'watch' : 'camera',
+                          sourceLabel(report.source),
+                        )}
+                      </Badge>
+                      {report.matched && <MatchedBadge />}
+                    </div>
                     {report.confidence != null && (
                       <span className="absolute end-2 top-2 rounded-full bg-black/65 px-2 py-1 text-[10px] font-bold text-white ltr-nums">
                         {Math.round(report.confidence * 100)}%
@@ -748,9 +812,16 @@ export default function FallReports() {
                       </div>
                       <Badge
                         variant="secondary"
-                        className="rounded-full bg-rose-500/10 text-[10px] text-rose-700 dark:text-rose-300"
+                        className={cn(
+                          'rounded-full text-[10px]',
+                          report.matched
+                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                            : 'bg-rose-500/10 text-rose-700 dark:text-rose-300',
+                        )}
                       >
-                        {t('fall', 'Fall')}
+                        {report.matched
+                          ? t('matched_fall', 'Matched')
+                          : t('fall', 'Fall')}
                       </Badge>
                     </div>
                     <div className="rounded-xl bg-muted/35 px-3 py-2">
