@@ -5,15 +5,13 @@ import { userColumns } from "./table/user-columns";
 import { useGetAdminUsers } from "@/features/admin/api/use-get-admin-users";
 import type { User } from "@/features/dashboard/types/caregiver/user";
 import { LoaderIcon } from "@/components/chat/icons";
-import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import CreateUserDialog from "./dialog/CreateUserDialog";
 
 type StatusFilter = "all" | "active" | "inactive";
@@ -51,29 +49,32 @@ const AdminDashboard = () => {
     <div className="p-6">
       <h1 className="text-3xl font-bold mb-6">User List</h1>
 
-      <div className="flex gap-4 mb-6 flex-wrap">
-        <select
-          className="border rounded px-3 py-2"
-          value={roleFilter}
-          onChange={(e) => setRoleFilter(e.target.value)}
-        >
-          <option value="all">All Roles</option>
-          <option value="admin">Admin</option>
-          <option value="doctor">Doctor</option>
-          <option value="patient">Patient</option>
-          <option value="caregiver">Caregiver</option>
-        </select>
-        <select
-          className="border rounded px-3 py-2"
+      <div className="flex gap-4 mb-6 flex-wrap items-center">
+        <Select value={roleFilter} onValueChange={setRoleFilter}>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All Roles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="admin">Admin</SelectItem>
+            <SelectItem value="doctor">Doctor</SelectItem>
+            <SelectItem value="patient">Patient</SelectItem>
+            <SelectItem value="caregiver">Caregiver</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
           value={statusFilter}
-          onChange={(e) =>
-            setStatusFilter(e.target.value as StatusFilter)
-          }
+          onValueChange={(v) => setStatusFilter(v as StatusFilter)}
         >
-          <option value="all">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
+          <SelectTrigger className="w-40">
+            <SelectValue placeholder="All Statuses" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Statuses</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
         <CreateUserDialog />
       </div>
 

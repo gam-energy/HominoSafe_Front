@@ -34,6 +34,7 @@ import { useGetUserRooms } from '../api/use-get-user-rooms';
 import { useDeleteAdminUser } from '../api/use-delete-admin-user';
 import { useReactivateUser } from '../api/use-reactivate-user';
 import { useUnassignPatient } from '../api/use-unassign-patient';
+import { useSetPrimaryCareTeam } from '../api/use-set-primary-care-team';
 import {
   isInactive,
   isRole,
@@ -45,9 +46,11 @@ import {
   synapseBadgeClass,
   synapseLabel,
 } from '../utils/normalizeEnum';
+import type { AdminCareTeamMember } from '../types/admin';
 import { ResetPasswordDialog } from './ResetPasswordDialog';
 import { SynapseRetryDialog } from './SynapseRetryDialog';
 import { AssignCareTeamDialog } from './AssignCareTeamDialog';
+import { CreateCaregiverForPatientDialog } from './CreateCaregiverForPatientDialog';
 
 interface AdminUserDetailProps {
   userId: number | string;
@@ -78,12 +81,14 @@ export function AdminUserDetail({ userId }: AdminUserDetailProps) {
   const deleteUser = useDeleteAdminUser();
   const reactivate = useReactivateUser();
   const unassign = useUnassignPatient();
+  const setPrimary = useSetPrimaryCareTeam();
 
   const [resetOpen, setResetOpen] = useState(false);
   const [retryOpen, setRetryOpen] = useState(false);
   const [assignRole, setAssignRole] = useState<'DOCTOR' | 'CAREGIVER' | null>(
     null,
   );
+  const [createCaregiverOpen, setCreateCaregiverOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (isLoading) {
@@ -118,8 +123,26 @@ export function AdminUserDetail({ userId }: AdminUserDetailProps) {
   const fullName =
     `${user.first_name ?? ''} ${user.last_name ?? ''}`.trim() || user.username;
 
-  const handleUnassign = (which: 'DOCTOR' | 'CAREGIVER') => {
-    unassign.mutate({ patient_id: Number(userId), role_assignment: which });
+  const handleUnassign = (
+    which: 'DOCTOR' | 'CAREGIVER',
+    memberId?: number,
+  ) => {
+    unassign.mutate({
+      patient_id: Number(userId),
+      role_assignment: which,
+      assign_user_id: memberId,
+    });
+  };
+
+  const handleSetPrimary = (
+    which: 'DOCTOR' | 'CAREGIVER',
+    memberId: number,
+  ) => {
+    setPrimary.mutate({
+      patient_id: Number(userId),
+      role_assignment: which,
+      assign_user_id: memberId,
+    });
   };
 
   return (
@@ -229,37 +252,64 @@ export function AdminUserDetail({ userId }: AdminUserDetailProps) {
         {isPatient && (
           <TabsContent value="care-team">
             <Card>
-              <CardHeader>
+              <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2">
                 <CardTitle>Care team</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-col gap-4">
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <CareTeamCard
-                    title="Doctor"
-                    member={
-                      user.doctor_id
-                        ? { id: user.doctor_id }
-                        : null
-                    }
-                    onAssign={() => setAssignRole('DOCTOR')}
-                    onUnassign={() => handleUnassign('DOCTOR')}
-                    busy={unassign.isPending}
-                  />
-                  <CareTeamCard
-                    title="Caregiver"
-                    member={
-                      user.caregiver_id
-                        ? { id: user.caregiver_id }
-                        : null
-                    }
-                    onAssign={() => setAssignRole('CAREGIVER')}
-                    onUnassign={() => handleUnassign('CAREGIVER')}
-                    busy={unassign.isPending}
-                  />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAssignRole('DOCTOR')}
+                  >
+                    Add doctor
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAssignRole('CAREGIVER')}
+                  >
+                    Add caregiver
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setCreateCaregiverOpen(true)}
+                  >
+                    Create caregiver
+                  </Button>
                 </div>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-6">
+                <CareTeamMemberList
+                  title="Doctors"
+                  role="DOCTOR"
+                  members={
+                    user.doctors?.length
+                      ? user.doctors
+                      : user.doctor
+                        ? [{ ...user.doctor, is_primary: true }]
+                        : []
+                  }
+                  onSetPrimary={(id) => handleSetPrimary('DOCTOR', id)}
+                  onRemove={(id) => handleUnassign('DOCTOR', id)}
+                  busy={unassign.isPending || setPrimary.isPending}
+                />
+                <CareTeamMemberList
+                  title="Caregivers"
+                  role="CAREGIVER"
+                  members={
+                    user.caregivers?.length
+                      ? user.caregivers
+                      : user.caregiver
+                        ? [{ ...user.caregiver, is_primary: true }]
+                        : []
+                  }
+                  onSetPrimary={(id) => handleSetPrimary('CAREGIVER', id)}
+                  onRemove={(id) => handleUnassign('CAREGIVER', id)}
+                  busy={unassign.isPending || setPrimary.isPending}
+                />
                 <p className="text-xs text-muted-foreground">
-                  Only active doctors and caregivers can be assigned. Use the
-                  Relations screen for a full overview.
+                  Patients can have multiple doctors and caregivers. Mark one of
+                  each as primary for legacy links and default routing. Use
+                  Create caregiver to make a new caregiver and assign them here.
                 </p>
               </CardContent>
             </Card>
@@ -340,8 +390,22 @@ export function AdminUserDetail({ userId }: AdminUserDetailProps) {
           role={assignRole}
           open={!!assignRole}
           onOpenChange={(o) => !o && setAssignRole(null)}
+          excludeIds={(
+            assignRole === 'DOCTOR' ? user.doctors : user.caregivers
+          )?.map((m) => m.id)}
+          defaultMakePrimary={
+            assignRole === 'DOCTOR'
+              ? !(user.doctors?.length || user.doctor)
+              : !(user.caregivers?.length || user.caregiver)
+          }
         />
       )}
+      <CreateCaregiverForPatientDialog
+        patientId={Number(userId)}
+        patientName={fullName}
+        open={createCaregiverOpen}
+        onOpenChange={setCreateCaregiverOpen}
+      />
 
       <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
@@ -372,44 +436,82 @@ export function AdminUserDetail({ userId }: AdminUserDetailProps) {
   );
 }
 
-function CareTeamCard({
+function CareTeamMemberList({
   title,
-  member,
-  onAssign,
-  onUnassign,
+  role,
+  members,
+  onSetPrimary,
+  onRemove,
   busy,
 }: {
   title: string;
-  member: { id: number } | null;
-  onAssign: () => void;
-  onUnassign: () => void;
+  role: 'DOCTOR' | 'CAREGIVER';
+  members: AdminCareTeamMember[];
+  onSetPrimary: (id: number) => void;
+  onRemove: (id: number) => void;
   busy: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
         <Users className="h-4 w-4 text-muted-foreground" />
-        <span className="font-medium">{title}</span>
+        <span className="font-medium">
+          {title}{' '}
+          <span className="text-muted-foreground font-normal">
+            ({members.length})
+          </span>
+        </span>
       </div>
-      {member ? (
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm">User ID #{member.id}</span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onUnassign}
-            disabled={busy}
-          >
-            Unassign
-          </Button>
-        </div>
+      {members.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No {roleLabel(role).toLowerCase()}s on this care team yet.
+        </p>
       ) : (
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm text-muted-foreground">Unassigned</span>
-          <Button variant="outline" size="sm" onClick={onAssign}>
-            Assign
-          </Button>
-        </div>
+        <ul className="flex flex-col gap-2">
+          {members.map((member) => (
+            <li
+              key={`${role}-${member.id}`}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2"
+            >
+              <div>
+                <Link
+                  href={`/dashboard/users/${member.id}`}
+                  className="text-sm font-medium hover:underline"
+                >
+                  {member.full_name || member.username}
+                </Link>
+                <div className="text-xs text-muted-foreground">
+                  @{member.username} · ID #{member.id}
+                  {member.is_primary ? (
+                    <Badge className="ml-2 align-middle" variant="secondary">
+                      Primary
+                    </Badge>
+                  ) : null}
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {!member.is_primary ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={busy}
+                    onClick={() => onSetPrimary(member.id)}
+                  >
+                    Make primary
+                  </Button>
+                ) : null}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={busy}
+                  onClick={() => onRemove(member.id)}
+                >
+                  Remove
+                </Button>
+              </div>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

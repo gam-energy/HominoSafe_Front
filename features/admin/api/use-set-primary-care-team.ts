@@ -1,16 +1,16 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosInstance from '@/api/axiosInstance';
 import { toast } from 'sonner';
-import type { AdminUnassignPatientRequest, AdminUnassignPatientResponse } from '../types/admin';
+import type { AdminSetPrimaryCareTeamRequest } from '../types/admin';
 import { extractErrorMessage } from '../utils/adminErrors';
 
-export function useUnassignPatient() {
+export function useSetPrimaryCareTeam() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (payload: AdminUnassignPatientRequest) => {
-      const { data } = await axiosInstance.post<AdminUnassignPatientResponse>(
-        '/admin/unassign-patient',
+    mutationFn: async (payload: AdminSetPrimaryCareTeamRequest) => {
+      const { data } = await axiosInstance.post(
+        '/admin/care-team/set-primary',
         {
           ...payload,
           role_assignment: payload.role_assignment.toLowerCase(),
@@ -20,9 +20,7 @@ export function useUnassignPatient() {
       return data;
     },
     onSuccess: (_, variables) => {
-      toast.success(
-        `Patient unassigned from ${variables.role_assignment.toLowerCase()} successfully.`,
-      );
+      toast.success('Primary care-team member updated.');
       queryClient.invalidateQueries({ queryKey: ['admin-relations'] });
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       queryClient.invalidateQueries({
@@ -30,7 +28,7 @@ export function useUnassignPatient() {
       });
     },
     onError: (err) => {
-      toast.error(extractErrorMessage(err, 'Failed to unassign patient.'));
+      toast.error(extractErrorMessage(err, 'Failed to set primary member.'));
     },
   });
 }

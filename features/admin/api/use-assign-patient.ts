@@ -13,8 +13,9 @@ export function useAssignPatient() {
         '/admin/assign-patient',
         {
           ...payload,
-          // Backend expects the canonical UPPERCASE form per spec.
-          role_assignment: payload.role_assignment.toUpperCase(),
+          // Backend RoleEnum values are lowercase (doctor / caregiver).
+          role_assignment: payload.role_assignment.toLowerCase(),
+          make_primary: payload.make_primary ?? true,
         },
         { headers: { 'Content-Type': 'application/json' } },
       );

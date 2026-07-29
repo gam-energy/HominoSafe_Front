@@ -22,6 +22,13 @@ export interface AdminUserListItem {
   doctor_id?: number;
 }
 
+export interface AdminCareTeamMember {
+  id: number;
+  username: string;
+  full_name: string;
+  is_primary?: boolean;
+}
+
 export interface AdminUserDetail extends AdminUserListItem {
   updated_at: string | null;
   specialization?: string | null;
@@ -34,6 +41,10 @@ export interface AdminUserDetail extends AdminUserListItem {
   caregiver_id?: number | null;
   doctor_id?: number | null;
   synapse_id?: string | null;
+  doctor?: AdminCareTeamMember | null;
+  caregiver?: AdminCareTeamMember | null;
+  doctors?: AdminCareTeamMember[];
+  caregivers?: AdminCareTeamMember[];
 }
 
 export interface AdminUserRoleLookup {
@@ -152,11 +163,19 @@ export interface AdminAssignPatientRequest {
   patient_id: number;
   role_assignment: 'DOCTOR' | 'CAREGIVER';
   assign_user_id: number;
+  make_primary?: boolean;
 }
 
 export interface AdminUnassignPatientRequest {
   patient_id: number;
   role_assignment: 'DOCTOR' | 'CAREGIVER';
+  assign_user_id?: number;
+}
+
+export interface AdminSetPrimaryCareTeamRequest {
+  patient_id: number;
+  role_assignment: 'DOCTOR' | 'CAREGIVER';
+  assign_user_id: number;
 }
 
 export interface AdminUnassignPatientResponse {

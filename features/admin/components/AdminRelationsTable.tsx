@@ -100,20 +100,37 @@ export function AdminRelationsTable() {
                             >
                               {r.doctor.full_name || r.doctor.username}
                             </Link>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-fit px-2 text-xs text-muted-foreground"
-                              onClick={() =>
-                                unassign.mutate({
-                                  patient_id: r.patient_id,
-                                  role_assignment: 'DOCTOR',
-                                })
-                              }
-                              disabled={unassign.isPending}
-                            >
-                              <UserMinus className="h-3 w-3" /> Unassign
-                            </Button>
+                            <div className="flex flex-wrap gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={() =>
+                                  setAssign({
+                                    patientId: r.patient_id,
+                                    patientName:
+                                      r.patient_full_name || r.patient_username,
+                                    role: 'DOCTOR',
+                                  })
+                                }
+                              >
+                                <UserPlus className="h-3 w-3" /> Change
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs text-muted-foreground"
+                                onClick={() =>
+                                  unassign.mutate({
+                                    patient_id: r.patient_id,
+                                    role_assignment: 'DOCTOR',
+                                  })
+                                }
+                                disabled={unassign.isPending}
+                              >
+                                <UserMinus className="h-3 w-3" /> Unassign
+                              </Button>
+                            </div>
                           </div>
                         ) : (
                           <Button
@@ -142,20 +159,37 @@ export function AdminRelationsTable() {
                             >
                               {r.caregiver.full_name || r.caregiver.username}
                             </Link>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-fit px-2 text-xs text-muted-foreground"
-                              onClick={() =>
-                                unassign.mutate({
-                                  patient_id: r.patient_id,
-                                  role_assignment: 'CAREGIVER',
-                                })
-                              }
-                              disabled={unassign.isPending}
-                            >
-                              <UserMinus className="h-3 w-3" /> Unassign
-                            </Button>
+                            <div className="flex flex-wrap gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-6 px-2 text-xs"
+                                onClick={() =>
+                                  setAssign({
+                                    patientId: r.patient_id,
+                                    patientName:
+                                      r.patient_full_name || r.patient_username,
+                                    role: 'CAREGIVER',
+                                  })
+                                }
+                              >
+                                <UserPlus className="h-3 w-3" /> Change
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 px-2 text-xs text-muted-foreground"
+                                onClick={() =>
+                                  unassign.mutate({
+                                    patient_id: r.patient_id,
+                                    role_assignment: 'CAREGIVER',
+                                  })
+                                }
+                                disabled={unassign.isPending}
+                              >
+                                <UserMinus className="h-3 w-3" /> Unassign
+                              </Button>
+                            </div>
                           </div>
                         ) : (
                           <Button

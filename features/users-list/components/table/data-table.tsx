@@ -24,6 +24,13 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import {
   TooltipProvider,
@@ -175,19 +182,21 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
               <ChevronsRight />
             </Button>
 
-            <select
-              className="border rounded px-2 py-1 text-xs"
-              value={table.getState().pagination.pageSize}
-              onChange={(e) => {
-                table.setPageSize(Number(e.target.value));
-              }}
+            <Select
+              value={String(table.getState().pagination.pageSize)}
+              onValueChange={(v) => table.setPageSize(Number(v))}
             >
-              {[5, 10, 20, 50].map((size) => (
-                <option key={size} value={size}>
-                  Show {size}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="h-8 w-[7.5rem] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[5, 10, 20, 50].map((size) => (
+                  <SelectItem key={size} value={String(size)}>
+                    Show {size}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

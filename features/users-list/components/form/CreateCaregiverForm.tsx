@@ -1,12 +1,10 @@
-import React, { useState } from "react";
+import React from "react";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useCreateUser } from "../../api/use-create-user";
 import { relationships } from "../../../auth/types/auth";
-import { Eye, EyeOff } from "lucide-react";
 
-// 🟢 Schema
 const schema = z.object({
   username: z.string().min(1, "Username is required"),
   email: z.string().email("Invalid email"),
@@ -14,7 +12,6 @@ const schema = z.object({
   last_name: z.string().min(1, "Last name is required"),
   phone_number: z.string().min(1, "Phone number is required"),
   role: z.literal("caregiver"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
   status: z.enum(["active", "inactive"], { required_error: "Status is required" }),
   relationship_to_patient: z.string().optional(),
 });
@@ -25,7 +22,6 @@ interface Props {
 
 type CaregiverFormValues = z.infer<typeof schema>;
 
-// 🟢 Default values
 const defaultValues: CaregiverFormValues = {
   username: "",
   email: "",
@@ -33,12 +29,11 @@ const defaultValues: CaregiverFormValues = {
   last_name: "",
   phone_number: "",
   role: "caregiver",
-  password: "",
   status: "active",
   relationship_to_patient: "",
 };
 
-const CreatePatientForm = ({ setOpen }: Props) => {
+const CreateCaregiverForm = ({ setOpen }: Props) => {
   const {
     register,
     handleSubmit,
@@ -48,23 +43,24 @@ const CreatePatientForm = ({ setOpen }: Props) => {
     resolver: zodResolver(schema),
     defaultValues,
   });
-  const [showPassword, setShowPassword] = useState(false);
-  
 
   const mutation = useCreateUser("caregiver");
 
   const onSubmit: SubmitHandler<CaregiverFormValues> = (data) => {
     mutation.mutate(data, {
-      onSuccess: () => {reset()
-        setOpen(false)
+      onSuccess: () => {
+        reset();
+        setOpen(false);
       },
     });
   };
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-5xl mx-auto p-6">
+      <p className="mb-4 text-sm text-muted-foreground">
+        A secure password is generated and emailed to the caregiver.
+      </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-        {/* Username */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">Username</label>
           <input
@@ -72,10 +68,11 @@ const CreatePatientForm = ({ setOpen }: Props) => {
             placeholder="Enter username"
             className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition"
           />
-          {errors.username && <span className="text-red-500 text-xs mt-1">{errors.username.message}</span>}
+          {errors.username && (
+            <span className="text-red-500 text-xs mt-1">{errors.username.message}</span>
+          )}
         </div>
 
-        {/* Email */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">Email</label>
           <input
@@ -84,10 +81,11 @@ const CreatePatientForm = ({ setOpen }: Props) => {
             placeholder="Enter email"
             className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition"
           />
-          {errors.email && <span className="text-red-500 text-xs mt-1">{errors.email.message}</span>}
+          {errors.email && (
+            <span className="text-red-500 text-xs mt-1">{errors.email.message}</span>
+          )}
         </div>
 
-        {/* First Name */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">First Name</label>
           <input
@@ -95,10 +93,11 @@ const CreatePatientForm = ({ setOpen }: Props) => {
             placeholder="Enter first name"
             className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition"
           />
-          {errors.first_name && <span className="text-red-500 text-xs mt-1">{errors.first_name.message}</span>}
+          {errors.first_name && (
+            <span className="text-red-500 text-xs mt-1">{errors.first_name.message}</span>
+          )}
         </div>
 
-        {/* Last Name */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">Last Name</label>
           <input
@@ -106,10 +105,11 @@ const CreatePatientForm = ({ setOpen }: Props) => {
             placeholder="Enter last name"
             className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition"
           />
-          {errors.last_name && <span className="text-red-500 text-xs mt-1">{errors.last_name.message}</span>}
+          {errors.last_name && (
+            <span className="text-red-500 text-xs mt-1">{errors.last_name.message}</span>
+          )}
         </div>
 
-        {/* Phone Number */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">Phone Number</label>
           <input
@@ -117,31 +117,13 @@ const CreatePatientForm = ({ setOpen }: Props) => {
             placeholder="Enter phone number"
             className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition"
           />
-          {errors.phone_number && <span className="text-red-500 text-xs mt-1">{errors.phone_number.message}</span>}
+          {errors.phone_number && (
+            <span className="text-red-500 text-xs mt-1">
+              {errors.phone_number.message}
+            </span>
+          )}
         </div>
 
-        {/* Password */}
-        <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">Password</label>
-          <div className="flex w-full">
-            <input
-              type={showPassword ? "text" : "password"}
-              {...register("password")}
-              placeholder="Enter New password"
-              className="border rounded-lg px-3 py-2 w-full pr-10 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="relative -left-2 top-5 -ml-5 transform -translate-y-1/2 text-gray-500"
-            >
-              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-            </button>
-          </div>
-          {errors.password && <span className="text-red-500 text-xs mt-1">{errors.password.message}</span>}
-        </div>
-
-        {/* Status */}
         <div className="flex flex-col">
           <label className="text-sm font-medium text-gray-700 mb-1">Status</label>
           <select
@@ -152,12 +134,15 @@ const CreatePatientForm = ({ setOpen }: Props) => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
-          {errors.status && <span className="text-red-500 text-xs mt-1">{errors.status.message}</span>}
+          {errors.status && (
+            <span className="text-red-500 text-xs mt-1">{errors.status.message}</span>
+          )}
         </div>
 
-        {/* Relationship to Patient */}
         <div className="flex flex-col">
-          <label className="text-sm font-medium text-gray-700 mb-1">Relationship to Patient</label>
+          <label className="text-sm font-medium text-gray-700 mb-1">
+            Relationship to Patient
+          </label>
           <select
             {...register("relationship_to_patient")}
             className="border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-500 transition"
@@ -169,7 +154,11 @@ const CreatePatientForm = ({ setOpen }: Props) => {
               </option>
             ))}
           </select>
-          {errors.relationship_to_patient && <span className="text-red-500 text-xs mt-1">{errors.relationship_to_patient.message}</span>}
+          {errors.relationship_to_patient && (
+            <span className="text-red-500 text-xs mt-1">
+              {errors.relationship_to_patient.message}
+            </span>
+          )}
         </div>
       </div>
 
@@ -185,4 +174,4 @@ const CreatePatientForm = ({ setOpen }: Props) => {
   );
 };
 
-export default CreatePatientForm;
+export default CreateCaregiverForm;
