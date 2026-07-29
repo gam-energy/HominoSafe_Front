@@ -17,7 +17,8 @@ export const API_BASE_URL = getApiBaseUrl();
 
 const axiosInstance: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
-  headers: new AxiosHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
+  // Most API routes expect JSON. Login (/token) sets form-urlencoded explicitly.
+  headers: new AxiosHeaders({ 'Content-Type': 'application/json' }),
   timeout: 30_000,
   withCredentials: true,
 });
@@ -107,7 +108,25 @@ axiosInstance.interceptors.request.use(
       config.headers = new AxiosHeaders();
     }
     if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      // Let the browser set multipart boundary.
       config.headers.delete('Content-Type');
+    } else if (
+      typeof URLSearchParams !== 'undefined' &&
+      config.data instanceof URLSearchParams
+    ) {
+      config.headers.set('Content-Type', 'application/x-www-form-urlencoded');
+    } else if (
+      config.data &&
+      typeof config.data === 'object' &&
+      !(config.data instanceof Blob) &&
+      !(config.data instanceof ArrayBuffer)
+    ) {
+      // Plain objects must be JSON — default form-urlencoded would stringify
+      // as "a=1&b=2" and FastAPI returns 422 model_attributes_type.
+      const ct = String(config.headers.get('Content-Type') || '');
+      if (!ct || ct.includes('x-www-form-urlencoded')) {
+        config.headers.set('Content-Type', 'application/json');
+      }
     }
     const token = Cookies.get('access_token');
     if (token) {
