@@ -82,8 +82,10 @@ export default async function RootLayout({
               try {
                 var lang = localStorage.getItem('i18nextLng') || 'en';
                 var isFa = lang.indexOf('fa') === 0;
-                document.documentElement.lang = isFa ? 'fa' : 'en';
+                var lng = isFa ? 'fa' : 'en';
+                document.documentElement.lang = lng;
                 document.documentElement.dir = isFa ? 'rtl' : 'ltr';
+                document.cookie = 'i18nextLng=' + lng + ';path=/;max-age=31536000;SameSite=Lax';
               } catch (_) {}
               try {
                 var isCap = (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) ||

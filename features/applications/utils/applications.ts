@@ -29,7 +29,7 @@ export function formatMoney(
   if (amount == null) return '—';
   const cur = currency || 'IRR';
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: cur.length === 3 ? cur : 'IRR',
       maximumFractionDigits: 0,
@@ -43,7 +43,7 @@ export function formatDateTime(value?: string | null): string {
   if (!value) return '—';
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return value;
-  return d.toLocaleString();
+  return d.toLocaleString('en-US');
 }
 
 export function isReceiptFileValid(file: File): { ok: true } | { ok: false; reason: string } {

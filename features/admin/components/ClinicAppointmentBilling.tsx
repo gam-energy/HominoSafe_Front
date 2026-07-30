@@ -39,7 +39,7 @@ const EUR = 'EUR';
 
 function money(amount: number, currency = EUR) {
   try {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       maximumFractionDigits: 2,
@@ -52,7 +52,7 @@ function money(amount: number, currency = EUR) {
 function formatWhen(iso?: string | null) {
   if (!iso) return '—';
   try {
-    return new Date(iso).toLocaleString(undefined, {
+    return new Date(iso).toLocaleString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
