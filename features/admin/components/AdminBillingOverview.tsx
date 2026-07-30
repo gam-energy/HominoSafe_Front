@@ -175,8 +175,8 @@ export function AdminBillingOverview() {
 
   const tabs: { id: BillingTab; label: string }[] = [
     { id: 'all', label: 'All' },
-    { id: 'b2c', label: 'B2C subscriptions' },
-    { id: 'b2b', label: 'B2B clinic invoices' },
+    { id: 'b2c', label: 'Nest subscriptions' },
+    { id: 'b2b', label: 'Clinic invoices' },
     { id: 'debts', label: 'Appointment debts' },
   ];
 
@@ -184,24 +184,24 @@ export function AdminBillingOverview() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Billing</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Billing</h1>
           <p className="text-sm text-muted-foreground">
-            B2C subscription plans (€780/year · €65/month), clinic yearly billing, and appointment debts.
+            Nest subscription plans (€780/year · €65/month), clinic yearly invoices, and appointment debts.
           </p>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex w-fit flex-wrap gap-1 rounded-full border border-zinc-200/80 bg-muted/40 p-1 dark:border-zinc-800/80">
         {tabs.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => setTab(item.id)}
             className={cn(
-              'rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors',
+              'rounded-full px-3.5 py-1.5 text-sm font-semibold transition-colors',
               tab === item.id
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'bg-background text-muted-foreground hover:text-foreground'
+                ? 'bg-background text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
             )}
           >
             {item.label}
@@ -214,7 +214,7 @@ export function AdminBillingOverview() {
         <CardHeader className="pb-2">
           <CardTitle className="flex items-center gap-2 text-base">
             <BadgeCheck className="h-5 w-5 text-primary" />
-            B2C subscription plans
+            Nest subscription plans
           </CardTitle>
           <p className="text-sm text-muted-foreground">
             Annual €780 · Monthly €65. Starts on Nest activation (or 30 days after delivery).
@@ -231,7 +231,7 @@ export function AdminBillingOverview() {
             </div>
           ) : (subsQuery.data ?? []).length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
-              No B2C subscriptions yet.
+              No Nest subscriptions yet.
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -341,7 +341,7 @@ export function AdminBillingOverview() {
 
       <Card>
         <CardHeader className="flex-row items-center justify-between space-y-0 gap-3 flex-wrap">
-          <CardTitle>B2B clinic billing records</CardTitle>
+          <CardTitle>Clinic billing records</CardTitle>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />

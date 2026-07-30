@@ -95,7 +95,7 @@ export function AdminOrdersOverview() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Package className="h-5 w-5" />
-          B2C Orders
+          Nest Orders
         </h2>
         <div className="flex gap-2">
           <Input
