@@ -5,13 +5,13 @@ import {
   CheckCircle2,
   Loader2,
   Package,
-  Search,
   Truck,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -23,12 +23,10 @@ import {
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 
 import {
   useAdminOrders,
@@ -53,16 +51,6 @@ const STATUSES: OrderStatus[] = [
   'refunded',
 ];
 
-const STATUS_LABELS: Record<OrderStatus, string> = {
-  pending_payment: 'Pending payment',
-  paid: 'Paid',
-  shipped: 'Shipped',
-  delivered: 'Delivered',
-  activated: 'Activated',
-  cancelled: 'Cancelled',
-  refunded: 'Refunded',
-};
-
 const STATUS_COLORS: Record<OrderStatus, string> = {
   pending_payment: 'bg-amber-500/10 text-amber-600',
   paid: 'bg-sky-500/10 text-sky-600',
@@ -73,7 +61,12 @@ const STATUS_COLORS: Record<OrderStatus, string> = {
   refunded: 'bg-zinc-500/10 text-zinc-600',
 };
 
+function orderStatusLabel(t: (k: string, d?: string) => string, status: OrderStatus) {
+  return t(`order_status_${status}`, status.replace(/_/g, ' '));
+}
+
 export function AdminOrdersOverview() {
+  const { t } = useTranslation();
   const [q, setQ] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedId, setSelectedId] = useState<number | null>(null);
@@ -95,24 +88,24 @@ export function AdminOrdersOverview() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Package className="h-5 w-5" />
-          Nest Orders
+          {t('nest_orders', 'Nest Orders')}
         </h2>
         <div className="flex gap-2">
           <Input
-            placeholder="Search email, name, order #"
+            placeholder={t('search_orders_ph', 'Search email, name, order #')}
             value={q}
             onChange={(e) => setQ(e.target.value)}
             className="w-64"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-44">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder={t('status', 'Status')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
+              <SelectItem value="all">{t('all_statuses', 'All statuses')}</SelectItem>
               {STATUSES.map((s) => (
                 <SelectItem key={s} value={s}>
-                  {STATUS_LABELS[s]}
+                  {orderStatusLabel(t, s)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -125,17 +118,19 @@ export function AdminOrdersOverview() {
           {isLoading ? (
             <div className="flex items-center justify-center py-10 text-muted-foreground">
               <Loader2 className="h-5 w-5 me-2 animate-spin" />
-              Loading…
+              {t('loading', 'Loading...')}
             </div>
           ) : rows.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">No orders found.</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {t('no_orders_found', 'No orders found.')}
+            </p>
           ) : (
             <div className="divide-y">
               {rows.map((r: OrderSummary) => (
                 <button
                   key={r.id}
                   onClick={() => setSelectedId(r.id)}
-                  className="flex w-full items-center justify-between gap-3 p-4 text-left hover:bg-muted/40 transition-colors"
+                  className="flex w-full items-center justify-between gap-3 p-4 text-start hover:bg-muted/40 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="font-semibold truncate">
@@ -154,7 +149,7 @@ export function AdminOrdersOverview() {
                         STATUS_COLORS[r.status]
                       }
                     >
-                      {STATUS_LABELS[r.status]}
+                      {orderStatusLabel(t, r.status)}
                     </span>
                   </div>
                 </button>
@@ -178,6 +173,7 @@ function OrderDetailDialog({
   orderId: number;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const { data, isLoading } = useAdminOrder(orderId);
   const markPaid = useMarkOrderPaid();
   const updateOrder = useUpdateOrder();
@@ -191,9 +187,11 @@ function OrderDetailDialog({
   const onMarkPaid = async () => {
     try {
       await markPaid.mutateAsync(orderId);
-      toast.success('Order marked paid — user account provisioned');
+      toast.success(
+        t('order_marked_paid', 'Order marked paid — user account provisioned'),
+      );
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed');
+      toast.error(err?.response?.data?.detail || t('failed_generic', 'Failed'));
     }
   };
 
@@ -206,18 +204,18 @@ function OrderDetailDialog({
           status: status || undefined,
         },
       });
-      toast.success('Order updated');
+      toast.success(t('order_updated', 'Order updated'));
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed');
+      toast.error(err?.response?.data?.detail || t('failed_generic', 'Failed'));
     }
   };
 
   const onCreateShipment = async () => {
     try {
       await createShipment.mutateAsync({ order_id: orderId });
-      toast.success('Shipment created');
+      toast.success(t('shipment_created', 'Shipment created'));
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed');
+      toast.error(err?.response?.data?.detail || t('failed_generic', 'Failed'));
     }
   };
 
@@ -225,7 +223,7 @@ function OrderDetailDialog({
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Order detail</DialogTitle>
+          <DialogTitle>{t('order_detail', 'Order detail')}</DialogTitle>
         </DialogHeader>
         {isLoading || !data ? (
           <div className="flex justify-center py-8">
@@ -235,47 +233,66 @@ function OrderDetailDialog({
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div>
-                <p className="text-xs uppercase text-muted-foreground">Order #</p>
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t('order_number', 'Order #')}
+                </p>
                 <p className="font-mono font-bold">{data.order_number}</p>
               </div>
               <div>
-                <p className="text-xs uppercase text-muted-foreground">Status</p>
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t('status', 'Status')}
+                </p>
                 <span
                   className={
                     'text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ' +
                     STATUS_COLORS[data.status]
                   }
                 >
-                  {STATUS_LABELS[data.status]}
+                  {orderStatusLabel(t, data.status)}
                 </span>
               </div>
               <div>
-                <p className="text-xs uppercase text-muted-foreground">Customer</p>
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t('customer', 'Customer')}
+                </p>
                 <p className="font-semibold">
                   {data.first_name} {data.last_name}
                 </p>
                 <p className="text-xs text-muted-foreground">{data.email}</p>
               </div>
               <div>
-                <p className="text-xs uppercase text-muted-foreground">National code</p>
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t('national_code', 'National code')}
+                </p>
                 <p className="font-semibold">{data.national_code || '—'}</p>
               </div>
               <div>
-                <p className="text-xs uppercase text-muted-foreground">Subscription</p>
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t('subscription', 'Subscription')}
+                </p>
                 <p className="font-semibold">€{data.subscription_amount.toFixed(0)}</p>
               </div>
               <div>
-                <p className="text-xs uppercase text-muted-foreground">Device</p>
+                <p className="text-xs uppercase text-muted-foreground">
+                  {t('device', 'Device')}
+                </p>
                 <p className="font-semibold">
                   {data.device_amount > 0
                     ? `€${data.device_amount.toFixed(0)}`
-                    : 'Not quoted'}
+                    : t('not_quoted', 'Not quoted')}
                 </p>
               </div>
               {data.user_id && (
                 <div>
-                  <p className="text-xs uppercase text-muted-foreground">Account</p>
-                  <p className="font-semibold">User #{data.user_id}</p>
+                  <p className="text-xs uppercase text-muted-foreground">
+                    {t('account', 'Account')}
+                  </p>
+                  <p className="font-semibold">
+                    {t('user_hash', {
+                      defaultValue: 'User #{{id}}',
+                      id: data.user_id,
+                    })}
+                  </p>
                 </div>
               )}
             </div>
@@ -283,13 +300,15 @@ function OrderDetailDialog({
             {data.status === 'pending_payment' && (
               <Button onClick={onMarkPaid} disabled={markPaid.isPending} className="w-full">
                 <CheckCircle2 className="h-4 w-4 me-2" />
-                Mark paid & provision account
+                {t('mark_paid_provision', 'Mark paid & provision account')}
               </Button>
             )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="grid gap-1.5">
-                <Label htmlFor="dev-amt">Device amount (€)</Label>
+                <Label htmlFor="dev-amt">
+                  {t('device_amount_eur', 'Device amount (€)')}
+                </Label>
                 <Input
                   id="dev-amt"
                   type="number"
@@ -299,7 +318,7 @@ function OrderDetailDialog({
                 />
               </div>
               <div className="grid gap-1.5">
-                <Label htmlFor="st">Set status</Label>
+                <Label htmlFor="st">{t('set_status', 'Set status')}</Label>
                 <Select
                   value={status || data.status}
                   onValueChange={(v) => setStatus(v as OrderStatus)}
@@ -310,7 +329,7 @@ function OrderDetailDialog({
                   <SelectContent>
                     {STATUSES.map((s) => (
                       <SelectItem key={s} value={s}>
-                        {STATUS_LABELS[s]}
+                        {orderStatusLabel(t, s)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -318,23 +337,25 @@ function OrderDetailDialog({
               </div>
             </div>
             <Button onClick={onSave} variant="outline" className="w-full">
-              Save changes
+              {t('save_changes', 'Save changes')}
             </Button>
 
             <div className="border-t pt-4 space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-bold flex items-center gap-2">
                   <Truck className="h-4 w-4" />
-                  Shipments
+                  {t('shipments', 'Shipments')}
                 </h4>
                 <Button size="sm" variant="outline" onClick={onCreateShipment}>
-                  Add shipment
+                  {t('add_shipment', 'Add shipment')}
                 </Button>
               </div>
               {shipmentsQ.isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (shipmentsQ.data ?? []).length === 0 ? (
-                <p className="text-xs text-muted-foreground">No shipments yet.</p>
+                <p className="text-xs text-muted-foreground">
+                  {t('no_shipments_yet', 'No shipments yet.')}
+                </p>
               ) : (
                 <div className="space-y-2">
                   {(shipmentsQ.data ?? []).map((s) => (
@@ -363,6 +384,7 @@ function ShipmentRow({
   shipment: import('@/features/orders/api/use-orders').Shipment;
   onUpdate: (payload: import('@/features/orders/api/use-orders').ShipmentUpdatePayload) => Promise<any>;
 }) {
+  const { t } = useTranslation();
   const [status, setStatus] = useState<ShipmentStatus>(shipment.status);
   const [carrier, setCarrier] = useState(shipment.carrier || '');
   const [tracking, setTracking] = useState(shipment.tracking_number || '');
@@ -375,20 +397,24 @@ function ShipmentRow({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="in_transit">In transit</SelectItem>
-            <SelectItem value="delivered">Delivered</SelectItem>
-            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="pending">{t('shipment_pending', 'Pending')}</SelectItem>
+            <SelectItem value="in_transit">
+              {t('shipment_in_transit', 'In transit')}
+            </SelectItem>
+            <SelectItem value="delivered">
+              {t('shipment_delivered', 'Delivered')}
+            </SelectItem>
+            <SelectItem value="failed">{t('shipment_failed', 'Failed')}</SelectItem>
           </SelectContent>
         </Select>
         <Input
-          placeholder="Carrier"
+          placeholder={t('carrier', 'Carrier')}
           value={carrier}
           onChange={(e) => setCarrier(e.target.value)}
           className="text-xs"
         />
         <Input
-          placeholder="Tracking #"
+          placeholder={t('tracking_number', 'Tracking #')}
           value={tracking}
           onChange={(e) => setTracking(e.target.value)}
           className="text-xs"
@@ -406,7 +432,7 @@ function ShipmentRow({
           })
         }
       >
-        Save shipment
+        {t('save_shipment', 'Save shipment')}
       </Button>
     </div>
   );

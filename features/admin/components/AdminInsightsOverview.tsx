@@ -25,7 +25,8 @@ import { useApplicationsReview } from '@/features/applications/api/use-applicati
 
 function moneyEur(amount: number) {
   try {
-    return new Intl.NumberFormat(undefined, {
+    // Fixed locale avoids SSR/client hydration mismatch (React #418).
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'EUR',
       maximumFractionDigits: 0,

@@ -42,11 +42,17 @@ export function AdminChatroomsTable() {
   const [deleteRoom, setDeleteRoom] = useState<AdminRoom | null>(null);
 
   // Debounce the search term so typing doesn't spam the API.
+  // Only reset the list when the trimmed query actually changes — otherwise
+  // the mount debounce clears rows that just loaded (data flash then empty).
   useEffect(() => {
     const t = setTimeout(() => {
-      setSearchTerm(searchInput.trim());
-      setFromToken(undefined);
-      setAccumulated([]);
+      const next = searchInput.trim();
+      setSearchTerm((prev) => {
+        if (prev === next) return prev;
+        setFromToken(undefined);
+        setAccumulated([]);
+        return next;
+      });
     }, SEARCH_DEBOUNCE_MS);
     return () => clearTimeout(t);
   }, [searchInput]);

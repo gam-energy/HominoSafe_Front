@@ -19,6 +19,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useTranslation } from 'react-i18next';
 import {
   Bar,
   BarChart,
@@ -46,6 +47,7 @@ import { useClinics, useDeleteClinic, type Clinic } from '../api/use-clinics';
 import { ClinicDialog } from './ClinicDialog';
 
 export function AdminClinicsTable() {
+  const { t } = useTranslation();
   const { data, isLoading, error, isFetching } = useClinics();
   const del = useDeleteClinic();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -65,10 +67,12 @@ export function AdminClinicsTable() {
     if (!confirmDel) return;
     try {
       await del.mutateAsync(confirmDel.id);
-      toast.success('Clinic deleted');
+      toast.success(t('clinic_deleted', 'Clinic deleted'));
       setConfirmDel(null);
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Failed to delete clinic');
+      toast.error(
+        err?.response?.data?.detail || t('failed_delete_clinic', 'Failed to delete clinic'),
+      );
     }
   };
 
@@ -108,70 +112,89 @@ export function AdminClinicsTable() {
     <div className="flex flex-col gap-4 p-4 sm:p-6">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold">Clinics</h1>
+          <h1 className="text-2xl font-bold">{t('clinics', 'Clinics')}</h1>
           <p className="text-sm text-muted-foreground">
-            Manage clinics, assign doctors and patients, and review yearly billing.
+            {t(
+              'clinics_admin_body',
+              'Manage clinics, assign doctors and patients, and review yearly billing.',
+            )}
           </p>
         </div>
         <Button onClick={onCreate}>
-          <Plus className="h-4 w-4" /> New clinic
+          <Plus className="h-4 w-4" /> {t('new_clinic', 'New clinic')}
         </Button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          label="Clinics"
+          label={t('clinics', 'Clinics')}
           value={kpis.clinics}
-          sub={`${kpis.active} active · ${kpis.inactive} inactive`}
+          sub={t('active_inactive_sub', {
+            defaultValue: '{{active}} active · {{inactive}} inactive',
+            active: kpis.active,
+            inactive: kpis.inactive,
+          })}
           icon={<Building2 className="h-4 w-4" />}
           tone="blue"
         />
         <StatCard
-          label="Doctors"
+          label={t('doctors', 'Doctors')}
           value={kpis.totalDoctors}
-          sub={`${kpis.avgPatientsPerDoctor} patients / doctor`}
+          sub={t('patients_per_doctor', {
+            defaultValue: '{{n}} patients / doctor',
+            n: kpis.avgPatientsPerDoctor,
+          })}
           icon={<Stethoscope className="h-4 w-4" />}
           tone="teal"
         />
         <StatCard
-          label="Patients"
+          label={t('patients', 'Patients')}
           value={kpis.totalPatients}
-          sub={`${kpis.totalCaregivers} caregivers`}
+          sub={t('caregivers_count', {
+            defaultValue: '{{n}} caregivers',
+            n: kpis.totalCaregivers,
+          })}
           icon={<UserRound className="h-4 w-4" />}
           tone="indigo"
         />
         <StatCard
-          label="Members"
+          label={t('members', 'Members')}
           value={kpis.totalDoctors + kpis.totalPatients + kpis.totalCaregivers}
-          sub="Across all clinics"
+          sub={t('across_all_clinics', 'Across all clinics')}
           icon={<Users className="h-4 w-4" />}
           tone="slate"
         />
         <StatCard
-          label="Billed"
+          label={t('billed', 'Billed')}
           value={`€${kpis.totalBilled.toFixed(0)}`}
-          sub={`€${kpis.totalPaid.toFixed(0)} collected`}
+          sub={t('collected_amount_sub', {
+            defaultValue: '€{{amount}} collected',
+            amount: kpis.totalPaid.toFixed(0),
+          })}
           icon={<CreditCard className="h-4 w-4" />}
           tone="emerald"
         />
         <StatCard
-          label="Outstanding"
+          label={t('outstanding', 'Outstanding')}
           value={`€${kpis.totalOutstanding.toFixed(0)}`}
-          sub={`${kpis.unpaid} unpaid years`}
+          sub={t('unpaid_years_count', {
+            defaultValue: '{{n}} unpaid years',
+            n: kpis.unpaid,
+          })}
           icon={<Wallet className="h-4 w-4" />}
           tone="amber"
         />
         <StatCard
-          label="Collection rate"
+          label={t('collection_rate', 'Collection rate')}
           value={`${kpis.collection}%`}
-          sub="Paid / billed"
+          sub={t('paid_over_billed', 'Paid / billed')}
           icon={<Percent className="h-4 w-4" />}
           tone="emerald"
         />
         <StatCard
-          label="Overdue"
+          label={t('overdue', 'Overdue')}
           value={kpis.overdue}
-          sub="Billing records past due"
+          sub={t('billing_past_due', 'Billing records past due')}
           icon={<AlertTriangle className="h-4 w-4" />}
           tone={kpis.overdue > 0 ? 'rose' : 'slate'}
         />
@@ -180,12 +203,14 @@ export function AdminClinicsTable() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Patients by clinic</CardTitle>
+            <CardTitle className="text-base">
+              {t('patients_by_clinic', 'Patients by clinic')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="h-56">
             {(data ?? []).length === 0 ? (
               <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                No clinic data yet.
+                {t('no_clinic_data_yet', 'No clinic data yet.')}
               </p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -212,12 +237,14 @@ export function AdminClinicsTable() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Collection rate by clinic</CardTitle>
+            <CardTitle className="text-base">
+              {t('collection_rate_by_clinic', 'Collection rate by clinic')}
+            </CardTitle>
           </CardHeader>
           <CardContent className="h-56">
             {(data ?? []).length === 0 ? (
               <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                No billing data yet.
+                {t('no_billing_data_yet', 'No billing data yet.')}
               </p>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -262,37 +289,42 @@ export function AdminClinicsTable() {
         <CardHeader className="flex-row items-center justify-between space-y-0">
           <CardTitle className="flex items-center gap-2">
             <Activity className="h-4 w-4 text-muted-foreground" />
-            All clinics
+            {t('all_clinics', 'All clinics')}
           </CardTitle>
           {isFetching && !isLoading && (
-            <span className="text-xs text-muted-foreground">Refreshing…</span>
+            <span className="text-xs text-muted-foreground">
+              {t('refreshing', 'Refreshing…')}
+            </span>
           )}
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (
             <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" /> Loading clinics…
+              <Loader2 className="h-4 w-4 animate-spin" /> {t('loading_clinics', 'Loading clinics…')}
             </div>
           ) : error ? (
             <div className="py-10 text-center text-sm text-destructive">{String(error.message)}</div>
           ) : !data || data.length === 0 ? (
             <div className="py-10 text-center text-sm text-muted-foreground">
-              No clinics yet. Create one to assign doctors and patients.
+              {t(
+                'no_clinics_yet',
+                'No clinics yet. Create one to assign doctors and patients.',
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="border-b bg-muted/40 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                <thead className="border-b bg-muted/40 text-start text-xs uppercase tracking-wider text-muted-foreground">
                   <tr>
-                    <th className="px-4 py-3">Clinic</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-center">Doctors</th>
-                    <th className="px-4 py-3 text-center">Patients</th>
-                    <th className="px-4 py-3 text-center">Caregivers</th>
-                    <th className="px-4 py-3 text-right">Collection</th>
-                    <th className="px-4 py-3 text-right">Outstanding</th>
-                    <th className="px-4 py-3">Latest year</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
+                    <th className="px-4 py-3">{t('clinic', 'Clinic')}</th>
+                    <th className="px-4 py-3">{t('status', 'Status')}</th>
+                    <th className="px-4 py-3 text-center">{t('doctors', 'Doctors')}</th>
+                    <th className="px-4 py-3 text-center">{t('patients', 'Patients')}</th>
+                    <th className="px-4 py-3 text-center">{t('caregivers', 'Caregivers')}</th>
+                    <th className="px-4 py-3 text-end">{t('collection', 'Collection')}</th>
+                    <th className="px-4 py-3 text-end">{t('outstanding', 'Outstanding')}</th>
+                    <th className="px-4 py-3">{t('latest_year', 'Latest year')}</th>
+                    <th className="px-4 py-3 text-end">{t('actions', 'Actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -316,13 +348,17 @@ export function AdminClinicsTable() {
                             String(c.status).toUpperCase() === 'ACTIVE' ? 'default' : 'secondary'
                           }
                         >
-                          {c.status}
+                          {String(c.status).toUpperCase() === 'ACTIVE'
+                            ? t('active', 'Active')
+                            : String(c.status).toUpperCase() === 'INACTIVE'
+                              ? t('inactive', 'Inactive')
+                              : c.status}
                         </Badge>
                       </td>
                       <td className="px-4 py-3 text-center">{c.doctor_count}</td>
                       <td className="px-4 py-3 text-center">{c.patient_count}</td>
                       <td className="px-4 py-3 text-center">{c.caregiver_count ?? 0}</td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end">
                         <span className="inline-flex items-center gap-1">
                           {(c.collection_rate ?? 0) >= 80 ? (
                             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
@@ -330,7 +366,7 @@ export function AdminClinicsTable() {
                           {c.collection_rate ?? 0}%
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end">
                         <span
                           className={
                             c.billing_outstanding > 0
@@ -345,13 +381,17 @@ export function AdminClinicsTable() {
                         {c.latest_billing_year ? (
                           <span className="capitalize">
                             {c.latest_billing_year}
-                            {c.latest_billing_status ? ` · ${c.latest_billing_status}` : ''}
+                            {c.latest_billing_status
+                              ? ` · ${t(String(c.latest_billing_status), {
+                                  defaultValue: String(c.latest_billing_status),
+                                })}`
+                              : ''}
                           </span>
                         ) : (
                           '—'
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-end">
                         <div className="inline-flex items-center gap-1">
                           <Button variant="ghost" size="sm" onClick={() => onEdit(c)}>
                             <Pencil className="h-3.5 w-3.5" />
@@ -363,8 +403,8 @@ export function AdminClinicsTable() {
                             disabled={(c.member_count ?? c.doctor_count + c.patient_count) > 0}
                             title={
                               (c.member_count ?? 0) > 0
-                                ? 'Remove members first'
-                                : 'Delete clinic'
+                                ? t('remove_members_first', 'Remove members first')
+                                : t('delete_clinic', 'Delete clinic')
                             }
                           >
                             <Trash2 className="h-3.5 w-3.5 text-destructive" />
@@ -385,18 +425,22 @@ export function AdminClinicsTable() {
       <Dialog open={!!confirmDel} onOpenChange={(o) => !o && setConfirmDel(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Delete clinic</DialogTitle>
+            <DialogTitle>{t('delete_clinic', 'Delete clinic')}</DialogTitle>
             <DialogDescription>
-              This will permanently delete &quot;{confirmDel?.name}&quot; and its billing records.
-              Members will be unassigned.
+              {t('delete_clinic_confirm', {
+                defaultValue:
+                  'This will permanently delete "{{name}}" and its billing records. Members will be unassigned.',
+                name: confirmDel?.name ?? '',
+              })}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmDel(null)}>
-              Cancel
+              {t('cancel', 'Cancel')}
             </Button>
             <Button variant="destructive" onClick={onConfirmDelete} disabled={del.isPending}>
-              {del.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Delete
+              {del.isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}{' '}
+              {t('delete', 'Delete')}
             </Button>
           </DialogFooter>
         </DialogContent>
